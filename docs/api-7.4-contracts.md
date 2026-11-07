@@ -2,7 +2,7 @@
 
 This matrix covers every existing SDK namespace with a `Get` method: 52 collection methods and four singleton methods. It aligns the existing public query fields and selectors with Zabbix 7.4; it does not add every selector available on the server. `Client.Call` remains the escape hatch for additional API capabilities.
 
-Evidence is the official 7.4 API manual and Zabbix server source pinned to [`0de072729e7e8dffd72f4176ee019ef0efade637`](https://github.com/zabbix/zabbix/tree/0de072729e7e8dffd72f4176ee019ef0efade637). Each namespace below links both sources. Source takes precedence where the manual omits a supported field. A read-only probe against Zabbix 7.4.16 exercised all 52 collection methods with their exposed selectors and all four singletons; populated and empty relation shapes also have HTTP fixture coverage.
+Evidence is the official 7.4 API manual and Zabbix server source pinned to [`0de072729e7e8dffd72f4176ee019ef0efade637`](https://github.com/zabbix/zabbix/tree/0de072729e7e8dffd72f4176ee019ef0efade637). Each namespace below links both sources. Source takes precedence where the manual omits a supported field. Read-only probes against Zabbix 7.4.16 exercised all 52 collection methods with their exposed selectors, all four singletons, and all 51 Count/50 GetMap capabilities plus both global macro variants; populated and empty relation shapes also have HTTP fixture coverage.
 
 ## Result shapes
 
