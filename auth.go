@@ -86,7 +86,7 @@ type Session struct {
 	UserIP        string `json:"userip"`
 	DebugMode     int    `json:"debug_mode"`
 	GUIAccess     string `json:"gui_access"`
-	MfaID         int    `json:"mfaid"`
+	MFAID         int    `json:"mfaid"`
 	Deprovisioned bool   `json:"deprovisioned"`
 	AuthType      int    `json:"auth_type"`
 	SessionID     string `json:"sessionid"`

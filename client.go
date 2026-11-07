@@ -28,7 +28,7 @@ const (
 	jsonrpcVersion          = "2.0"
 	defaultTimeout          = 30 * time.Second
 	defaultIdleTimeout      = 90 * time.Second
-	defaultUserAgent        = "gozabbix"
+	defaultUserAgent        = "go-zabbix"
 	defaultMaxResponseBytes = 64 << 20 // 64 MiB
 )
 
@@ -97,14 +97,14 @@ func (c *Client) CloseIdleConnections() {
 }
 
 type rpcRequest struct {
-	Jsonrpc string `json:"jsonrpc"`
+	JSONRPC string `json:"jsonrpc"`
 	Method  string `json:"method"`
 	Params  any    `json:"params"`
 	ID      int64  `json:"id"`
 }
 
 type rpcResponse struct {
-	Jsonrpc string          `json:"jsonrpc"`
+	JSONRPC string          `json:"jsonrpc"`
 	Result  json.RawMessage `json:"result"`
 	Error   json.RawMessage `json:"error"`
 	ID      *int64          `json:"id"`
@@ -140,7 +140,7 @@ func (c *Client) doWithToken(ctx context.Context, method string, params, out any
 	if params == nil {
 		params = []any{}
 	}
-	reqBody := rpcRequest{Jsonrpc: jsonrpcVersion, Method: method, Params: params, ID: c.id.Add(1)}
+	reqBody := rpcRequest{JSONRPC: jsonrpcVersion, Method: method, Params: params, ID: c.id.Add(1)}
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return requestError(method, ErrorInvalidParams, err)
@@ -203,7 +203,7 @@ func (c *Client) doWithToken(ctx context.Context, method string, params, out any
 }
 
 func (resp rpcResponse) validate(requestID int64) error {
-	if resp.Jsonrpc != jsonrpcVersion {
+	if resp.JSONRPC != jsonrpcVersion {
 		return errors.New("zabbix: invalid JSON-RPC version")
 	}
 	if resp.ID == nil || *resp.ID != requestID {
