@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"reflect"
 	"time"
 )
 
@@ -86,6 +87,8 @@ func (cfg clientConfig) validate() error {
 	switch {
 	case cfg.httpSet && cfg.httpClient == nil:
 		return errors.New("zabbix: HTTP client must not be nil")
+	case cfg.httpClient != nil && isNilTransport(cfg.httpClient.Transport):
+		return errors.New("zabbix: HTTP transport must not contain a typed nil")
 	case cfg.timeoutSet && cfg.timeout < 0:
 		return errors.New("zabbix: timeout must not be negative")
 	case cfg.httpClient != nil && !cfg.timeoutSet && cfg.httpClient.Timeout < 0:
@@ -101,6 +104,21 @@ func (cfg clientConfig) validate() error {
 		return validateToken(cfg.credentials.token)
 	}
 	return nil
+}
+
+// A nil interface selects http.DefaultTransport; a typed nil would instead be
+// invoked by http.Client. Only nil-capable concrete kinds support IsNil.
+func isNilTransport(transport http.RoundTripper) bool {
+	if transport == nil {
+		return false
+	}
+	value := reflect.ValueOf(transport)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }
 
 func (cfg clientConfig) buildHTTPClient() (*http.Client, *http.Transport, error) {

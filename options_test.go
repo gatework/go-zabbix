@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -132,6 +133,41 @@ func TestCustomTransportRejectsTLSOptions(t *testing.T) {
 			if hc.Transport != tr {
 				t.Fatal("failed construction mutated a borrowed client")
 			}
+		}
+	}
+}
+
+type mapTransport map[string]string
+type sliceTransport []string
+type chanTransport chan struct{}
+type valueTransport struct{}
+
+func (mapTransport) RoundTrip(*http.Request) (*http.Response, error)   { panic("unexpected request") }
+func (sliceTransport) RoundTrip(*http.Request) (*http.Response, error) { panic("unexpected request") }
+func (chanTransport) RoundTrip(*http.Request) (*http.Response, error)  { panic("unexpected request") }
+func (valueTransport) RoundTrip(*http.Request) (*http.Response, error) { panic("unexpected request") }
+
+func TestNewRejectsTypedNilTransports(t *testing.T) {
+	for _, tr := range []http.RoundTripper{
+		(*http.Transport)(nil), roundTripFunc(nil), mapTransport(nil), sliceTransport(nil), chanTransport(nil),
+	} {
+		t.Run(reflect.TypeOf(tr).String(), func(t *testing.T) {
+			hc := &http.Client{Transport: tr, Timeout: time.Minute}
+			before := *hc
+			c, err := New("https://example.invalid/", WithHTTPClient(hc))
+			if c != nil || err == nil {
+				t.Fatal("constructor accepted a typed-nil transport")
+			}
+			if !reflect.DeepEqual(*hc, before) {
+				t.Fatal("failed construction modified the borrowed HTTP client")
+			}
+		})
+	}
+	for _, tr := range []http.RoundTripper{nil, valueTransport{}} {
+		hc := &http.Client{Transport: tr}
+		c, err := New("https://example.invalid/", WithHTTPClient(hc))
+		if err != nil || c.httpClient.Transport != tr || hc.Transport != tr {
+			t.Fatal("nil default or non-nilable custom transport was changed or rejected")
 		}
 	}
 }
