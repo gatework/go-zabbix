@@ -212,6 +212,28 @@ func TestNamespaceSpecificQueryArguments(t *testing.T) {
 	})
 }
 
+func TestUserGroupQueryDecodesSplitRights(t *testing.T) {
+	// CUserGroup::addRelatedTemplateGroupRights uses templategroup_rights;
+	// this spelling is also returned by a populated Zabbix 7.4.16 fixture.
+	c := queryFixtureClient(t, "usergroup.get",
+		`{"usrgrpids":["18"],"output":["usrgrpid"],"selectHostGroupRights":"extend","selectTemplateGroupRights":"extend"}`,
+		`[{"usrgrpid":"18","hostgroup_rights":[{"id":"42","permission":"2"}],"templategroup_rights":[{"id":"43","permission":"2"}]}]`)
+	groups, err := c.UserGroup().Get(context.Background(), UserGroupGetParams{
+		UsrGrpIDs: []string{"18"}, Output: []string{"usrgrpid"},
+		SelectHostGroupRights: "extend", SelectTemplateGroupRights: "extend",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(groups) != 1 || len(groups[0].HostGroupRights) != 1 || len(groups[0].TemplateGroupRights) != 1 {
+		t.Fatalf("split rights = %+v", groups)
+	}
+	if groups[0].HostGroupRights[0] != (UserGroupRight{ID: "42", Permission: "2"}) ||
+		groups[0].TemplateGroupRights[0] != (UserGroupRight{ID: "43", Permission: "2"}) {
+		t.Fatalf("split rights values = %+v", groups[0])
+	}
+}
+
 func TestScriptQueriesUseObjectArrays(t *testing.T) {
 	empty := ""
 	t.Run("hosts", func(t *testing.T) {

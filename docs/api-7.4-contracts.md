@@ -208,7 +208,7 @@ The response field is the Go field and its JSON wire key. A `Relation[T]` is use
 | `usergroup` | `selectUsers` | no | `UserGroup.Users` (`users`): `[]User` |
 | `usergroup` | `selectTagFilters` | no | `UserGroup.TagFilters` (`tag_filters`): `[]UserGroupTagFilter` |
 | `usergroup` | `selectHostGroupRights` | no | `UserGroup.HostGroupRights` (`hostgroup_rights`): `[]UserGroupRight` |
-| `usergroup` | `selectTemplateGroupRights` | no | `UserGroup.TemplateGroupRights` (`template_group_rights`): `[]UserGroupRight` |
+| `usergroup` | `selectTemplateGroupRights` | no | `UserGroup.TemplateGroupRights` (`templategroup_rights`): `[]UserGroupRight` |
 | `valuemap` | `selectMappings` | yes | `ValueMap.Mappings` (`mappings`): `Relation[ValueMapMapping]` |
 
 `image.get` additionally exposes boolean `select_image`, returning the base64 string in `Image.Image`; it is not a string/field-list selector and does not accept count. `user.get` exposes boolean `getAccess`; `GUIAccess`, `DebugMode`, and `UsersStatus` use `json.Number` because computed defaults are JSON numbers and stored values are strings. `Service.ReadOnly` is a JSON boolean. `Role.Rules` is a selected typed `RoleRules` object; its module IDs use `json.Number` because PHP array keys can produce numeric IDs. These representations are verified against the 7.4 source and fixtures.
@@ -219,7 +219,7 @@ The response field is the Go field and its JSON wire key. A `Relation[T]` is use
 - `HANodeGetParams.Filter["status"]` replaces an unsupported top-level status option. `Connector` data type and `Map` expandproblem likewise belong in property filters, not top-level query options.
 - `TrendGetParams` contains only output, item IDs, time bounds and limit. Zabbix 7.4 does not support trend sorting, searching, editable or preservekeys; server SQL provides no ordering guarantee. `History` also has no GetMap variant.
 - `Task` has Get and GetMap, with output and task IDs, but no Count, filters, sorting, limit or selectLastValues.
-- `UserGroup` rights are split into `HostGroupRights` and `TemplateGroupRights`, with `selectHostGroupRights` and `selectTemplateGroupRights`. The old rights/selectRights pair is absent in 7.4.
+- `UserGroup` rights are split into `HostGroupRights` and `TemplateGroupRights`, with `selectHostGroupRights` and `selectTemplateGroupRights`. The wire result keys are `hostgroup_rights` and `templategroup_rights` (there is no underscore between template and group). The old rights/selectRights pair is absent in 7.4.
 - `Tag` is a returned tag, while `TagFilter` carries the integer query operator. Connector/service/SLA/maintenance tag objects retain their distinct protocol meanings.
 - `HostInterface.Details` accepts an object or empty `[]` for non-SNMP interfaces. It rejects null, scalar values and non-empty arrays, and does not leave partial updates behind.
 - `TokenGetParams.ValidAt` and `ExpiredAt` replace the unsupported `valid` field. Timestamp pointers allow 0 to be transmitted.

@@ -133,7 +133,7 @@ func TestEveryExposedSelectorHasAResultField(t *testing.T) {
 		{"usergroup.get", "selectUsers", "users", false, UserGroupGetParams{}, UserGroup{}, `[{"userid":"1"}]`},
 		{"usergroup.get", "selectTagFilters", "tag_filters", false, UserGroupGetParams{}, UserGroup{}, `[{"groupid":"2","tag":"env","value":"prod"}]`},
 		{"usergroup.get", "selectHostGroupRights", "hostgroup_rights", false, UserGroupGetParams{}, UserGroup{}, `[{"id":"3","permission":"2"}]`},
-		{"usergroup.get", "selectTemplateGroupRights", "template_group_rights", false, UserGroupGetParams{}, UserGroup{}, `[{"id":"4","permission":"3"}]`},
+		{"usergroup.get", "selectTemplateGroupRights", "templategroup_rights", false, UserGroupGetParams{}, UserGroup{}, `[{"id":"4","permission":"3"}]`},
 		{"valuemap.get", "selectMappings", "mappings", true, ValueMapGetParams{}, ValueMap{}, `[{"type":"0","value":"0","newvalue":"down"}]`},
 	}
 	for _, tt := range tests {

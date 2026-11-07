@@ -23,10 +23,10 @@ type UserGroup struct {
 	TagFilters          []UserGroupTagFilter `json:"tag_filters,omitempty"`
 	Users               []User               `json:"users,omitempty"`
 	HostGroupRights     []UserGroupRight     `json:"hostgroup_rights,omitempty"`
-	TemplateGroupRights []UserGroupRight     `json:"template_group_rights,omitempty"`
+	TemplateGroupRights []UserGroupRight     `json:"templategroup_rights,omitempty"`
 }
 
-// UserGroupRight is a host-group permission entry for a user group.
+// UserGroupRight grants a user group permission on a host group or template group.
 type UserGroupRight struct {
 	Permission string `json:"permission,omitempty"`
 	ID         string `json:"id,omitempty"`
