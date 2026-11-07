@@ -67,7 +67,9 @@ func TestAPIInfoVersionUnauthenticated(t *testing.T) {
 	c, got := mockServer(t, func(req rpcRequest) (any, *APIError) {
 		return "7.4.0", nil
 	})
-	c.SetToken("should-not-be-sent")
+	if err := c.SetAPIToken("should-not-be-sent"); err != nil {
+		t.Fatal(err)
+	}
 
 	v, err := c.APIInfo().Version(context.Background())
 	if err != nil {
@@ -93,8 +95,8 @@ func TestLoginStoresTokenAndSendsBearer(t *testing.T) {
 	if err := c.Login(context.Background(), "Admin", "zabbix"); err != nil {
 		t.Fatalf("Login: %v", err)
 	}
-	if c.Token() != token {
-		t.Fatalf("token = %q, want %q", c.Token(), token)
+	if state, _ := c.authSnapshot(); state.token != token || state.kind != credentialSession {
+		t.Fatal("login did not install session credentials")
 	}
 
 	// A subsequent call must carry the bearer token.
@@ -123,8 +125,8 @@ func TestAPIErrorReturned(t *testing.T) {
 	if apiErr.Code != -32602 {
 		t.Fatalf("code = %d, want -32602", apiErr.Code)
 	}
-	if !strings.Contains(apiErr.Error(), "Not authorised") {
-		t.Fatalf("error string missing data: %q", apiErr.Error())
+	if apiErr.Data != "Not authorised." || strings.Contains(err.Error(), "Not authorised") || strings.Contains(apiErr.Error(), "Not authorised") {
+		t.Fatal("API data was lost or included in default error text")
 	}
 }
 
@@ -216,11 +218,13 @@ func TestLogoutClearsToken(t *testing.T) {
 	c, _ := mockServer(t, func(req rpcRequest) (any, *APIError) {
 		return true, nil
 	})
-	c.SetToken("tok")
-	if err := c.User().Logout(context.Background()); err != nil {
+	if err := c.SetSessionToken("tok"); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Logout(context.Background()); err != nil {
 		t.Fatalf("Logout: %v", err)
 	}
-	if c.Authenticated() {
+	if c.HasCredentials() {
 		t.Fatal("token should be cleared after logout")
 	}
 }
@@ -229,7 +233,9 @@ func TestEventAcknowledge(t *testing.T) {
 	c, got := mockServer(t, func(req rpcRequest) (any, *APIError) {
 		return map[string][]string{"eventids": {"42"}}, nil
 	})
-	c.SetToken("tok")
+	if err := c.SetAPIToken("tok"); err != nil {
+		t.Fatal(err)
+	}
 
 	ids, err := c.Event().Acknowledge(context.Background(), EventAcknowledgeParams{
 		EventIDs: []string{"42"},
@@ -247,12 +253,13 @@ func TestEventAcknowledge(t *testing.T) {
 	}
 }
 
-func TestWithTokenOption(t *testing.T) {
-	c, err := New("https://example.invalid/api_jsonrpc.php", WithToken("pretoken"))
+func TestWithAPITokenOption(t *testing.T) {
+	c, err := New("https://example.invalid/api_jsonrpc.php", WithAPIToken("pretoken"))
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if !c.Authenticated() || c.Token() != "pretoken" {
-		t.Fatalf("WithToken did not set token")
+	state, _ := c.authSnapshot()
+	if !c.HasCredentials() || state.token != "pretoken" || state.kind != credentialAPI {
+		t.Fatalf("WithAPIToken did not set token")
 	}
 }

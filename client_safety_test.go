@@ -148,7 +148,7 @@ func TestRedirectsAreRefusedWithoutMutatingInjectedClient(t *testing.T) {
 				redirectCalls.Add(1)
 				return nil
 			}}
-			opts := []Option{WithToken("token-secret")}
+			opts := []Option{WithAPIToken("token-secret")}
 			if injected {
 				opts = append(opts, WithHTTPClient(httpClient))
 			}
@@ -229,7 +229,7 @@ func TestExistingBearerOptionsAndPayloadFreeLogging(t *testing.T) {
 		_, _ = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":{"counter":9007199254740993,"name":"response-secret"}}`, req["id"])
 	}))
 	defer server.Close()
-	client, err := New(server.URL, WithToken("token-secret"), WithTimeout(20*time.Second), WithMaxResponseBytes(4<<20),
+	client, err := New(server.URL, WithAPIToken("token-secret"), WithTimeout(20*time.Second), WithMaxResponseBytes(4<<20),
 		WithLogger(slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))))
 	if err != nil {
 		t.Fatal(err)
@@ -293,7 +293,7 @@ func TestConcurrentCallsKeepDistinctResponseIDs(t *testing.T) {
 			t.Errorf("duplicate id %d", req.ID)
 		}
 		return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":[]}`, req.ID)
-	}, WithToken("token"))
+	}, WithAPIToken("token"))
 	var wg sync.WaitGroup
 	for i := 0; i < 24; i++ {
 		wg.Add(1)
