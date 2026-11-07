@@ -1,11 +1,11 @@
-// Package gozabbix is a client library for the Zabbix JSON-RPC API.
+// Package zabbix is a client library for the Zabbix JSON-RPC API.
 //
 // It targets Zabbix 7.4 and authenticates using the HTTP `Authorization: Bearer`
 // header, which works both for session tokens obtained via user.login and for
 // pre-created API tokens.
 //
 // Author: Resul Çelik 2024
-package gozabbix
+package zabbix
 
 import (
 	"bytes"

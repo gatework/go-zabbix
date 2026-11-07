@@ -1,6 +1,6 @@
 //go:build integration
 
-package gozabbix
+package zabbix
 
 import "testing"
 

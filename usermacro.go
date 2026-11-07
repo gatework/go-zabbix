@@ -1,4 +1,4 @@
-package gozabbix
+package zabbix
 
 import "context"
 

@@ -1,4 +1,4 @@
-package gozabbix
+package zabbix
 
 // GetParams holds the query parameters common to every Zabbix `*.get` method.
 // Namespace-specific parameter structs embed it and add their own filters.

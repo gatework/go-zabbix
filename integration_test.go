@@ -1,12 +1,12 @@
 //go:build integration
 
-// Package gozabbix integration tests run against a live Zabbix server.
+// Package zabbix integration tests run against a live Zabbix server.
 //
 // Start the stack with `docker compose up -d` and run:
 //
 //	go test -tags=integration -v \
 //	  -zbx.url=http://localhost:8080/api_jsonrpc.php -zbx.user=Admin -zbx.pass=zabbix
-package gozabbix
+package zabbix
 
 import (
 	"context"

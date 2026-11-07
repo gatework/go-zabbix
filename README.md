@@ -39,8 +39,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	c, err := gozabbix.New("https://zabbix.example.com/api_jsonrpc.php",
-		gozabbix.WithTimeout(15*time.Second))
+	c, err := zabbix.New("https://zabbix.example.com/api_jsonrpc.php",
+		zabbix.WithTimeout(15*time.Second))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,8 +50,8 @@ func main() {
 	}
 	defer c.User().Logout(context.Background())
 
-	hosts, err := c.Host().Get(ctx, gozabbix.HostGetParams{
-		GetParams: gozabbix.GetParams{
+	hosts, err := c.Host().Get(ctx, zabbix.HostGetParams{
+		GetParams: zabbix.GetParams{
 			Output: []string{"hostid", "host", "name", "status"},
 			Limit:  10,
 		},
@@ -70,7 +70,7 @@ func main() {
 For service accounts, create an API token in the Zabbix UI and skip `Login`:
 
 ```go
-c, _ := gozabbix.New(url, gozabbix.WithToken("your-api-token"))
+c, _ := zabbix.New(url, zabbix.WithToken("your-api-token"))
 version, _ := c.APIInfo().Version(ctx) // apiinfo.version is always unauthenticated
 ```
 
@@ -79,7 +79,7 @@ version, _ := c.APIInfo().Version(ctx) // apiinfo.version is always unauthentica
 Transport failures and Zabbix API errors are distinguishable:
 
 ```go
-_, err := c.Host().Get(ctx, gozabbix.HostGetParams{})
+_, err := c.Host().Get(ctx, zabbix.HostGetParams{})
 if apiErr, ok := gozabbix.AsAPIError(err); ok {
 	fmt.Println("zabbix rejected the request:", apiErr.Code, apiErr.Message)
 }
