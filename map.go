@@ -9,7 +9,7 @@ type MapService struct{ client *Client }
 func (c *Client) Map() *MapService { return &MapService{c} }
 
 // Map object (network map / sysmap).
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/map/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/map/object
 type Map struct {
 	SysmapID           string `json:"sysmapid,omitempty"`
 	Name               string `json:"name,omitempty"`
@@ -41,11 +41,11 @@ type Map struct {
 
 	Selements  []MapSelement  `json:"selements,omitempty"`
 	Links      []MapLink      `json:"links,omitempty"`
-	Urls       []MapURL       `json:"urls,omitempty"`
+	URLs       []MapURL       `json:"urls,omitempty"`
 	Users      []MapUser      `json:"users,omitempty"`
 	UserGroups []MapUserGroup `json:"userGroups,omitempty"`
-	Shapes     any            `json:"shapes,omitempty"`
-	Lines      any            `json:"lines,omitempty"`
+	Shapes     []MapShape     `json:"shapes,omitempty"`
+	Lines      []MapLine      `json:"lines,omitempty"`
 }
 
 // MapSelement is a map element (icon) placed on a map.
@@ -100,30 +100,62 @@ type MapUserGroup struct {
 }
 
 // MapGetParams are the parameters for map.get.
+// MapGetParams queries the list form of map.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type MapGetParams struct {
-	GetParams
-	SysmapIDs        []string `json:"sysmapids,omitempty"`
-	UserIDs          []string `json:"userids,omitempty"`
-	Expandproblem    *bool    `json:"expandproblem,omitempty"`
-	SelectSelements  any      `json:"selectSelements,omitempty"`
-	SelectLinks      any      `json:"selectLinks,omitempty"`
-	SelectUrls       any      `json:"selectUrls,omitempty"`
-	SelectUsers      any      `json:"selectUsers,omitempty"`
-	SelectUserGroups any      `json:"selectUserGroups,omitempty"`
-	SelectShapes     any      `json:"selectShapes,omitempty"`
-	SelectLines      any      `json:"selectLines,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	SysmapIDs              []string       `json:"sysmapids,omitzero"`
+	UserIDs                []string       `json:"userids,omitzero"`
+	SelectSelements        any            `json:"selectSelements,omitempty"`
+	SelectLinks            any            `json:"selectLinks,omitempty"`
+	SelectURLs             any            `json:"selectUrls,omitempty"`
+	SelectUsers            any            `json:"selectUsers,omitempty"`
+	SelectUserGroups       any            `json:"selectUserGroups,omitempty"`
+	SelectShapes           any            `json:"selectShapes,omitempty"`
+	SelectLines            any            `json:"selectLines,omitempty"`
 }
 
 // Get retrieves maps matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/map/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/map/get
 func (s *MapService) Get(ctx context.Context, params MapGetParams) ([]Map, error) {
-	var out []Map
-	err := s.client.Call(ctx, "map.get", params, &out)
-	return out, err
+	return getList[Map](ctx, s.client, "map.get", params)
+}
+
+// MapCountParams contains the filters for map.get counts.
+type MapCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	SysmapIDs              []string       `json:"sysmapids,omitzero"`
+	UserIDs                []string       `json:"userids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *MapService) Count(ctx context.Context, params MapCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "map.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *MapService) GetMap(ctx context.Context, params MapGetParams) (map[string]Map, error) {
+	return getMap[Map](ctx, s.client, "map.get", params)
 }
 
 // Create creates maps and returns the new map ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/map/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/map/create
 func (s *MapService) Create(ctx context.Context, maps ...Map) ([]string, error) {
 	var res struct {
 		IDs []string `json:"sysmapids"`
@@ -133,7 +165,7 @@ func (s *MapService) Create(ctx context.Context, maps ...Map) ([]string, error) 
 }
 
 // Update updates maps and returns the affected map ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/map/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/map/update
 func (s *MapService) Update(ctx context.Context, maps ...Map) ([]string, error) {
 	var res struct {
 		IDs []string `json:"sysmapids"`
@@ -143,11 +175,45 @@ func (s *MapService) Update(ctx context.Context, maps ...Map) ([]string, error) 
 }
 
 // Delete deletes maps by id and returns the deleted map ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/map/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/map/delete
 func (s *MapService) Delete(ctx context.Context, sysmapIDs ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"sysmapids"`
 	}
 	err := s.client.Call(ctx, "map.delete", sysmapIDs, &res)
 	return res.IDs, err
+}
+
+// MapShape is a shape selected by selectShapes.
+type MapShape struct {
+	SysmapShapeID   string `json:"sysmap_shapeid,omitempty"`
+	Type            string `json:"type,omitempty"`
+	X               string `json:"x,omitempty"`
+	Y               string `json:"y,omitempty"`
+	Width           string `json:"width,omitempty"`
+	Height          string `json:"height,omitempty"`
+	Text            string `json:"text,omitempty"`
+	Font            string `json:"font,omitempty"`
+	FontSize        string `json:"font_size,omitempty"`
+	FontColor       string `json:"font_color,omitempty"`
+	TextHAlign      string `json:"text_halign,omitempty"`
+	TextVAlign      string `json:"text_valign,omitempty"`
+	BorderType      string `json:"border_type,omitempty"`
+	BorderWidth     string `json:"border_width,omitempty"`
+	BorderColor     string `json:"border_color,omitempty"`
+	BackgroundColor string `json:"background_color,omitempty"`
+	ZIndex          string `json:"zindex,omitempty"`
+}
+
+// MapLine is a line selected by selectLines.
+type MapLine struct {
+	SysmapShapeID string `json:"sysmap_shapeid,omitempty"`
+	X1            string `json:"x1,omitempty"`
+	Y1            string `json:"y1,omitempty"`
+	X2            string `json:"x2,omitempty"`
+	Y2            string `json:"y2,omitempty"`
+	LineType      string `json:"line_type,omitempty"`
+	LineWidth     string `json:"line_width,omitempty"`
+	LineColor     string `json:"line_color,omitempty"`
+	ZIndex        string `json:"zindex,omitempty"`
 }

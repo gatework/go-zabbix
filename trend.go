@@ -9,7 +9,7 @@ type TrendService struct{ client *Client }
 func (c *Client) Trend() *TrendService { return &TrendService{c} }
 
 // Trend is an hourly trend value for an item.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/trend/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/trend/object
 type Trend struct {
 	ItemID   string `json:"itemid,omitempty"`
 	Clock    string `json:"clock,omitempty"`
@@ -20,17 +20,30 @@ type Trend struct {
 }
 
 // TrendGetParams are the parameters for trend.get.
+// TrendGetParams queries the list form of trend.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type TrendGetParams struct {
-	GetParams
-	ItemIDs  []string `json:"itemids,omitempty"`
-	TimeFrom int64    `json:"time_from,omitempty"`
-	TimeTill int64    `json:"time_till,omitempty"`
+	Output   any      `json:"output,omitempty"`
+	Limit    int      `json:"limit,omitempty"`
+	ItemIDs  []string `json:"itemids,omitzero"`
+	TimeFrom *int64   `json:"time_from,omitempty"`
+	TimeTill *int64   `json:"time_till,omitempty"`
 }
 
 // Get retrieves trend values matching params. The trend API is read-only.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/trend/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/trend/get
 func (s *TrendService) Get(ctx context.Context, params TrendGetParams) ([]Trend, error) {
-	var out []Trend
-	err := s.client.Call(ctx, "trend.get", params, &out)
-	return out, err
+	return getList[Trend](ctx, s.client, "trend.get", params)
+}
+
+// TrendCountParams contains the filters for trend.get counts.
+type TrendCountParams struct {
+	ItemIDs  []string `json:"itemids,omitzero"`
+	TimeFrom *int64   `json:"time_from,omitempty"`
+	TimeTill *int64   `json:"time_till,omitempty"`
+}
+
+// Count returns the number of objects matching params.
+func (s *TrendService) Count(ctx context.Context, params TrendCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "trend.get", params)
 }

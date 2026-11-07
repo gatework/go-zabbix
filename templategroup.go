@@ -9,27 +9,64 @@ type TemplateGroupService struct{ client *Client }
 func (c *Client) TemplateGroup() *TemplateGroupService { return &TemplateGroupService{c} }
 
 // TemplateGroupGetParams are the parameters for templategroup.get.
+// TemplateGroupGetParams queries the list form of templategroup.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type TemplateGroupGetParams struct {
-	GetParams
-	GroupIDs        []string `json:"groupids,omitempty"`
-	TemplateIDs     []string `json:"templateids,omitempty"`
-	GraphIDs        []string `json:"graphids,omitempty"`
-	TriggerIDs      []string `json:"triggerids,omitempty"`
-	WithItems       bool     `json:"with_items,omitempty"`
-	WithTriggers    bool     `json:"with_triggers,omitempty"`
-	SelectTemplates any      `json:"selectTemplates,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	TemplateIDs            []string       `json:"templateids,omitzero"`
+	GraphIDs               []string       `json:"graphids,omitzero"`
+	TriggerIDs             []string       `json:"triggerids,omitzero"`
+	WithItems              bool           `json:"with_items,omitempty"`
+	WithTriggers           bool           `json:"with_triggers,omitempty"`
+	SelectTemplates        any            `json:"selectTemplates,omitempty"`
 }
 
 // Get retrieves template groups matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/templategroup/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/templategroup/get
 func (s *TemplateGroupService) Get(ctx context.Context, params TemplateGroupGetParams) ([]TemplateGroup, error) {
-	var out []TemplateGroup
-	err := s.client.Call(ctx, "templategroup.get", params, &out)
-	return out, err
+	return getList[TemplateGroup](ctx, s.client, "templategroup.get", params)
+}
+
+// TemplateGroupCountParams contains the filters for templategroup.get counts.
+type TemplateGroupCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	TemplateIDs            []string       `json:"templateids,omitzero"`
+	GraphIDs               []string       `json:"graphids,omitzero"`
+	TriggerIDs             []string       `json:"triggerids,omitzero"`
+	WithItems              bool           `json:"with_items,omitempty"`
+	WithTriggers           bool           `json:"with_triggers,omitempty"`
+}
+
+// Count returns the number of objects matching params.
+func (s *TemplateGroupService) Count(ctx context.Context, params TemplateGroupCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "templategroup.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *TemplateGroupService) GetMap(ctx context.Context, params TemplateGroupGetParams) (map[string]TemplateGroup, error) {
+	return getMap[TemplateGroup](ctx, s.client, "templategroup.get", params)
 }
 
 // Create creates template groups and returns the new group ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/templategroup/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/templategroup/create
 func (s *TemplateGroupService) Create(ctx context.Context, groups ...TemplateGroup) ([]string, error) {
 	var res struct {
 		IDs []string `json:"groupids"`
@@ -39,7 +76,7 @@ func (s *TemplateGroupService) Create(ctx context.Context, groups ...TemplateGro
 }
 
 // Update updates template groups and returns the affected group ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/templategroup/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/templategroup/update
 func (s *TemplateGroupService) Update(ctx context.Context, groups ...TemplateGroup) ([]string, error) {
 	var res struct {
 		IDs []string `json:"groupids"`
@@ -49,7 +86,7 @@ func (s *TemplateGroupService) Update(ctx context.Context, groups ...TemplateGro
 }
 
 // Delete deletes template groups by id and returns the deleted group ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/templategroup/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/templategroup/delete
 func (s *TemplateGroupService) Delete(ctx context.Context, groupIDs ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"groupids"`

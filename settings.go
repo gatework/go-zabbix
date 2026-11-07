@@ -11,7 +11,7 @@ func (c *Client) Settings() *SettingsService { return &SettingsService{c} }
 
 // Settings object (global GUI/frontend settings). This is a representative subset of
 // the full parameter list.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/settings/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/settings/object
 type Settings struct {
 	DefaultLang          string `json:"default_lang,omitempty"`
 	DefaultTimezone      string `json:"default_timezone,omitempty"`
@@ -35,15 +35,13 @@ type Settings struct {
 }
 
 // Get retrieves the global settings.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/settings/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/settings/get
 func (s *SettingsService) Get(ctx context.Context) (*Settings, error) {
-	var out Settings
-	err := s.client.Call(ctx, "settings.get", map[string]any{"output": "extend"}, &out)
-	return &out, err
+	return getSingleton[Settings](ctx, s.client, "settings.get")
 }
 
 // Update updates the global settings and returns the updated parameter names.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/settings/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/settings/update
 func (s *SettingsService) Update(ctx context.Context, params Settings) ([]string, error) {
 	var res []string
 	err := s.client.Call(ctx, "settings.update", params, &res)

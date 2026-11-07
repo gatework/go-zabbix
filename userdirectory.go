@@ -9,7 +9,7 @@ type UserDirectoryService struct{ client *Client }
 func (c *Client) UserDirectory() *UserDirectoryService { return &UserDirectoryService{c} }
 
 // UserDirectory object (LDAP or SAML identity provider configuration).
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/userdirectory/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/userdirectory/object
 type UserDirectory struct {
 	UserDirectoryID string `json:"userdirectoryid,omitempty"`
 	Name            string `json:"name,omitempty"`
@@ -36,21 +36,51 @@ type UserDirectory struct {
 }
 
 // UserDirectoryGetParams are the parameters for userdirectory.get.
+// UserDirectoryGetParams queries the list form of userdirectory.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type UserDirectoryGetParams struct {
-	GetParams
-	UserDirectoryIDs []string `json:"userdirectoryids,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	UserDirectoryIDs       []string       `json:"userdirectoryids,omitzero"`
 }
 
 // Get retrieves user directories matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/userdirectory/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/userdirectory/get
 func (s *UserDirectoryService) Get(ctx context.Context, params UserDirectoryGetParams) ([]UserDirectory, error) {
-	var out []UserDirectory
-	err := s.client.Call(ctx, "userdirectory.get", params, &out)
-	return out, err
+	return getList[UserDirectory](ctx, s.client, "userdirectory.get", params)
+}
+
+// UserDirectoryCountParams contains the filters for userdirectory.get counts.
+type UserDirectoryCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	UserDirectoryIDs       []string       `json:"userdirectoryids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *UserDirectoryService) Count(ctx context.Context, params UserDirectoryCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "userdirectory.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *UserDirectoryService) GetMap(ctx context.Context, params UserDirectoryGetParams) (map[string]UserDirectory, error) {
+	return getMap[UserDirectory](ctx, s.client, "userdirectory.get", params)
 }
 
 // Create creates user directories and returns the new ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/userdirectory/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/userdirectory/create
 func (s *UserDirectoryService) Create(ctx context.Context, items ...UserDirectory) ([]string, error) {
 	var res struct {
 		IDs []string `json:"userdirectoryids"`
@@ -60,7 +90,7 @@ func (s *UserDirectoryService) Create(ctx context.Context, items ...UserDirector
 }
 
 // Update updates user directories and returns the affected ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/userdirectory/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/userdirectory/update
 func (s *UserDirectoryService) Update(ctx context.Context, items ...UserDirectory) ([]string, error) {
 	var res struct {
 		IDs []string `json:"userdirectoryids"`
@@ -70,7 +100,7 @@ func (s *UserDirectoryService) Update(ctx context.Context, items ...UserDirector
 }
 
 // Delete deletes user directories by id and returns the deleted ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/userdirectory/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/userdirectory/delete
 func (s *UserDirectoryService) Delete(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"userdirectoryids"`
@@ -81,7 +111,7 @@ func (s *UserDirectoryService) Delete(ctx context.Context, ids ...string) ([]str
 
 // Test checks the connection and configuration of a user directory. The params and
 // result shapes depend on the idp_type, so both are passed through untyped.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/userdirectory/test
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/userdirectory/test
 func (s *UserDirectoryService) Test(ctx context.Context, params any) (any, error) {
 	var out any
 	err := s.client.Call(ctx, "userdirectory.test", params, &out)

@@ -9,7 +9,7 @@ type EventService struct{ client *Client }
 func (c *Client) Event() *EventService { return &EventService{c} }
 
 // Event acknowledge action bit flags, combined into EventAcknowledgeParams.Action.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/event/acknowledge
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/event/acknowledge
 const (
 	AckActionClose           = 1 << 0 // close problem
 	AckActionAcknowledge     = 1 << 1 // acknowledge event
@@ -23,55 +23,120 @@ const (
 )
 
 // Event object.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/event/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/event/object
 type Event struct {
-	EventID       string `json:"eventid,omitempty"`
-	Source        string `json:"source,omitempty"`
-	Object        string `json:"object,omitempty"`
-	ObjectID      string `json:"objectid,omitempty"`
-	Acknowledged  string `json:"acknowledged,omitempty"`
-	Clock         string `json:"clock,omitempty"`
-	Ns            string `json:"ns,omitempty"`
-	Name          string `json:"name,omitempty"`
-	Value         string `json:"value,omitempty"`
-	Severity      string `json:"severity,omitempty"`
-	REventID      string `json:"r_eventid,omitempty"`
-	CEventID      string `json:"c_eventid,omitempty"`
-	CorrelationID string `json:"correlationid,omitempty"`
-	UserID        string `json:"userid,omitempty"`
-	Suppressed    string `json:"suppressed,omitempty"`
-	OpData        string `json:"opdata,omitempty"`
-	Tags          []Tag  `json:"tags,omitempty"`
+	EventID       string                `json:"eventid,omitempty"`
+	Source        string                `json:"source,omitempty"`
+	Object        string                `json:"object,omitempty"`
+	ObjectID      string                `json:"objectid,omitempty"`
+	Acknowledged  string                `json:"acknowledged,omitempty"`
+	Clock         string                `json:"clock,omitempty"`
+	NS            string                `json:"ns,omitempty"`
+	Name          string                `json:"name,omitempty"`
+	Value         string                `json:"value,omitempty"`
+	Severity      string                `json:"severity,omitempty"`
+	REventID      string                `json:"r_eventid,omitempty"`
+	CEventID      string                `json:"c_eventid,omitempty"`
+	CorrelationID string                `json:"correlationid,omitempty"`
+	UserID        string                `json:"userid,omitempty"`
+	Suppressed    string                `json:"suppressed,omitempty"`
+	OpData        string                `json:"opdata,omitempty"`
+	Tags          []Tag                 `json:"tags,omitempty"`
+	Hosts         []Host                `json:"hosts,omitempty"`
+	Acknowledges  Relation[EventUpdate] `json:"acknowledges,omitzero"`
 }
 
 // EventGetParams are the parameters for event.get.
+// EventGetParams queries the list form of event.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type EventGetParams struct {
-	GetParams
-	EventIDs           []string `json:"eventids,omitempty"`
-	GroupIDs           []string `json:"groupids,omitempty"`
-	HostIDs            []string `json:"hostids,omitempty"`
-	ObjectIDs          []string `json:"objectids,omitempty"`
-	Source             *int     `json:"source,omitempty"`
-	Object             *int     `json:"object,omitempty"`
-	Severities         []int    `json:"severities,omitempty"`
-	Acknowledged       *bool    `json:"acknowledged,omitempty"`
-	Suppressed         *bool    `json:"suppressed,omitempty"`
-	Value              []int    `json:"value,omitempty"`
-	Tags               []Tag    `json:"tags,omitempty"`
-	EvalType           int      `json:"evaltype,omitempty"`
-	TimeFrom           int64    `json:"time_from,omitempty"`
-	TimeTill           int64    `json:"time_till,omitempty"`
-	SelectHosts        any      `json:"selectHosts,omitempty"`
-	SelectTags         any      `json:"selectTags,omitempty"`
-	SelectAcknowledges any      `json:"selectAcknowledges,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	EventIDs               []string       `json:"eventids,omitzero"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	ObjectIDs              []string       `json:"objectids,omitzero"`
+	Source                 *int           `json:"source,omitempty"`
+	Object                 *int           `json:"object,omitempty"`
+	Severities             []int          `json:"severities,omitzero"`
+	Acknowledged           *bool          `json:"acknowledged,omitempty"`
+	Suppressed             *bool          `json:"suppressed,omitempty"`
+	Value                  []int          `json:"value,omitzero"`
+	Tags                   []TagFilter    `json:"tags,omitzero"`
+	EvalType               int            `json:"evaltype,omitempty"`
+	TimeFrom               *int64         `json:"time_from,omitempty"`
+	TimeTill               *int64         `json:"time_till,omitempty"`
+	SelectHosts            any            `json:"selectHosts,omitempty"`
+	SelectTags             any            `json:"selectTags,omitempty"`
+	SelectAcknowledges     any            `json:"selectAcknowledges,omitempty"`
+}
+
+// EventUpdate is an acknowledgement, message, severity change, suppression, or
+// rank change selected by event.get or problem.get using selectAcknowledges.
+type EventUpdate struct {
+	AcknowledgeID string `json:"acknowledgeid,omitempty"`
+	UserID        string `json:"userid,omitempty"`
+	EventID       string `json:"eventid,omitempty"`
+	Clock         string `json:"clock,omitempty"`
+	Message       string `json:"message,omitempty"`
+	Action        string `json:"action,omitempty"`
+	OldSeverity   string `json:"old_severity,omitempty"`
+	NewSeverity   string `json:"new_severity,omitempty"`
+	SuppressUntil string `json:"suppress_until,omitempty"`
+	TaskID        string `json:"taskid,omitempty"`
+	Username      string `json:"username,omitempty"`
+	Name          string `json:"name,omitempty"`
+	Surname       string `json:"surname,omitempty"`
 }
 
 // Get retrieves events matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/event/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/event/get
 func (s *EventService) Get(ctx context.Context, params EventGetParams) ([]Event, error) {
-	var events []Event
-	err := s.client.Call(ctx, "event.get", params, &events)
-	return events, err
+	return getList[Event](ctx, s.client, "event.get", params)
+}
+
+// EventCountParams contains the filters for event.get counts.
+type EventCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	EventIDs               []string       `json:"eventids,omitzero"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	ObjectIDs              []string       `json:"objectids,omitzero"`
+	Source                 *int           `json:"source,omitempty"`
+	Object                 *int           `json:"object,omitempty"`
+	Severities             []int          `json:"severities,omitzero"`
+	Acknowledged           *bool          `json:"acknowledged,omitempty"`
+	Suppressed             *bool          `json:"suppressed,omitempty"`
+	Value                  []int          `json:"value,omitzero"`
+	Tags                   []TagFilter    `json:"tags,omitzero"`
+	EvalType               int            `json:"evaltype,omitempty"`
+	TimeFrom               *int64         `json:"time_from,omitempty"`
+	TimeTill               *int64         `json:"time_till,omitempty"`
+}
+
+// Count returns the number of objects matching params.
+func (s *EventService) Count(ctx context.Context, params EventCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "event.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *EventService) GetMap(ctx context.Context, params EventGetParams) (map[string]Event, error) {
+	return getMap[Event](ctx, s.client, "event.get", params)
 }
 
 // EventAcknowledgeParams are the parameters for event.acknowledge. Action is a
@@ -85,7 +150,7 @@ type EventAcknowledgeParams struct {
 
 // Acknowledge updates problem events (acknowledge, close, add message, change
 // severity, suppress, ...) and returns the affected event ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/event/acknowledge
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/event/acknowledge
 func (s *EventService) Acknowledge(ctx context.Context, params EventAcknowledgeParams) ([]string, error) {
 	var res struct {
 		EventIDs []string `json:"eventids"`

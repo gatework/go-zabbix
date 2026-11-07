@@ -138,7 +138,7 @@ func TestHostGetDecodes(t *testing.T) {
 	})
 
 	hosts, err := c.Host().Get(context.Background(), HostGetParams{
-		GetParams: GetParams{Output: []string{"hostid", "host", "name", "status"}},
+		Output: []string{"hostid", "host", "name", "status"},
 	})
 	if err != nil {
 		t.Fatalf("Host.Get: %v", err)

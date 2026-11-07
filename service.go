@@ -9,26 +9,25 @@ type ServiceService struct{ client *Client }
 func (c *Client) Service() *ServiceService { return &ServiceService{c} }
 
 // Service object (Zabbix 7.x).
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/service/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/service/object
 type Service struct {
-	ServiceID        string `json:"serviceid,omitempty"`
-	Name             string `json:"name,omitempty"`
-	Status           string `json:"status,omitempty"`
-	Algorithm        string `json:"algorithm,omitempty"`
-	SortOrder        string `json:"sortorder,omitempty"`
-	Weight           string `json:"weight,omitempty"`
-	PropagationRule  string `json:"propagation_rule,omitempty"`
-	PropagationValue string `json:"propagation_value,omitempty"`
-	Description      string `json:"description,omitempty"`
-	UUID             string `json:"uuid,omitempty"`
-	CreatedAt        string `json:"created_at,omitempty"`
-	Readonly         string `json:"readonly,omitempty"`
-
-	StatusRules []ServiceStatusRule `json:"status_rules,omitempty"`
-	Tags        []Tag               `json:"tags,omitempty"`
-	ProblemTags []ServiceProblemTag `json:"problem_tags,omitempty"`
-	Parents     any                 `json:"parents,omitempty"`
-	Children    any                 `json:"children,omitempty"`
+	ServiceID        string                      `json:"serviceid,omitempty"`
+	Name             string                      `json:"name,omitempty"`
+	Status           string                      `json:"status,omitempty"`
+	Algorithm        string                      `json:"algorithm,omitempty"`
+	SortOrder        string                      `json:"sortorder,omitempty"`
+	Weight           string                      `json:"weight,omitempty"`
+	PropagationRule  string                      `json:"propagation_rule,omitempty"`
+	PropagationValue string                      `json:"propagation_value,omitempty"`
+	Description      string                      `json:"description,omitempty"`
+	UUID             string                      `json:"uuid,omitempty"`
+	CreatedAt        string                      `json:"created_at,omitempty"`
+	ReadOnly         bool                        `json:"readonly,omitempty"`
+	StatusRules      Relation[ServiceStatusRule] `json:"status_rules,omitzero"`
+	Tags             Relation[Tag]               `json:"tags,omitzero"`
+	ProblemTags      Relation[ServiceProblemTag] `json:"problem_tags,omitzero"`
+	Parents          Relation[Service]           `json:"parents,omitzero"`
+	Children         Relation[Service]           `json:"children,omitzero"`
 }
 
 // ServiceStatusRule is a status-calculation rule attached to a service.
@@ -47,26 +46,62 @@ type ServiceProblemTag struct {
 }
 
 // ServiceGetParams are the parameters for service.get.
+// ServiceGetParams queries the list form of service.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type ServiceGetParams struct {
-	GetParams
-	ServiceIDs        []string            `json:"serviceids,omitempty"`
-	ParentIDs         []string            `json:"parentids,omitempty"`
-	ChildIDs          []string            `json:"childids,omitempty"`
-	Tags              []Tag               `json:"tags,omitempty"`
-	ProblemTags       []ServiceProblemTag `json:"problem_tags,omitempty"`
-	SelectChildren    any                 `json:"selectChildren,omitempty"`
-	SelectParents     any                 `json:"selectParents,omitempty"`
-	SelectTags        any                 `json:"selectTags,omitempty"`
-	SelectProblemTags any                 `json:"selectProblemTags,omitempty"`
-	SelectStatusRules any                 `json:"selectStatusRules,omitempty"`
+	Output                 any                 `json:"output,omitempty"`
+	Filter                 map[string]any      `json:"filter,omitzero"`
+	Search                 map[string]any      `json:"search,omitzero"`
+	SearchByAny            bool                `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool                `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool                `json:"startSearch,omitempty"`
+	ExcludeSearch          bool                `json:"excludeSearch,omitempty"`
+	SortField              []string            `json:"sortfield,omitzero"`
+	SortOrder              []string            `json:"sortorder,omitzero"`
+	Limit                  int                 `json:"limit,omitempty"`
+	Editable               bool                `json:"editable,omitempty"`
+	ServiceIDs             []string            `json:"serviceids,omitzero"`
+	ParentIDs              []string            `json:"parentids,omitzero"`
+	ChildIDs               []string            `json:"childids,omitzero"`
+	Tags                   []TagFilter         `json:"tags,omitzero"`
+	ProblemTags            []ServiceProblemTag `json:"problem_tags,omitzero"`
+	SelectChildren         any                 `json:"selectChildren,omitempty"`
+	SelectParents          any                 `json:"selectParents,omitempty"`
+	SelectTags             any                 `json:"selectTags,omitempty"`
+	SelectProblemTags      any                 `json:"selectProblemTags,omitempty"`
+	SelectStatusRules      any                 `json:"selectStatusRules,omitempty"`
 }
 
 // Get retrieves services matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/service/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/service/get
 func (s *ServiceService) Get(ctx context.Context, params ServiceGetParams) ([]Service, error) {
-	var out []Service
-	err := s.client.Call(ctx, "service.get", params, &out)
-	return out, err
+	return getList[Service](ctx, s.client, "service.get", params)
+}
+
+// ServiceCountParams contains the filters for service.get counts.
+type ServiceCountParams struct {
+	Filter                 map[string]any      `json:"filter,omitzero"`
+	Search                 map[string]any      `json:"search,omitzero"`
+	SearchByAny            bool                `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool                `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool                `json:"startSearch,omitempty"`
+	ExcludeSearch          bool                `json:"excludeSearch,omitempty"`
+	Editable               bool                `json:"editable,omitempty"`
+	ServiceIDs             []string            `json:"serviceids,omitzero"`
+	ParentIDs              []string            `json:"parentids,omitzero"`
+	ChildIDs               []string            `json:"childids,omitzero"`
+	Tags                   []TagFilter         `json:"tags,omitzero"`
+	ProblemTags            []ServiceProblemTag `json:"problem_tags,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *ServiceService) Count(ctx context.Context, params ServiceCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "service.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *ServiceService) GetMap(ctx context.Context, params ServiceGetParams) (map[string]Service, error) {
+	return getMap[Service](ctx, s.client, "service.get", params)
 }
 
 // Create creates services and returns the new service ids.

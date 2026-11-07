@@ -9,38 +9,40 @@ type ItemPrototypeService struct{ client *Client }
 func (c *Client) ItemPrototype() *ItemPrototypeService { return &ItemPrototypeService{c} }
 
 // ItemPrototype object.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/itemprototype/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/itemprototype/object
 type ItemPrototype struct {
-	ItemID      string `json:"itemid,omitempty"`
-	HostID      string `json:"hostid,omitempty"`
-	Name        string `json:"name,omitempty"`
-	Key         string `json:"key_,omitempty"`
-	Type        string `json:"type,omitempty"`
-	ValueType   string `json:"value_type,omitempty"`
-	Delay       string `json:"delay,omitempty"`
-	History     string `json:"history,omitempty"`
-	Trends      string `json:"trends,omitempty"`
-	Status      string `json:"status,omitempty"`
-	Units       string `json:"units,omitempty"`
-	ValueMapID  string `json:"valuemapid,omitempty"`
-	Description string `json:"description,omitempty"`
-	InterfaceID string `json:"interfaceid,omitempty"`
-	TemplateID  string `json:"templateid,omitempty"`
-	Flags       string `json:"flags,omitempty"`
-	State       string `json:"state,omitempty"`
-	Error       string `json:"error,omitempty"`
-	LastClock   string `json:"lastclock,omitempty"`
-	LastNs      string `json:"lastns,omitempty"`
-	LastValue   string `json:"lastvalue,omitempty"`
-	PrevValue   string `json:"prevvalue,omitempty"`
-	SNMPOID     string `json:"snmp_oid,omitempty"`
-	Params      string `json:"params,omitempty"`
-	Master      string `json:"master_itemid,omitempty"`
-	Discover    string `json:"discover,omitempty"`
-	RuleID      string `json:"ruleid,omitempty"`
-	Tags        []Tag  `json:"tags,omitempty"`
+	ItemID       string `json:"itemid,omitempty"`
+	HostID       string `json:"hostid,omitempty"`
+	Name         string `json:"name,omitempty"`
+	Key          string `json:"key_,omitempty"`
+	Type         string `json:"type,omitempty"`
+	ValueType    string `json:"value_type,omitempty"`
+	Delay        string `json:"delay,omitempty"`
+	History      string `json:"history,omitempty"`
+	Trends       string `json:"trends,omitempty"`
+	Status       string `json:"status,omitempty"`
+	Units        string `json:"units,omitempty"`
+	ValueMapID   string `json:"valuemapid,omitempty"`
+	Description  string `json:"description,omitempty"`
+	InterfaceID  string `json:"interfaceid,omitempty"`
+	TemplateID   string `json:"templateid,omitempty"`
+	Flags        string `json:"flags,omitempty"`
+	State        string `json:"state,omitempty"`
+	Error        string `json:"error,omitempty"`
+	LastClock    string `json:"lastclock,omitempty"`
+	LastNS       string `json:"lastns,omitempty"`
+	LastValue    string `json:"lastvalue,omitempty"`
+	PrevValue    string `json:"prevvalue,omitempty"`
+	SNMPOID      string `json:"snmp_oid,omitempty"`
+	Params       string `json:"params,omitempty"`
+	MasterItemID string `json:"master_itemid,omitempty"`
+	Discover     string `json:"discover,omitempty"`
+	RuleID       string `json:"ruleid,omitempty"`
+	Tags         []Tag  `json:"tags,omitempty"`
 
-	Preprocessing []ItemPrototypePreprocessing `json:"preprocessing,omitempty"`
+	Preprocessing []ItemPrototypePreprocessing  `json:"preprocessing,omitempty"`
+	Hosts         []Host                        `json:"hosts,omitempty"`
+	DiscoveryRule SelectedObject[DiscoveryRule] `json:"discoveryRule,omitzero"`
 }
 
 // ItemPrototypePreprocessing is a preprocessing step for an item prototype.
@@ -52,30 +54,65 @@ type ItemPrototypePreprocessing struct {
 }
 
 // ItemPrototypeGetParams are the parameters for itemprototype.get.
+// ItemPrototypeGetParams queries the list form of itemprototype.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type ItemPrototypeGetParams struct {
-	GetParams
-	ItemIDs             []string `json:"itemids,omitempty"`
-	HostIDs             []string `json:"hostids,omitempty"`
-	GroupIDs            []string `json:"groupids,omitempty"`
-	TemplateIDs         []string `json:"templateids,omitempty"`
-	DiscoveryIDs        []string `json:"discoveryids,omitempty"`
-	InterfaceIDs        []string `json:"interfaceids,omitempty"`
-	SelectHosts         any      `json:"selectHosts,omitempty"`
-	SelectTags          any      `json:"selectTags,omitempty"`
-	SelectPreprocessing any      `json:"selectPreprocessing,omitempty"`
-	SelectDiscoveryRule any      `json:"selectDiscoveryRule,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	ItemIDs                []string       `json:"itemids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	TemplateIDs            []string       `json:"templateids,omitzero"`
+	DiscoveryIDs           []string       `json:"discoveryids,omitzero"`
+	SelectHosts            any            `json:"selectHosts,omitempty"`
+	SelectTags             any            `json:"selectTags,omitempty"`
+	SelectPreprocessing    any            `json:"selectPreprocessing,omitempty"`
+	SelectDiscoveryRule    any            `json:"selectDiscoveryRule,omitempty"`
 }
 
 // Get retrieves item prototypes matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/itemprototype/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/itemprototype/get
 func (s *ItemPrototypeService) Get(ctx context.Context, params ItemPrototypeGetParams) ([]ItemPrototype, error) {
-	var out []ItemPrototype
-	err := s.client.Call(ctx, "itemprototype.get", params, &out)
-	return out, err
+	return getList[ItemPrototype](ctx, s.client, "itemprototype.get", params)
+}
+
+// ItemPrototypeCountParams contains the filters for itemprototype.get counts.
+type ItemPrototypeCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	ItemIDs                []string       `json:"itemids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	TemplateIDs            []string       `json:"templateids,omitzero"`
+	DiscoveryIDs           []string       `json:"discoveryids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *ItemPrototypeService) Count(ctx context.Context, params ItemPrototypeCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "itemprototype.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *ItemPrototypeService) GetMap(ctx context.Context, params ItemPrototypeGetParams) (map[string]ItemPrototype, error) {
+	return getMap[ItemPrototype](ctx, s.client, "itemprototype.get", params)
 }
 
 // Create creates item prototypes and returns the new ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/itemprototype/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/itemprototype/create
 func (s *ItemPrototypeService) Create(ctx context.Context, items ...ItemPrototype) ([]string, error) {
 	var res struct {
 		IDs []string `json:"itemids"`
@@ -85,7 +122,7 @@ func (s *ItemPrototypeService) Create(ctx context.Context, items ...ItemPrototyp
 }
 
 // Update updates item prototypes and returns the affected ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/itemprototype/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/itemprototype/update
 func (s *ItemPrototypeService) Update(ctx context.Context, items ...ItemPrototype) ([]string, error) {
 	var res struct {
 		IDs []string `json:"itemids"`
@@ -95,7 +132,7 @@ func (s *ItemPrototypeService) Update(ctx context.Context, items ...ItemPrototyp
 }
 
 // Delete deletes item prototypes by id and returns the deleted ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/itemprototype/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/itemprototype/delete
 func (s *ItemPrototypeService) Delete(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"itemids"`

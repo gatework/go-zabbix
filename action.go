@@ -9,27 +9,28 @@ type ActionService struct{ client *Client }
 func (c *Client) Action() *ActionService { return &ActionService{c} }
 
 // Action object.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/action/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/action/object
 type Action struct {
-	ActionID           string                    `json:"actionid,omitempty"`
-	Name               string                    `json:"name,omitempty"`
-	EventSource        string                    `json:"eventsource,omitempty"`
-	Status             string                    `json:"status,omitempty"`
-	EscPeriod          string                    `json:"esc_period,omitempty"`
-	PauseSuppressed    string                    `json:"pause_suppressed,omitempty"`
-	PauseSymptoms      string                    `json:"pause_symptoms,omitempty"`
-	NotifyIfCanceled   string                    `json:"notify_if_canceled,omitempty"`
-	Operations         []ActionOperation         `json:"operations,omitempty"`
-	RecoveryOperations []ActionRecoveryOperation `json:"recovery_operations,omitempty"`
-	UpdateOperations   []ActionUpdateOperation   `json:"update_operations,omitempty"`
-	Filter             *ActionFilter             `json:"filter,omitempty"`
+	ActionID           string                       `json:"actionid,omitempty"`
+	Name               string                       `json:"name,omitempty"`
+	EventSource        string                       `json:"eventsource,omitempty"`
+	Status             string                       `json:"status,omitempty"`
+	EscPeriod          string                       `json:"esc_period,omitempty"`
+	PauseSuppressed    string                       `json:"pause_suppressed,omitempty"`
+	PauseSymptoms      string                       `json:"pause_symptoms,omitempty"`
+	NotifyIfCanceled   string                       `json:"notify_if_canceled,omitempty"`
+	Operations         []ActionOperation            `json:"operations,omitempty"`
+	RecoveryOperations []ActionRecoveryOperation    `json:"recovery_operations,omitempty"`
+	UpdateOperations   []ActionUpdateOperation      `json:"update_operations,omitempty"`
+	Filter             SelectedObject[ActionFilter] `json:"filter,omitzero"`
 }
 
 // ActionFilter is the condition filter of an action.
 type ActionFilter struct {
-	EvalType   string            `json:"evaltype,omitempty"`
-	Formula    string            `json:"formula,omitempty"`
-	Conditions []ActionCondition `json:"conditions,omitempty"`
+	EvalType    string            `json:"evaltype,omitempty"`
+	Formula     string            `json:"formula,omitempty"`
+	EvalFormula string            `json:"eval_formula,omitempty"`
+	Conditions  []ActionCondition `json:"conditions,omitempty"`
 }
 
 // ActionCondition is a single condition inside an ActionFilter.
@@ -79,31 +80,67 @@ type ActionUpdateOperation struct {
 }
 
 // ActionGetParams are the parameters for action.get.
+// ActionGetParams queries the list form of action.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type ActionGetParams struct {
-	GetParams
-	ActionIDs                []string `json:"actionids,omitempty"`
-	GroupIDs                 []string `json:"groupids,omitempty"`
-	HostIDs                  []string `json:"hostids,omitempty"`
-	TriggerIDs               []string `json:"triggerids,omitempty"`
-	MediaTypeIDs             []string `json:"mediatypeids,omitempty"`
-	UserGroupIDs             []string `json:"usrgrpids,omitempty"`
-	UserIDs                  []string `json:"userids,omitempty"`
-	SelectOperations         any      `json:"selectOperations,omitempty"`
-	SelectRecoveryOperations any      `json:"selectRecoveryOperations,omitempty"`
-	SelectUpdateOperations   any      `json:"selectUpdateOperations,omitempty"`
-	SelectFilter             any      `json:"selectFilter,omitempty"`
+	Output                   any            `json:"output,omitempty"`
+	Filter                   map[string]any `json:"filter,omitzero"`
+	Search                   map[string]any `json:"search,omitzero"`
+	SearchByAny              bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled   bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch              bool           `json:"startSearch,omitempty"`
+	ExcludeSearch            bool           `json:"excludeSearch,omitempty"`
+	SortField                []string       `json:"sortfield,omitzero"`
+	SortOrder                []string       `json:"sortorder,omitzero"`
+	Limit                    int            `json:"limit,omitempty"`
+	ActionIDs                []string       `json:"actionids,omitzero"`
+	GroupIDs                 []string       `json:"groupids,omitzero"`
+	HostIDs                  []string       `json:"hostids,omitzero"`
+	TriggerIDs               []string       `json:"triggerids,omitzero"`
+	MediaTypeIDs             []string       `json:"mediatypeids,omitzero"`
+	UserGroupIDs             []string       `json:"usrgrpids,omitzero"`
+	UserIDs                  []string       `json:"userids,omitzero"`
+	SelectOperations         any            `json:"selectOperations,omitempty"`
+	SelectRecoveryOperations any            `json:"selectRecoveryOperations,omitempty"`
+	SelectUpdateOperations   any            `json:"selectUpdateOperations,omitempty"`
+	SelectFilter             any            `json:"selectFilter,omitempty"`
 }
 
 // Get retrieves actions matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/action/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/action/get
 func (s *ActionService) Get(ctx context.Context, params ActionGetParams) ([]Action, error) {
-	var out []Action
-	err := s.client.Call(ctx, "action.get", params, &out)
-	return out, err
+	return getList[Action](ctx, s.client, "action.get", params)
+}
+
+// ActionCountParams contains the filters for action.get counts.
+type ActionCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	ActionIDs              []string       `json:"actionids,omitzero"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	TriggerIDs             []string       `json:"triggerids,omitzero"`
+	MediaTypeIDs           []string       `json:"mediatypeids,omitzero"`
+	UserGroupIDs           []string       `json:"usrgrpids,omitzero"`
+	UserIDs                []string       `json:"userids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *ActionService) Count(ctx context.Context, params ActionCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "action.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *ActionService) GetMap(ctx context.Context, params ActionGetParams) (map[string]Action, error) {
+	return getMap[Action](ctx, s.client, "action.get", params)
 }
 
 // Create creates actions and returns the new action ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/action/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/action/create
 func (s *ActionService) Create(ctx context.Context, items ...Action) ([]string, error) {
 	var res struct {
 		IDs []string `json:"actionids"`
@@ -113,7 +150,7 @@ func (s *ActionService) Create(ctx context.Context, items ...Action) ([]string, 
 }
 
 // Update updates actions and returns the affected action ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/action/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/action/update
 func (s *ActionService) Update(ctx context.Context, items ...Action) ([]string, error) {
 	var res struct {
 		IDs []string `json:"actionids"`
@@ -123,7 +160,7 @@ func (s *ActionService) Update(ctx context.Context, items ...Action) ([]string, 
 }
 
 // Delete deletes actions by id and returns the deleted action ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/action/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/action/delete
 func (s *ActionService) Delete(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"actionids"`

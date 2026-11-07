@@ -9,7 +9,7 @@ type TaskService struct{ client *Client }
 func (c *Client) Task() *TaskService { return &TaskService{c} }
 
 // Task object.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/task/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/task/object
 type Task struct {
 	TaskID  string `json:"taskid,omitempty"`
 	Type    string `json:"type,omitempty"`
@@ -29,16 +29,16 @@ type TaskCreate struct {
 
 // TaskGetParams are the parameters for task.get. Unlike most get methods, task.get
 // does NOT accept the common query options (limit, sort, filter, search), so it
-// does not embed GetParams — only the parameters the server actually supports.
+// exposes only its supported parameters.
+// TaskGetParams queries the list form of task.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type TaskGetParams struct {
-	Output           any      `json:"output,omitempty"`
-	TaskIDs          []string `json:"taskids,omitempty"`
-	Preservekeys     bool     `json:"preservekeys,omitempty"`
-	SelectLastValues any      `json:"selectLastValues,omitempty"`
+	Output  any      `json:"output,omitempty"`
+	TaskIDs []string `json:"taskids,omitzero"`
 }
 
 // Create creates tasks and returns the new task ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/task/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/task/create
 func (s *TaskService) Create(ctx context.Context, tasks ...TaskCreate) ([]string, error) {
 	var res struct {
 		IDs []string `json:"taskids"`
@@ -48,9 +48,12 @@ func (s *TaskService) Create(ctx context.Context, tasks ...TaskCreate) ([]string
 }
 
 // Get retrieves tasks matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/task/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/task/get
 func (s *TaskService) Get(ctx context.Context, params TaskGetParams) ([]Task, error) {
-	var out []Task
-	err := s.client.Call(ctx, "task.get", params, &out)
-	return out, err
+	return getList[Task](ctx, s.client, "task.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *TaskService) GetMap(ctx context.Context, params TaskGetParams) (map[string]Task, error) {
+	return getMap[Task](ctx, s.client, "task.get", params)
 }

@@ -9,7 +9,7 @@ type ImageService struct{ client *Client }
 func (c *Client) Image() *ImageService { return &ImageService{c} }
 
 // Image object.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/image/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/image/object
 type Image struct {
 	ImageID   string `json:"imageid,omitempty"`
 	ImageType string `json:"imagetype,omitempty"`
@@ -18,23 +18,56 @@ type Image struct {
 }
 
 // ImageGetParams are the parameters for image.get.
+// ImageGetParams queries the list form of image.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type ImageGetParams struct {
-	GetParams
-	ImageIDs    []string `json:"imageids,omitempty"`
-	SysmapIDs   []string `json:"sysmapids,omitempty"`
-	SelectImage bool     `json:"select_image,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	ImageIDs               []string       `json:"imageids,omitzero"`
+	SysmapIDs              []string       `json:"sysmapids,omitzero"`
+	SelectImage            bool           `json:"select_image,omitempty"`
 }
 
 // Get retrieves images matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/image/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/image/get
 func (s *ImageService) Get(ctx context.Context, params ImageGetParams) ([]Image, error) {
-	var out []Image
-	err := s.client.Call(ctx, "image.get", params, &out)
-	return out, err
+	return getList[Image](ctx, s.client, "image.get", params)
+}
+
+// ImageCountParams contains the filters for image.get counts.
+type ImageCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	ImageIDs               []string       `json:"imageids,omitzero"`
+	SysmapIDs              []string       `json:"sysmapids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *ImageService) Count(ctx context.Context, params ImageCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "image.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *ImageService) GetMap(ctx context.Context, params ImageGetParams) (map[string]Image, error) {
+	return getMap[Image](ctx, s.client, "image.get", params)
 }
 
 // Create creates images and returns the new image ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/image/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/image/create
 func (s *ImageService) Create(ctx context.Context, images ...Image) ([]string, error) {
 	var res struct {
 		IDs []string `json:"imageids"`
@@ -44,7 +77,7 @@ func (s *ImageService) Create(ctx context.Context, images ...Image) ([]string, e
 }
 
 // Update updates images and returns the affected image ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/image/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/image/update
 func (s *ImageService) Update(ctx context.Context, images ...Image) ([]string, error) {
 	var res struct {
 		IDs []string `json:"imageids"`
@@ -54,7 +87,7 @@ func (s *ImageService) Update(ctx context.Context, images ...Image) ([]string, e
 }
 
 // Delete deletes images by id and returns the deleted image ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/image/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/image/delete
 func (s *ImageService) Delete(ctx context.Context, imageIDs ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"imageids"`

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 )
 
 // HostService wraps the "host" API namespace.
@@ -13,7 +14,7 @@ type HostService struct{ client *Client }
 func (c *Client) Host() *HostService { return &HostService{c} }
 
 // Host object (Zabbix 7.x).
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/host/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/host/object
 type Host struct {
 	HostID            string `json:"hostid,omitempty"`
 	Host              string `json:"host,omitempty"`
@@ -39,24 +40,21 @@ type Host struct {
 	IPMIUsername      string `json:"ipmi_username,omitempty"`
 	IPMIPassword      string `json:"ipmi_password,omitempty"`
 
-	// Interfaces, Tags and Macros use the same key on input and output.
-	Interfaces []HostInterface `json:"interfaces,omitempty"`
-	Tags       []Tag           `json:"tags,omitempty"`
-	Macros     []UserMacro     `json:"macros,omitempty"`
+	// Related objects are populated by the corresponding selectors.
+	Interfaces Relation[HostInterface] `json:"interfaces,omitzero"`
+	Tags       []Tag                   `json:"tags,omitempty"`
+	Macros     []UserMacro             `json:"macros,omitempty"`
 
-	// Groups/Templates are the create/update INPUT keys.
-	Groups    []HostGroup `json:"groups,omitempty"`
-	Templates []Template  `json:"templates,omitempty"`
-
-	// HostGroups/ParentTemplates are the host.get OUTPUT keys (Zabbix 6.2+ renamed
-	// them from "groups"/"templates"). Populated by selectHostGroups /
-	// selectParentTemplates.
-	HostGroups      []HostGroup `json:"hostgroups,omitempty"`
-	ParentTemplates []Template  `json:"parentTemplates,omitempty"`
+	// Populated by selectHostGroups and selectParentTemplates.
+	HostGroups      []HostGroup        `json:"hostgroups,omitempty"`
+	ParentTemplates Relation[Template] `json:"parentTemplates,omitzero"`
+	Items           Relation[Item]     `json:"items,omitzero"`
+	Triggers        Relation[Trigger]  `json:"triggers,omitzero"`
+	Inventory       HostInventory      `json:"inventory,omitzero"`
 }
 
 // HostInterface object.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/hostinterface/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostinterface/object
 type HostInterface struct {
 	InterfaceID string           `json:"interfaceid,omitempty"`
 	HostID      string           `json:"hostid,omitempty"`
@@ -68,6 +66,8 @@ type HostInterface struct {
 	Port        string           `json:"port,omitempty"`
 	Available   string           `json:"available,omitempty"`
 	Details     *InterfaceDetail `json:"details,omitempty"`
+	Items       Relation[Item]   `json:"items,omitzero"`
+	Hosts       []Host           `json:"hosts,omitempty"`
 }
 
 // UnmarshalJSON handles Zabbix returning the "details" field as an empty array
@@ -75,22 +75,62 @@ type HostInterface struct {
 // array case Details is left nil.
 func (h *HostInterface) UnmarshalJSON(data []byte) error {
 	type alias HostInterface
+	var next alias
 	aux := struct {
 		Details json.RawMessage `json:"details"`
 		*alias
-	}{alias: (*alias)(h)}
+	}{alias: &next}
+	if raw := bytes.TrimSpace(data); len(raw) == 0 || raw[0] != '{' {
+		return errors.New("host interface must be an object")
+	}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	if raw := bytes.TrimSpace(aux.Details); len(raw) > 0 && raw[0] == '{' {
+	raw := bytes.TrimSpace(aux.Details)
+	switch {
+	case len(raw) == 0 || isEmptyArray(raw):
+	case raw[0] == '{':
 		var d InterfaceDetail
 		if err := json.Unmarshal(raw, &d); err != nil {
 			return err
 		}
-		h.Details = &d
-	} else {
-		h.Details = nil
+		next.Details = &d
+	default:
+		return errors.New("interface details must be an object or an empty array")
 	}
+	*h = HostInterface(next)
+	return nil
+}
+
+// HostInventory contains the fields requested with selectInventory. A nil map
+// means inventory was not selected; an empty non-nil map is an empty result.
+type HostInventory map[string]string
+
+func (h *HostInventory) UnmarshalJSON(data []byte) error {
+	raw := bytes.TrimSpace(data)
+	next := make(HostInventory)
+	if isEmptyArray(raw) {
+		*h = next
+		return nil
+	}
+	if len(raw) == 0 || raw[0] != '{' {
+		return errors.New("host inventory must be an object or an empty array")
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return err
+	}
+	for key, value := range fields {
+		if raw := bytes.TrimSpace(value); len(raw) == 0 || raw[0] != '"' {
+			return errors.New("host inventory values must be strings")
+		}
+		var text string
+		if err := json.Unmarshal(value, &text); err != nil {
+			return err
+		}
+		next[key] = text
+	}
+	*h = next
 	return nil
 }
 
@@ -116,43 +156,87 @@ type UserMacro struct {
 	Value       string `json:"value,omitempty"`
 	Type        string `json:"type,omitempty"`
 	Description string `json:"description,omitempty"`
+	HostID      string `json:"hostid,omitempty"`
 }
 
 // HostGetParams are the parameters for host.get.
+// HostGetParams queries the list form of host.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type HostGetParams struct {
-	GetParams
-	HostIDs          []string `json:"hostids,omitempty"`
-	GroupIDs         []string `json:"groupids,omitempty"`
-	TemplateIDs      []string `json:"templateids,omitempty"`
-	ItemIDs          []string `json:"itemids,omitempty"`
-	TriggerIDs       []string `json:"triggerids,omitempty"`
-	MaintenanceIDs   []string `json:"maintenanceids,omitempty"`
-	ProxyIDs         []string `json:"proxyids,omitempty"`
-	Tags             []Tag    `json:"tags,omitempty"`
-	EvalType         int      `json:"evaltype,omitempty"`
-	WithItems        bool     `json:"with_items,omitempty"`
-	WithTriggers     bool     `json:"with_triggers,omitempty"`
-	MonitoredHosts   bool     `json:"monitored_hosts,omitempty"`
-	SelectGroups     any      `json:"selectHostGroups,omitempty"`
-	SelectInterfaces any      `json:"selectInterfaces,omitempty"`
-	SelectItems      any      `json:"selectItems,omitempty"`
-	SelectTriggers   any      `json:"selectTriggers,omitempty"`
-	SelectTemplates  any      `json:"selectParentTemplates,omitempty"`
-	SelectTags       any      `json:"selectTags,omitempty"`
-	SelectMacros     any      `json:"selectMacros,omitempty"`
-	SelectInventory  any      `json:"selectInventory,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	TemplateIDs            []string       `json:"templateids,omitzero"`
+	ItemIDs                []string       `json:"itemids,omitzero"`
+	TriggerIDs             []string       `json:"triggerids,omitzero"`
+	MaintenanceIDs         []string       `json:"maintenanceids,omitzero"`
+	ProxyIDs               []string       `json:"proxyids,omitzero"`
+	Tags                   []TagFilter    `json:"tags,omitzero"`
+	EvalType               int            `json:"evaltype,omitempty"`
+	WithItems              bool           `json:"with_items,omitempty"`
+	WithTriggers           bool           `json:"with_triggers,omitempty"`
+	MonitoredHosts         bool           `json:"monitored_hosts,omitempty"`
+	SelectHostGroups       any            `json:"selectHostGroups,omitempty"`
+	SelectInterfaces       any            `json:"selectInterfaces,omitempty"`
+	SelectItems            any            `json:"selectItems,omitempty"`
+	SelectTriggers         any            `json:"selectTriggers,omitempty"`
+	SelectParentTemplates  any            `json:"selectParentTemplates,omitempty"`
+	SelectTags             any            `json:"selectTags,omitempty"`
+	SelectMacros           any            `json:"selectMacros,omitempty"`
+	SelectInventory        any            `json:"selectInventory,omitempty"`
 }
 
 // Get retrieves hosts matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/host/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/host/get
 func (s *HostService) Get(ctx context.Context, params HostGetParams) ([]Host, error) {
-	var hosts []Host
-	err := s.client.Call(ctx, "host.get", params, &hosts)
-	return hosts, err
+	return getList[Host](ctx, s.client, "host.get", params)
+}
+
+// HostCountParams contains the filters for host.get counts.
+type HostCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	TemplateIDs            []string       `json:"templateids,omitzero"`
+	ItemIDs                []string       `json:"itemids,omitzero"`
+	TriggerIDs             []string       `json:"triggerids,omitzero"`
+	MaintenanceIDs         []string       `json:"maintenanceids,omitzero"`
+	ProxyIDs               []string       `json:"proxyids,omitzero"`
+	Tags                   []TagFilter    `json:"tags,omitzero"`
+	EvalType               int            `json:"evaltype,omitempty"`
+	WithItems              bool           `json:"with_items,omitempty"`
+	WithTriggers           bool           `json:"with_triggers,omitempty"`
+	MonitoredHosts         bool           `json:"monitored_hosts,omitempty"`
+}
+
+// Count returns the number of objects matching params.
+func (s *HostService) Count(ctx context.Context, params HostCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "host.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *HostService) GetMap(ctx context.Context, params HostGetParams) (map[string]Host, error) {
+	return getMap[Host](ctx, s.client, "host.get", params)
 }
 
 // Create creates hosts and returns the new host ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/host/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/host/create
 func (s *HostService) Create(ctx context.Context, hosts ...Host) ([]string, error) {
 	var res struct {
 		HostIDs []string `json:"hostids"`
@@ -162,7 +246,7 @@ func (s *HostService) Create(ctx context.Context, hosts ...Host) ([]string, erro
 }
 
 // Update updates hosts and returns the affected host ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/host/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/host/update
 func (s *HostService) Update(ctx context.Context, hosts ...Host) ([]string, error) {
 	var res struct {
 		HostIDs []string `json:"hostids"`
@@ -172,7 +256,7 @@ func (s *HostService) Update(ctx context.Context, hosts ...Host) ([]string, erro
 }
 
 // Delete deletes hosts by id and returns the deleted host ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/host/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/host/delete
 func (s *HostService) Delete(ctx context.Context, hostIDs ...string) ([]string, error) {
 	var res struct {
 		HostIDs []string `json:"hostids"`

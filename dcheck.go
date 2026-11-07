@@ -9,7 +9,7 @@ type DCheckService struct{ client *Client }
 func (c *Client) DCheck() *DCheckService { return &DCheckService{c} }
 
 // DCheck object (discovery check).
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/dcheck/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/dcheck/object
 type DCheck struct {
 	DCheckID             string `json:"dcheckid,omitempty"`
 	DRuleID              string `json:"druleid,omitempty"`
@@ -31,16 +31,49 @@ type DCheck struct {
 }
 
 // DCheckGetParams are the parameters for dcheck.get.
+// DCheckGetParams queries the list form of dcheck.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type DCheckGetParams struct {
-	GetParams
-	DCheckIDs []string `json:"dcheckids,omitempty"`
-	DRuleIDs  []string `json:"druleids,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	DCheckIDs              []string       `json:"dcheckids,omitzero"`
+	DRuleIDs               []string       `json:"druleids,omitzero"`
 }
 
 // Get retrieves discovery checks matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/dcheck/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/dcheck/get
 func (s *DCheckService) Get(ctx context.Context, params DCheckGetParams) ([]DCheck, error) {
-	var out []DCheck
-	err := s.client.Call(ctx, "dcheck.get", params, &out)
-	return out, err
+	return getList[DCheck](ctx, s.client, "dcheck.get", params)
+}
+
+// DCheckCountParams contains the filters for dcheck.get counts.
+type DCheckCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	DCheckIDs              []string       `json:"dcheckids,omitzero"`
+	DRuleIDs               []string       `json:"druleids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *DCheckService) Count(ctx context.Context, params DCheckCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "dcheck.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *DCheckService) GetMap(ctx context.Context, params DCheckGetParams) (map[string]DCheck, error) {
+	return getMap[DCheck](ctx, s.client, "dcheck.get", params)
 }

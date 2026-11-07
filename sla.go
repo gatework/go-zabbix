@@ -9,20 +9,19 @@ type SLAService struct{ client *Client }
 func (c *Client) SLA() *SLAService { return &SLAService{c} }
 
 // SLA object (Zabbix 7.x).
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/sla/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/sla/object
 type SLA struct {
-	SLAID         string `json:"slaid,omitempty"`
-	Name          string `json:"name,omitempty"`
-	Period        string `json:"period,omitempty"`
-	SLO           string `json:"slo,omitempty"`
-	EffectiveDate string `json:"effective_date,omitempty"`
-	Timezone      string `json:"timezone,omitempty"`
-	Status        string `json:"status,omitempty"`
-	Description   string `json:"description,omitempty"`
-
-	ServiceTags       []SLAServiceTag       `json:"service_tags,omitempty"`
-	Schedule          []SLASchedule         `json:"schedule,omitempty"`
-	ExcludedDowntimes []SLAExcludedDowntime `json:"excluded_downtimes,omitempty"`
+	SLAID             string                        `json:"slaid,omitempty"`
+	Name              string                        `json:"name,omitempty"`
+	Period            string                        `json:"period,omitempty"`
+	SLO               string                        `json:"slo,omitempty"`
+	EffectiveDate     string                        `json:"effective_date,omitempty"`
+	Timezone          string                        `json:"timezone,omitempty"`
+	Status            string                        `json:"status,omitempty"`
+	Description       string                        `json:"description,omitempty"`
+	ServiceTags       Relation[SLAServiceTag]       `json:"service_tags,omitzero"`
+	Schedule          Relation[SLASchedule]         `json:"schedule,omitzero"`
+	ExcludedDowntimes Relation[SLAExcludedDowntime] `json:"excluded_downtimes,omitzero"`
 }
 
 // SLAServiceTag associates services with an SLA by tag.
@@ -46,21 +45,54 @@ type SLAExcludedDowntime struct {
 }
 
 // SLAGetParams are the parameters for sla.get.
+// SLAGetParams queries the list form of sla.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type SLAGetParams struct {
-	GetParams
-	SLAIDs                  []string `json:"slaids,omitempty"`
-	ServiceIDs              []string `json:"serviceids,omitempty"`
-	SelectSchedule          any      `json:"selectSchedule,omitempty"`
-	SelectExcludedDowntimes any      `json:"selectExcludedDowntimes,omitempty"`
-	SelectServiceTags       any      `json:"selectServiceTags,omitempty"`
+	Output                  any            `json:"output,omitempty"`
+	Filter                  map[string]any `json:"filter,omitzero"`
+	Search                  map[string]any `json:"search,omitzero"`
+	SearchByAny             bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled  bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch             bool           `json:"startSearch,omitempty"`
+	ExcludeSearch           bool           `json:"excludeSearch,omitempty"`
+	SortField               []string       `json:"sortfield,omitzero"`
+	SortOrder               []string       `json:"sortorder,omitzero"`
+	Limit                   int            `json:"limit,omitempty"`
+	Editable                bool           `json:"editable,omitempty"`
+	SLAIDs                  []string       `json:"slaids,omitzero"`
+	ServiceIDs              []string       `json:"serviceids,omitzero"`
+	SelectSchedule          any            `json:"selectSchedule,omitempty"`
+	SelectExcludedDowntimes any            `json:"selectExcludedDowntimes,omitempty"`
+	SelectServiceTags       any            `json:"selectServiceTags,omitempty"`
 }
 
 // Get retrieves SLAs matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/sla/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/sla/get
 func (s *SLAService) Get(ctx context.Context, params SLAGetParams) ([]SLA, error) {
-	var out []SLA
-	err := s.client.Call(ctx, "sla.get", params, &out)
-	return out, err
+	return getList[SLA](ctx, s.client, "sla.get", params)
+}
+
+// SLACountParams contains the filters for sla.get counts.
+type SLACountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	SLAIDs                 []string       `json:"slaids,omitzero"`
+	ServiceIDs             []string       `json:"serviceids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *SLAService) Count(ctx context.Context, params SLACountParams) (uint64, error) {
+	return getCount(ctx, s.client, "sla.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *SLAService) GetMap(ctx context.Context, params SLAGetParams) (map[string]SLA, error) {
+	return getMap[SLA](ctx, s.client, "sla.get", params)
 }
 
 // Create creates SLAs and returns the new SLA ids.
@@ -100,7 +132,7 @@ type SLAGetSLIParams struct {
 }
 
 // GetSLI returns SLI (service level indicator) data for an SLA.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/sla/getsli
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/sla/getsli
 func (s *SLAService) GetSLI(ctx context.Context, params SLAGetSLIParams) (any, error) {
 	var out any
 	err := s.client.Call(ctx, "sla.getsli", params, &out)

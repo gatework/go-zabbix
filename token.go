@@ -5,12 +5,11 @@ import "context"
 // APITokenService wraps the "token" API namespace.
 type APITokenService struct{ client *Client }
 
-// APIToken returns the token service. (Named APIToken to avoid colliding with the
-// Client.Token accessor for the current session token.)
+// APIToken returns the token administration service.
 func (c *Client) APIToken() *APITokenService { return &APITokenService{c} }
 
 // Token object (API token).
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/token/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/token/object
 type Token struct {
 	TokenID       string `json:"tokenid,omitempty"`
 	Name          string `json:"name,omitempty"`
@@ -30,23 +29,57 @@ type TokenGenerated struct {
 }
 
 // TokenGetParams are the parameters for token.get.
+// TokenGetParams queries the list form of token.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type TokenGetParams struct {
-	GetParams
-	TokenIDs []string `json:"tokenids,omitempty"`
-	UserIDs  []string `json:"userids,omitempty"`
-	Valid    *bool    `json:"valid,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	TokenIDs               []string       `json:"tokenids,omitzero"`
+	UserIDs                []string       `json:"userids,omitzero"`
+	ValidAt                *int64         `json:"valid_at,omitempty"`
+	ExpiredAt              *int64         `json:"expired_at,omitempty"`
 }
 
 // Get retrieves tokens matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/token/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/token/get
 func (s *APITokenService) Get(ctx context.Context, params TokenGetParams) ([]Token, error) {
-	var out []Token
-	err := s.client.Call(ctx, "token.get", params, &out)
-	return out, err
+	return getList[Token](ctx, s.client, "token.get", params)
+}
+
+// TokenCountParams contains the filters for token.get counts.
+type TokenCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	TokenIDs               []string       `json:"tokenids,omitzero"`
+	UserIDs                []string       `json:"userids,omitzero"`
+	ValidAt                *int64         `json:"valid_at,omitempty"`
+	ExpiredAt              *int64         `json:"expired_at,omitempty"`
+}
+
+// Count returns the number of objects matching params.
+func (s *APITokenService) Count(ctx context.Context, params TokenCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "token.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *APITokenService) GetMap(ctx context.Context, params TokenGetParams) (map[string]Token, error) {
+	return getMap[Token](ctx, s.client, "token.get", params)
 }
 
 // Create creates tokens and returns the new ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/token/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/token/create
 func (s *APITokenService) Create(ctx context.Context, items ...Token) ([]string, error) {
 	var res struct {
 		IDs []string `json:"tokenids"`
@@ -56,7 +89,7 @@ func (s *APITokenService) Create(ctx context.Context, items ...Token) ([]string,
 }
 
 // Update updates tokens and returns the affected ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/token/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/token/update
 func (s *APITokenService) Update(ctx context.Context, items ...Token) ([]string, error) {
 	var res struct {
 		IDs []string `json:"tokenids"`
@@ -66,7 +99,7 @@ func (s *APITokenService) Update(ctx context.Context, items ...Token) ([]string,
 }
 
 // Delete deletes tokens by id and returns the deleted ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/token/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/token/delete
 func (s *APITokenService) Delete(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"tokenids"`
@@ -77,7 +110,7 @@ func (s *APITokenService) Delete(ctx context.Context, ids ...string) ([]string, 
 
 // Generate generates the authorization secrets for the given tokens and returns the
 // generated token strings.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/token/generate
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/token/generate
 func (s *APITokenService) Generate(ctx context.Context, tokenIDs ...string) ([]TokenGenerated, error) {
 	var out []TokenGenerated
 	err := s.client.Call(ctx, "token.generate", tokenIDs, &out)

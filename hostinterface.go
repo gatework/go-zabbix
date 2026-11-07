@@ -9,26 +9,61 @@ type HostInterfaceService struct{ client *Client }
 func (c *Client) HostInterface() *HostInterfaceService { return &HostInterfaceService{c} }
 
 // HostInterfaceGetParams are the parameters for hostinterface.get.
+// HostInterfaceGetParams queries the list form of hostinterface.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type HostInterfaceGetParams struct {
-	GetParams
-	InterfaceIDs []string `json:"interfaceids,omitempty"`
-	HostIDs      []string `json:"hostids,omitempty"`
-	TriggerIDs   []string `json:"triggerids,omitempty"`
-	ItemIDs      []string `json:"itemids,omitempty"`
-	SelectItems  any      `json:"selectItems,omitempty"`
-	SelectHosts  any      `json:"selectHosts,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	InterfaceIDs           []string       `json:"interfaceids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	TriggerIDs             []string       `json:"triggerids,omitzero"`
+	ItemIDs                []string       `json:"itemids,omitzero"`
+	SelectItems            any            `json:"selectItems,omitempty"`
+	SelectHosts            any            `json:"selectHosts,omitempty"`
 }
 
 // Get retrieves host interfaces matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/hostinterface/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostinterface/get
 func (s *HostInterfaceService) Get(ctx context.Context, params HostInterfaceGetParams) ([]HostInterface, error) {
-	var out []HostInterface
-	err := s.client.Call(ctx, "hostinterface.get", params, &out)
-	return out, err
+	return getList[HostInterface](ctx, s.client, "hostinterface.get", params)
+}
+
+// HostInterfaceCountParams contains the filters for hostinterface.get counts.
+type HostInterfaceCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	InterfaceIDs           []string       `json:"interfaceids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	TriggerIDs             []string       `json:"triggerids,omitzero"`
+	ItemIDs                []string       `json:"itemids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *HostInterfaceService) Count(ctx context.Context, params HostInterfaceCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "hostinterface.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *HostInterfaceService) GetMap(ctx context.Context, params HostInterfaceGetParams) (map[string]HostInterface, error) {
+	return getMap[HostInterface](ctx, s.client, "hostinterface.get", params)
 }
 
 // Create creates host interfaces and returns the new interface ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/hostinterface/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostinterface/create
 func (s *HostInterfaceService) Create(ctx context.Context, interfaces ...HostInterface) ([]string, error) {
 	var res struct {
 		IDs []string `json:"interfaceids"`
@@ -38,7 +73,7 @@ func (s *HostInterfaceService) Create(ctx context.Context, interfaces ...HostInt
 }
 
 // Update updates host interfaces and returns the affected interface ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/hostinterface/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostinterface/update
 func (s *HostInterfaceService) Update(ctx context.Context, interfaces ...HostInterface) ([]string, error) {
 	var res struct {
 		IDs []string `json:"interfaceids"`
@@ -48,7 +83,7 @@ func (s *HostInterfaceService) Update(ctx context.Context, interfaces ...HostInt
 }
 
 // Delete deletes host interfaces by id and returns the deleted interface ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/hostinterface/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostinterface/delete
 func (s *HostInterfaceService) Delete(ctx context.Context, interfaceIDs ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"interfaceids"`
@@ -64,7 +99,7 @@ type HostInterfaceMassAddParams struct {
 }
 
 // MassAdd adds interfaces to the given hosts and returns the new interface ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/hostinterface/massadd
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostinterface/massadd
 func (s *HostInterfaceService) MassAdd(ctx context.Context, params HostInterfaceMassAddParams) ([]string, error) {
 	var res struct {
 		IDs []string `json:"interfaceids"`
@@ -81,7 +116,7 @@ type HostInterfaceMassRemoveParams struct {
 
 // MassRemove removes the given interfaces from the hosts and returns the
 // affected interface ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/hostinterface/massremove
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostinterface/massremove
 func (s *HostInterfaceService) MassRemove(ctx context.Context, params HostInterfaceMassRemoveParams) ([]string, error) {
 	var res struct {
 		IDs []string `json:"interfaceids"`
@@ -92,7 +127,7 @@ func (s *HostInterfaceService) MassRemove(ctx context.Context, params HostInterf
 
 // ReplaceHostInterfaces replaces all interfaces on a host with the given set and
 // returns the resulting interface ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/hostinterface/replacehostinterfaces
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostinterface/replacehostinterfaces
 func (s *HostInterfaceService) ReplaceHostInterfaces(ctx context.Context, hostID string, interfaces []HostInterface) ([]string, error) {
 	params := struct {
 		HostID     string          `json:"hostid"`

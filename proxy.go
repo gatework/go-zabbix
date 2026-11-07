@@ -9,7 +9,7 @@ type ProxyService struct{ client *Client }
 func (c *Client) Proxy() *ProxyService { return &ProxyService{c} }
 
 // Proxy object (Zabbix 7.0+).
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/proxy/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxy/object
 type Proxy struct {
 	ProxyID              string `json:"proxyid,omitempty"`
 	Name                 string `json:"name,omitempty"`
@@ -41,8 +41,9 @@ type Proxy struct {
 	Compatibility        string `json:"compatibility,omitempty"`
 	State                string `json:"state,omitempty"`
 
-	// Hosts is used both as the assignment INPUT ([{hostid}]) and the get OUTPUT.
-	Hosts []ProxyHost `json:"hosts,omitempty"`
+	// Hosts is populated by selectHosts.
+	Hosts      Relation[Host]             `json:"hosts,omitzero"`
+	ProxyGroup SelectedObject[ProxyGroup] `json:"proxyGroup,omitzero"`
 }
 
 // ProxyHost is a host monitored by a proxy.
@@ -52,24 +53,57 @@ type ProxyHost struct {
 }
 
 // ProxyGetParams are the parameters for proxy.get.
+// ProxyGetParams queries the list form of proxy.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type ProxyGetParams struct {
-	GetParams
-	ProxyIDs         []string `json:"proxyids,omitempty"`
-	ProxyGroupIDs    []string `json:"proxy_groupids,omitempty"`
-	SelectHosts      any      `json:"selectHosts,omitempty"`
-	SelectProxyGroup any      `json:"selectProxyGroup,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	ProxyIDs               []string       `json:"proxyids,omitzero"`
+	ProxyGroupIDs          []string       `json:"proxy_groupids,omitzero"`
+	SelectHosts            any            `json:"selectHosts,omitempty"`
+	SelectProxyGroup       any            `json:"selectProxyGroup,omitempty"`
 }
 
 // Get retrieves proxies matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/proxy/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxy/get
 func (s *ProxyService) Get(ctx context.Context, params ProxyGetParams) ([]Proxy, error) {
-	var out []Proxy
-	err := s.client.Call(ctx, "proxy.get", params, &out)
-	return out, err
+	return getList[Proxy](ctx, s.client, "proxy.get", params)
+}
+
+// ProxyCountParams contains the filters for proxy.get counts.
+type ProxyCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	ProxyIDs               []string       `json:"proxyids,omitzero"`
+	ProxyGroupIDs          []string       `json:"proxy_groupids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *ProxyService) Count(ctx context.Context, params ProxyCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "proxy.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *ProxyService) GetMap(ctx context.Context, params ProxyGetParams) (map[string]Proxy, error) {
+	return getMap[Proxy](ctx, s.client, "proxy.get", params)
 }
 
 // Create creates proxies and returns the new ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/proxy/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxy/create
 func (s *ProxyService) Create(ctx context.Context, proxies ...Proxy) ([]string, error) {
 	var res struct {
 		IDs []string `json:"proxyids"`
@@ -79,7 +113,7 @@ func (s *ProxyService) Create(ctx context.Context, proxies ...Proxy) ([]string, 
 }
 
 // Update updates proxies and returns the affected ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/proxy/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxy/update
 func (s *ProxyService) Update(ctx context.Context, proxies ...Proxy) ([]string, error) {
 	var res struct {
 		IDs []string `json:"proxyids"`
@@ -89,7 +123,7 @@ func (s *ProxyService) Update(ctx context.Context, proxies ...Proxy) ([]string, 
 }
 
 // Delete deletes proxies by id and returns the deleted ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/proxy/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxy/delete
 func (s *ProxyService) Delete(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"proxyids"`

@@ -9,7 +9,7 @@ type DashboardService struct{ client *Client }
 func (c *Client) Dashboard() *DashboardService { return &DashboardService{c} }
 
 // Dashboard object (Zabbix 7.x).
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/dashboard/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/dashboard/object
 type Dashboard struct {
 	DashboardID   string `json:"dashboardid,omitempty"`
 	Name          string `json:"name,omitempty"`
@@ -66,20 +66,52 @@ type DashboardUserGroup struct {
 }
 
 // DashboardGetParams are the parameters for dashboard.get.
+// DashboardGetParams queries the list form of dashboard.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type DashboardGetParams struct {
-	GetParams
-	DashboardIDs     []string `json:"dashboardids,omitempty"`
-	SelectPages      any      `json:"selectPages,omitempty"`
-	SelectUsers      any      `json:"selectUsers,omitempty"`
-	SelectUserGroups any      `json:"selectUserGroups,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	DashboardIDs           []string       `json:"dashboardids,omitzero"`
+	SelectPages            any            `json:"selectPages,omitempty"`
+	SelectUsers            any            `json:"selectUsers,omitempty"`
+	SelectUserGroups       any            `json:"selectUserGroups,omitempty"`
 }
 
 // Get retrieves dashboards matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/dashboard/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/dashboard/get
 func (s *DashboardService) Get(ctx context.Context, params DashboardGetParams) ([]Dashboard, error) {
-	var out []Dashboard
-	err := s.client.Call(ctx, "dashboard.get", params, &out)
-	return out, err
+	return getList[Dashboard](ctx, s.client, "dashboard.get", params)
+}
+
+// DashboardCountParams contains the filters for dashboard.get counts.
+type DashboardCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	DashboardIDs           []string       `json:"dashboardids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *DashboardService) Count(ctx context.Context, params DashboardCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "dashboard.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *DashboardService) GetMap(ctx context.Context, params DashboardGetParams) (map[string]Dashboard, error) {
+	return getMap[Dashboard](ctx, s.client, "dashboard.get", params)
 }
 
 // Create creates dashboards and returns the new dashboard ids.

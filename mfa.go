@@ -9,7 +9,7 @@ type MFAService struct{ client *Client }
 func (c *Client) MFA() *MFAService { return &MFAService{c} }
 
 // MFA object (multi-factor authentication method).
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/mfa/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mfa/object
 type MFA struct {
 	MFAID        string `json:"mfaid,omitempty"`
 	Type         string `json:"type,omitempty"`
@@ -21,21 +21,51 @@ type MFA struct {
 }
 
 // MFAGetParams are the parameters for mfa.get.
+// MFAGetParams queries the list form of mfa.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type MFAGetParams struct {
-	GetParams
-	MFAIDs []string `json:"mfaids,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	MFAIDs                 []string       `json:"mfaids,omitzero"`
 }
 
 // Get retrieves MFA methods matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/mfa/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mfa/get
 func (s *MFAService) Get(ctx context.Context, params MFAGetParams) ([]MFA, error) {
-	var out []MFA
-	err := s.client.Call(ctx, "mfa.get", params, &out)
-	return out, err
+	return getList[MFA](ctx, s.client, "mfa.get", params)
+}
+
+// MFACountParams contains the filters for mfa.get counts.
+type MFACountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	MFAIDs                 []string       `json:"mfaids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *MFAService) Count(ctx context.Context, params MFACountParams) (uint64, error) {
+	return getCount(ctx, s.client, "mfa.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *MFAService) GetMap(ctx context.Context, params MFAGetParams) (map[string]MFA, error) {
+	return getMap[MFA](ctx, s.client, "mfa.get", params)
 }
 
 // Create creates MFA methods and returns the new ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/mfa/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mfa/create
 func (s *MFAService) Create(ctx context.Context, items ...MFA) ([]string, error) {
 	var res struct {
 		IDs []string `json:"mfaids"`
@@ -45,7 +75,7 @@ func (s *MFAService) Create(ctx context.Context, items ...MFA) ([]string, error)
 }
 
 // Update updates MFA methods and returns the affected ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/mfa/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mfa/update
 func (s *MFAService) Update(ctx context.Context, items ...MFA) ([]string, error) {
 	var res struct {
 		IDs []string `json:"mfaids"`
@@ -55,7 +85,7 @@ func (s *MFAService) Update(ctx context.Context, items ...MFA) ([]string, error)
 }
 
 // Delete deletes MFA methods by id and returns the deleted ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/mfa/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mfa/delete
 func (s *MFAService) Delete(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"mfaids"`

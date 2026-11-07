@@ -9,7 +9,7 @@ type MediaTypeService struct{ client *Client }
 func (c *Client) MediaType() *MediaTypeService { return &MediaTypeService{c} }
 
 // MediaType object.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/mediatype/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mediatype/object
 type MediaType struct {
 	MediaTypeID        string `json:"mediatypeid,omitempty"`
 	Name               string `json:"name,omitempty"`
@@ -42,6 +42,7 @@ type MediaType struct {
 
 	Parameters       []MediaTypeParameter       `json:"parameters,omitempty"`
 	MessageTemplates []MediaTypeMessageTemplate `json:"message_templates,omitempty"`
+	Users            []User                     `json:"users,omitempty"`
 }
 
 // MediaTypeParameter is a webhook/script parameter of a media type.
@@ -59,25 +60,59 @@ type MediaTypeMessageTemplate struct {
 }
 
 // MediaTypeGetParams are the parameters for mediatype.get.
+// MediaTypeGetParams queries the list form of mediatype.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type MediaTypeGetParams struct {
-	GetParams
-	MediaTypeIDs           []string `json:"mediatypeids,omitempty"`
-	MediaIDs               []string `json:"mediaids,omitempty"`
-	UserIDs                []string `json:"userids,omitempty"`
-	SelectMessageTemplates any      `json:"selectMessageTemplates,omitempty"`
-	SelectUsers            any      `json:"selectUsers,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	MediaTypeIDs           []string       `json:"mediatypeids,omitzero"`
+	MediaIDs               []string       `json:"mediaids,omitzero"`
+	UserIDs                []string       `json:"userids,omitzero"`
+	SelectMessageTemplates any            `json:"selectMessageTemplates,omitempty"`
+	SelectUsers            any            `json:"selectUsers,omitempty"`
 }
 
 // Get retrieves media types matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/mediatype/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mediatype/get
 func (s *MediaTypeService) Get(ctx context.Context, params MediaTypeGetParams) ([]MediaType, error) {
-	var out []MediaType
-	err := s.client.Call(ctx, "mediatype.get", params, &out)
-	return out, err
+	return getList[MediaType](ctx, s.client, "mediatype.get", params)
+}
+
+// MediaTypeCountParams contains the filters for mediatype.get counts.
+type MediaTypeCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	MediaTypeIDs           []string       `json:"mediatypeids,omitzero"`
+	MediaIDs               []string       `json:"mediaids,omitzero"`
+	UserIDs                []string       `json:"userids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *MediaTypeService) Count(ctx context.Context, params MediaTypeCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "mediatype.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *MediaTypeService) GetMap(ctx context.Context, params MediaTypeGetParams) (map[string]MediaType, error) {
+	return getMap[MediaType](ctx, s.client, "mediatype.get", params)
 }
 
 // Create creates media types and returns the new media type ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/mediatype/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mediatype/create
 func (s *MediaTypeService) Create(ctx context.Context, items ...MediaType) ([]string, error) {
 	var res struct {
 		IDs []string `json:"mediatypeids"`
@@ -87,7 +122,7 @@ func (s *MediaTypeService) Create(ctx context.Context, items ...MediaType) ([]st
 }
 
 // Update updates media types and returns the affected media type ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/mediatype/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mediatype/update
 func (s *MediaTypeService) Update(ctx context.Context, items ...MediaType) ([]string, error) {
 	var res struct {
 		IDs []string `json:"mediatypeids"`
@@ -97,7 +132,7 @@ func (s *MediaTypeService) Update(ctx context.Context, items ...MediaType) ([]st
 }
 
 // Delete deletes media types by id and returns the deleted media type ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/mediatype/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mediatype/delete
 func (s *MediaTypeService) Delete(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"mediatypeids"`

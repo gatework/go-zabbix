@@ -10,7 +10,7 @@ type UserMacroService struct{ client *Client }
 func (c *Client) UserMacro() *UserMacroService { return &UserMacroService{c} }
 
 // GlobalMacro is a global (server-wide) user macro.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/usermacro/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/object
 type GlobalMacro struct {
 	GlobalMacroID string `json:"globalmacroid,omitempty"`
 	Macro         string `json:"macro,omitempty"`
@@ -20,24 +20,55 @@ type GlobalMacro struct {
 }
 
 // UserMacroGetParams are the parameters for usermacro.get.
+// UserMacroGetParams queries the list form of usermacro.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type UserMacroGetParams struct {
-	GetParams
-	HostIDs        []string `json:"hostids,omitempty"`
-	HostMacroIDs   []string `json:"hostmacroids,omitempty"`
-	GlobalMacroIDs []string `json:"globalmacroids,omitempty"`
-	Globalmacro    bool     `json:"globalmacro,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	HostMacroIDs           []string       `json:"hostmacroids,omitzero"`
 }
 
 // Get retrieves host/template user macros matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/usermacro/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/get
 func (s *UserMacroService) Get(ctx context.Context, params UserMacroGetParams) ([]UserMacro, error) {
-	var out []UserMacro
-	err := s.client.Call(ctx, "usermacro.get", params, &out)
-	return out, err
+	return getList[UserMacro](ctx, s.client, "usermacro.get", params)
+}
+
+// UserMacroCountParams contains the filters for usermacro.get counts.
+type UserMacroCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	HostMacroIDs           []string       `json:"hostmacroids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *UserMacroService) Count(ctx context.Context, params UserMacroCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "usermacro.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *UserMacroService) GetMap(ctx context.Context, params UserMacroGetParams) (map[string]UserMacro, error) {
+	return getMap[UserMacro](ctx, s.client, "usermacro.get", params)
 }
 
 // Create creates host/template user macros and returns the new ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/usermacro/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/create
 func (s *UserMacroService) Create(ctx context.Context, items ...UserMacro) ([]string, error) {
 	var res struct {
 		IDs []string `json:"hostmacroids"`
@@ -47,7 +78,7 @@ func (s *UserMacroService) Create(ctx context.Context, items ...UserMacro) ([]st
 }
 
 // Update updates host/template user macros and returns the affected ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/usermacro/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/update
 func (s *UserMacroService) Update(ctx context.Context, items ...UserMacro) ([]string, error) {
 	var res struct {
 		IDs []string `json:"hostmacroids"`
@@ -57,7 +88,7 @@ func (s *UserMacroService) Update(ctx context.Context, items ...UserMacro) ([]st
 }
 
 // Delete deletes host/template user macros by id and returns the deleted ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/usermacro/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/delete
 func (s *UserMacroService) Delete(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"hostmacroids"`
@@ -66,17 +97,62 @@ func (s *UserMacroService) Delete(ctx context.Context, ids ...string) ([]string,
 	return res.IDs, err
 }
 
-// GetGlobal retrieves global macros matching params. It calls usermacro.get with
-// globalmacro=true.
-func (s *UserMacroService) GetGlobal(ctx context.Context, params UserMacroGetParams) ([]GlobalMacro, error) {
-	params.Globalmacro = true
-	var out []GlobalMacro
-	err := s.client.Call(ctx, "usermacro.get", params, &out)
-	return out, err
+// GlobalMacroGetParams queries server-wide macros without host-macro filters.
+type GlobalMacroGetParams struct {
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+
+	GlobalMacroIDs []string `json:"globalmacroids,omitzero"`
+}
+
+// GlobalMacroCountParams contains the filters for a global macro count.
+type GlobalMacroCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+
+	GlobalMacroIDs []string `json:"globalmacroids,omitzero"`
+}
+
+// GetGlobal retrieves global macros. The entity switch is fixed by this method.
+func (s *UserMacroService) GetGlobal(ctx context.Context, params GlobalMacroGetParams) ([]GlobalMacro, error) {
+	return getList[GlobalMacro](ctx, s.client, "usermacro.get", struct {
+		GlobalMacroGetParams
+		GlobalMacro bool `json:"globalmacro"`
+	}{params, true})
+}
+
+// CountGlobal counts global macros matching params.
+func (s *UserMacroService) CountGlobal(ctx context.Context, params GlobalMacroCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "usermacro.get", struct {
+		GlobalMacroCountParams
+		GlobalMacro bool `json:"globalmacro"`
+	}{params, true})
+}
+
+// GetGlobalMap retrieves global macros keyed by their global macro IDs.
+func (s *UserMacroService) GetGlobalMap(ctx context.Context, params GlobalMacroGetParams) (map[string]GlobalMacro, error) {
+	return getMap[GlobalMacro](ctx, s.client, "usermacro.get", struct {
+		GlobalMacroGetParams
+		GlobalMacro bool `json:"globalmacro"`
+	}{params, true})
 }
 
 // CreateGlobal creates global macros and returns the new ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/usermacro/createglobal
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/createglobal
 func (s *UserMacroService) CreateGlobal(ctx context.Context, items ...GlobalMacro) ([]string, error) {
 	var res struct {
 		IDs []string `json:"globalmacroids"`
@@ -86,7 +162,7 @@ func (s *UserMacroService) CreateGlobal(ctx context.Context, items ...GlobalMacr
 }
 
 // UpdateGlobal updates global macros and returns the affected ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/usermacro/updateglobal
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/updateglobal
 func (s *UserMacroService) UpdateGlobal(ctx context.Context, items ...GlobalMacro) ([]string, error) {
 	var res struct {
 		IDs []string `json:"globalmacroids"`
@@ -96,7 +172,7 @@ func (s *UserMacroService) UpdateGlobal(ctx context.Context, items ...GlobalMacr
 }
 
 // DeleteGlobal deletes global macros by id and returns the deleted ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/usermacro/deleteglobal
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/deleteglobal
 func (s *UserMacroService) DeleteGlobal(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"globalmacroids"`

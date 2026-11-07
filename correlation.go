@@ -9,15 +9,14 @@ type CorrelationService struct{ client *Client }
 func (c *Client) Correlation() *CorrelationService { return &CorrelationService{c} }
 
 // Correlation object.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/correlation/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/correlation/object
 type Correlation struct {
-	CorrelationID string `json:"correlationid,omitempty"`
-	Name          string `json:"name,omitempty"`
-	Description   string `json:"description,omitempty"`
-	Status        string `json:"status,omitempty"`
-
-	Filter     *CorrelationFilter     `json:"filter,omitempty"`
-	Operations []CorrelationOperation `json:"operations,omitempty"`
+	CorrelationID string                            `json:"correlationid,omitempty"`
+	Name          string                            `json:"name,omitempty"`
+	Description   string                            `json:"description,omitempty"`
+	Status        string                            `json:"status,omitempty"`
+	Filter        SelectedObject[CorrelationFilter] `json:"filter,omitzero"`
+	Operations    []CorrelationOperation            `json:"operations,omitempty"`
 }
 
 // CorrelationFilter is the condition filter of a correlation.
@@ -45,23 +44,55 @@ type CorrelationOperation struct {
 }
 
 // CorrelationGetParams are the parameters for correlation.get.
+// CorrelationGetParams queries the list form of correlation.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type CorrelationGetParams struct {
-	GetParams
-	CorrelationIDs   []string `json:"correlationids,omitempty"`
-	SelectFilter     any      `json:"selectFilter,omitempty"`
-	SelectOperations any      `json:"selectOperations,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	CorrelationIDs         []string       `json:"correlationids,omitzero"`
+	SelectFilter           any            `json:"selectFilter,omitempty"`
+	SelectOperations       any            `json:"selectOperations,omitempty"`
 }
 
 // Get retrieves correlations matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/correlation/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/correlation/get
 func (s *CorrelationService) Get(ctx context.Context, params CorrelationGetParams) ([]Correlation, error) {
-	var out []Correlation
-	err := s.client.Call(ctx, "correlation.get", params, &out)
-	return out, err
+	return getList[Correlation](ctx, s.client, "correlation.get", params)
+}
+
+// CorrelationCountParams contains the filters for correlation.get counts.
+type CorrelationCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	CorrelationIDs         []string       `json:"correlationids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *CorrelationService) Count(ctx context.Context, params CorrelationCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "correlation.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *CorrelationService) GetMap(ctx context.Context, params CorrelationGetParams) (map[string]Correlation, error) {
+	return getMap[Correlation](ctx, s.client, "correlation.get", params)
 }
 
 // Create creates correlations and returns the new correlation ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/correlation/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/correlation/create
 func (s *CorrelationService) Create(ctx context.Context, items ...Correlation) ([]string, error) {
 	var res struct {
 		IDs []string `json:"correlationids"`
@@ -71,7 +102,7 @@ func (s *CorrelationService) Create(ctx context.Context, items ...Correlation) (
 }
 
 // Update updates correlations and returns the affected correlation ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/correlation/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/correlation/update
 func (s *CorrelationService) Update(ctx context.Context, items ...Correlation) ([]string, error) {
 	var res struct {
 		IDs []string `json:"correlationids"`
@@ -81,7 +112,7 @@ func (s *CorrelationService) Update(ctx context.Context, items ...Correlation) (
 }
 
 // Delete deletes correlations by id and returns the deleted correlation ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/correlation/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/correlation/delete
 func (s *CorrelationService) Delete(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"correlationids"`

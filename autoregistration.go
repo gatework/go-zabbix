@@ -11,7 +11,7 @@ func (c *Client) Autoregistration() *AutoregistrationService { return &Autoregis
 
 // Autoregistration object (global active-agent autoregistration settings). On update
 // the TLSPSKIdentity and TLSPSK fields may also be supplied.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/autoregistration/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/autoregistration/object
 type Autoregistration struct {
 	TLSAccept      string `json:"tls_accept,omitempty"`
 	TLSPSKIdentity string `json:"tls_psk_identity,omitempty"`
@@ -19,16 +19,14 @@ type Autoregistration struct {
 }
 
 // Get retrieves the global autoregistration settings.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/autoregistration/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/autoregistration/get
 func (s *AutoregistrationService) Get(ctx context.Context) (*Autoregistration, error) {
-	var out Autoregistration
-	err := s.client.Call(ctx, "autoregistration.get", map[string]any{"output": "extend"}, &out)
-	return &out, err
+	return getSingleton[Autoregistration](ctx, s.client, "autoregistration.get")
 }
 
 // Update updates the global autoregistration settings and returns the updated
 // parameter names.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/autoregistration/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/autoregistration/update
 func (s *AutoregistrationService) Update(ctx context.Context, params Autoregistration) ([]string, error) {
 	var res []string
 	err := s.client.Call(ctx, "autoregistration.update", params, &res)

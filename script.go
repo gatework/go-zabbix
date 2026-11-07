@@ -1,6 +1,10 @@
 package zabbix
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+	"errors"
+)
 
 // ScriptService wraps the "script" API namespace.
 type ScriptService struct{ client *Client }
@@ -9,7 +13,7 @@ type ScriptService struct{ client *Client }
 func (c *Client) Script() *ScriptService { return &ScriptService{c} }
 
 // Script object.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/script/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/object
 type Script struct {
 	ScriptID                 string `json:"scriptid,omitempty"`
 	Name                     string `json:"name,omitempty"`
@@ -39,6 +43,8 @@ type Script struct {
 	ManualInputDefaultValue  string `json:"manualinput_default_value,omitempty"`
 
 	Parameters []ScriptParameter `json:"parameters,omitempty"`
+	Hosts      []Host            `json:"hosts,omitempty"`
+	HostGroups []HostGroup       `json:"hostgroups,omitempty"`
 }
 
 // ScriptParameter is a user-defined parameter passed to a script.
@@ -48,26 +54,61 @@ type ScriptParameter struct {
 }
 
 // ScriptGetParams are the parameters for script.get.
+// ScriptGetParams queries the list form of script.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type ScriptGetParams struct {
-	GetParams
-	ScriptIDs    []string `json:"scriptids,omitempty"`
-	HostIDs      []string `json:"hostids,omitempty"`
-	GroupIDs     []string `json:"groupids,omitempty"`
-	UsrGrpIDs    []string `json:"usrgrpids,omitempty"`
-	SelectHosts  any      `json:"selectHosts,omitempty"`
-	SelectGroups any      `json:"selectGroups,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	ScriptIDs              []string       `json:"scriptids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	UsrGrpIDs              []string       `json:"usrgrpids,omitzero"`
+	SelectHosts            any            `json:"selectHosts,omitempty"`
+	SelectHostGroups       any            `json:"selectHostGroups,omitempty"`
 }
 
 // Get retrieves scripts matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/script/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/get
 func (s *ScriptService) Get(ctx context.Context, params ScriptGetParams) ([]Script, error) {
-	var out []Script
-	err := s.client.Call(ctx, "script.get", params, &out)
-	return out, err
+	return getList[Script](ctx, s.client, "script.get", params)
+}
+
+// ScriptCountParams contains the filters for script.get counts.
+type ScriptCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	ScriptIDs              []string       `json:"scriptids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	UsrGrpIDs              []string       `json:"usrgrpids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *ScriptService) Count(ctx context.Context, params ScriptCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "script.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *ScriptService) GetMap(ctx context.Context, params ScriptGetParams) (map[string]Script, error) {
+	return getMap[Script](ctx, s.client, "script.get", params)
 }
 
 // Create creates scripts and returns the new script ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/script/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/create
 func (s *ScriptService) Create(ctx context.Context, items ...Script) ([]string, error) {
 	var res struct {
 		IDs []string `json:"scriptids"`
@@ -77,7 +118,7 @@ func (s *ScriptService) Create(ctx context.Context, items ...Script) ([]string, 
 }
 
 // Update updates scripts and returns the affected script ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/script/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/update
 func (s *ScriptService) Update(ctx context.Context, items ...Script) ([]string, error) {
 	var res struct {
 		IDs []string `json:"scriptids"`
@@ -87,7 +128,7 @@ func (s *ScriptService) Update(ctx context.Context, items ...Script) ([]string, 
 }
 
 // Delete deletes scripts by id and returns the deleted script ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/script/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/delete
 func (s *ScriptService) Delete(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"scriptids"`
@@ -112,25 +153,63 @@ type ScriptExecuteResult struct {
 }
 
 // Execute runs a script on a host or event and returns its result.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/script/execute
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/execute
 func (s *ScriptService) Execute(ctx context.Context, params ScriptExecuteParams) (*ScriptExecuteResult, error) {
 	var out ScriptExecuteResult
 	err := s.client.Call(ctx, "script.execute", params, &out)
 	return &out, err
 }
 
-// GetScriptsByHosts returns the scripts available for the given host ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/script/getscriptsbyhosts
-func (s *ScriptService) GetScriptsByHosts(ctx context.Context, hostIDs []string) (any, error) {
-	var out any
-	err := s.client.Call(ctx, "script.getscriptsbyhosts", map[string]any{"hostids": hostIDs}, &out)
-	return out, err
+// ScriptHostParams identifies a host and optional script/manual input to resolve.
+type ScriptHostParams struct {
+	HostID      string  `json:"hostid"`
+	ScriptID    string  `json:"scriptid,omitempty"`
+	ManualInput *string `json:"manualinput,omitempty"`
 }
 
-// GetScriptsByEvents returns the scripts available for the given event ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/script/getscriptsbyevents
-func (s *ScriptService) GetScriptsByEvents(ctx context.Context, eventIDs []string) (any, error) {
-	var out any
-	err := s.client.Call(ctx, "script.getscriptsbyevents", map[string]any{"eventids": eventIDs}, &out)
-	return out, err
+// ScriptEventParams identifies an event and optional script/manual input to resolve.
+type ScriptEventParams struct {
+	EventID     string  `json:"eventid"`
+	ScriptID    string  `json:"scriptid,omitempty"`
+	ManualInput *string `json:"manualinput,omitempty"`
+}
+
+// GetScriptsByHosts returns available scripts keyed by the requested host IDs.
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/getscriptsbyhosts
+func (s *ScriptService) GetScriptsByHosts(ctx context.Context, params []ScriptHostParams) (map[string][]Script, error) {
+	if params == nil {
+		params = []ScriptHostParams{}
+	}
+	for _, param := range params {
+		if param.HostID == "" {
+			return nil, requestError("script.getscriptsbyhosts", ErrorInvalidParams, errors.New("hostid is required"))
+		}
+	}
+	return s.getScripts(ctx, "script.getscriptsbyhosts", params)
+}
+
+// GetScriptsByEvents returns available scripts keyed by the requested event IDs.
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/getscriptsbyevents
+func (s *ScriptService) GetScriptsByEvents(ctx context.Context, params []ScriptEventParams) (map[string][]Script, error) {
+	if params == nil {
+		params = []ScriptEventParams{}
+	}
+	for _, param := range params {
+		if param.EventID == "" {
+			return nil, requestError("script.getscriptsbyevents", ErrorInvalidParams, errors.New("eventid is required"))
+		}
+	}
+	return s.getScripts(ctx, "script.getscriptsbyevents", params)
+}
+
+func (s *ScriptService) getScripts(ctx context.Context, method string, params any) (map[string][]Script, error) {
+	var raw json.RawMessage
+	if err := s.client.Call(ctx, method, params, &raw); err != nil {
+		return nil, err
+	}
+	groups, err := decodeObjectGroups[Script](raw)
+	if err != nil {
+		return nil, requestError(method, ErrorDecode, err)
+	}
+	return groups, nil
 }

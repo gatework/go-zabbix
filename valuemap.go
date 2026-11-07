@@ -9,14 +9,13 @@ type ValueMapService struct{ client *Client }
 func (c *Client) ValueMap() *ValueMapService { return &ValueMapService{c} }
 
 // ValueMap object.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/valuemap/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/valuemap/object
 type ValueMap struct {
-	ValueMapID string `json:"valuemapid,omitempty"`
-	HostID     string `json:"hostid,omitempty"`
-	Name       string `json:"name,omitempty"`
-	UUID       string `json:"uuid,omitempty"`
-
-	Mappings []ValueMapMapping `json:"mappings,omitempty"`
+	ValueMapID string                    `json:"valuemapid,omitempty"`
+	HostID     string                    `json:"hostid,omitempty"`
+	Name       string                    `json:"name,omitempty"`
+	UUID       string                    `json:"uuid,omitempty"`
+	Mappings   Relation[ValueMapMapping] `json:"mappings,omitzero"`
 }
 
 // ValueMapMapping is a single value mapping within a value map.
@@ -28,23 +27,56 @@ type ValueMapMapping struct {
 }
 
 // ValueMapGetParams are the parameters for valuemap.get.
+// ValueMapGetParams queries the list form of valuemap.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type ValueMapGetParams struct {
-	GetParams
-	ValueMapIDs    []string `json:"valuemapids,omitempty"`
-	HostIDs        []string `json:"hostids,omitempty"`
-	SelectMappings any      `json:"selectMappings,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	ValueMapIDs            []string       `json:"valuemapids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	SelectMappings         any            `json:"selectMappings,omitempty"`
 }
 
 // Get retrieves value maps matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/valuemap/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/valuemap/get
 func (s *ValueMapService) Get(ctx context.Context, params ValueMapGetParams) ([]ValueMap, error) {
-	var out []ValueMap
-	err := s.client.Call(ctx, "valuemap.get", params, &out)
-	return out, err
+	return getList[ValueMap](ctx, s.client, "valuemap.get", params)
+}
+
+// ValueMapCountParams contains the filters for valuemap.get counts.
+type ValueMapCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	ValueMapIDs            []string       `json:"valuemapids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *ValueMapService) Count(ctx context.Context, params ValueMapCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "valuemap.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *ValueMapService) GetMap(ctx context.Context, params ValueMapGetParams) (map[string]ValueMap, error) {
+	return getMap[ValueMap](ctx, s.client, "valuemap.get", params)
 }
 
 // Create creates value maps and returns the new value map ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/valuemap/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/valuemap/create
 func (s *ValueMapService) Create(ctx context.Context, valuemaps ...ValueMap) ([]string, error) {
 	var res struct {
 		IDs []string `json:"valuemapids"`
@@ -54,7 +86,7 @@ func (s *ValueMapService) Create(ctx context.Context, valuemaps ...ValueMap) ([]
 }
 
 // Update updates value maps and returns the affected value map ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/valuemap/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/valuemap/update
 func (s *ValueMapService) Update(ctx context.Context, valuemaps ...ValueMap) ([]string, error) {
 	var res struct {
 		IDs []string `json:"valuemapids"`
@@ -64,7 +96,7 @@ func (s *ValueMapService) Update(ctx context.Context, valuemaps ...ValueMap) ([]
 }
 
 // Delete deletes value maps by id and returns the deleted value map ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/valuemap/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/valuemap/delete
 func (s *ValueMapService) Delete(ctx context.Context, valuemapIDs ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"valuemapids"`

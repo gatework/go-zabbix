@@ -10,7 +10,7 @@ type HousekeepingService struct{ client *Client }
 func (c *Client) Housekeeping() *HousekeepingService { return &HousekeepingService{c} }
 
 // Housekeeping object (global housekeeping/retention settings).
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/housekeeping/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/housekeeping/object
 type Housekeeping struct {
 	HKEventsMode      string `json:"hk_events_mode,omitempty"`
 	HKEventsTrigger   string `json:"hk_events_trigger,omitempty"`
@@ -34,16 +34,14 @@ type Housekeeping struct {
 }
 
 // Get retrieves the global housekeeping settings.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/housekeeping/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/housekeeping/get
 func (s *HousekeepingService) Get(ctx context.Context) (*Housekeeping, error) {
-	var out Housekeeping
-	err := s.client.Call(ctx, "housekeeping.get", map[string]any{"output": "extend"}, &out)
-	return &out, err
+	return getSingleton[Housekeeping](ctx, s.client, "housekeeping.get")
 }
 
 // Update updates the global housekeeping settings and returns the updated parameter
 // names.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/housekeeping/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/housekeeping/update
 func (s *HousekeepingService) Update(ctx context.Context, params Housekeeping) ([]string, error) {
 	var res []string
 	err := s.client.Call(ctx, "housekeeping.update", params, &res)

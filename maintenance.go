@@ -9,7 +9,7 @@ type MaintenanceService struct{ client *Client }
 func (c *Client) Maintenance() *MaintenanceService { return &MaintenanceService{c} }
 
 // Maintenance object.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/maintenance/object
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/maintenance/object
 type Maintenance struct {
 	MaintenanceID   string `json:"maintenanceid,omitempty"`
 	Name            string `json:"name,omitempty"`
@@ -22,10 +22,10 @@ type Maintenance struct {
 	Timeperiods []MaintenanceTimeperiod `json:"timeperiods,omitempty"`
 	Tags        []MaintenanceTag        `json:"tags,omitempty"`
 
-	// Groups and Hosts use the "groups"/"hosts" keys on both input and output
-	// in Zabbix 7.0+ (input elements are {groupid}/{hostid}).
-	Groups []HostGroup `json:"groups,omitempty"`
-	Hosts  []Host      `json:"hosts,omitempty"`
+	// HostGroups and Hosts are selected by selectHostGroups and selectHosts.
+
+	Hosts      []Host      `json:"hosts,omitempty"`
+	HostGroups []HostGroup `json:"hostgroups,omitempty"`
 }
 
 // MaintenanceTimeperiod is a maintenance time period.
@@ -49,27 +49,61 @@ type MaintenanceTag struct {
 }
 
 // MaintenanceGetParams are the parameters for maintenance.get.
+// MaintenanceGetParams queries the list form of maintenance.get.
+// Output and selectors accept "extend" or []string; only documented selectors accept "count".
 type MaintenanceGetParams struct {
-	GetParams
-	MaintenanceIDs    []string `json:"maintenanceids,omitempty"`
-	GroupIDs          []string `json:"groupids,omitempty"`
-	HostIDs           []string `json:"hostids,omitempty"`
-	SelectTimeperiods any      `json:"selectTimeperiods,omitempty"`
-	SelectTags        any      `json:"selectTags,omitempty"`
-	SelectHostGroups  any      `json:"selectHostGroups,omitempty"`
-	SelectHosts       any      `json:"selectHosts,omitempty"`
+	Output                 any            `json:"output,omitempty"`
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	SortField              []string       `json:"sortfield,omitzero"`
+	SortOrder              []string       `json:"sortorder,omitzero"`
+	Limit                  int            `json:"limit,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	MaintenanceIDs         []string       `json:"maintenanceids,omitzero"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+	SelectTimeperiods      any            `json:"selectTimeperiods,omitempty"`
+	SelectTags             any            `json:"selectTags,omitempty"`
+	SelectHostGroups       any            `json:"selectHostGroups,omitempty"`
+	SelectHosts            any            `json:"selectHosts,omitempty"`
 }
 
 // Get retrieves maintenances matching params.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/maintenance/get
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/maintenance/get
 func (s *MaintenanceService) Get(ctx context.Context, params MaintenanceGetParams) ([]Maintenance, error) {
-	var out []Maintenance
-	err := s.client.Call(ctx, "maintenance.get", params, &out)
-	return out, err
+	return getList[Maintenance](ctx, s.client, "maintenance.get", params)
+}
+
+// MaintenanceCountParams contains the filters for maintenance.get counts.
+type MaintenanceCountParams struct {
+	Filter                 map[string]any `json:"filter,omitzero"`
+	Search                 map[string]any `json:"search,omitzero"`
+	SearchByAny            bool           `json:"searchByAny,omitempty"`
+	SearchWildcardsEnabled bool           `json:"searchWildcardsEnabled,omitempty"`
+	StartSearch            bool           `json:"startSearch,omitempty"`
+	ExcludeSearch          bool           `json:"excludeSearch,omitempty"`
+	Editable               bool           `json:"editable,omitempty"`
+	MaintenanceIDs         []string       `json:"maintenanceids,omitzero"`
+	GroupIDs               []string       `json:"groupids,omitzero"`
+	HostIDs                []string       `json:"hostids,omitzero"`
+}
+
+// Count returns the number of objects matching params.
+func (s *MaintenanceService) Count(ctx context.Context, params MaintenanceCountParams) (uint64, error) {
+	return getCount(ctx, s.client, "maintenance.get", params)
+}
+
+// GetMap retrieves objects keyed by their server IDs. Empty results are a non-nil map.
+func (s *MaintenanceService) GetMap(ctx context.Context, params MaintenanceGetParams) (map[string]Maintenance, error) {
+	return getMap[Maintenance](ctx, s.client, "maintenance.get", params)
 }
 
 // Create creates maintenances and returns the new maintenance ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/maintenance/create
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/maintenance/create
 func (s *MaintenanceService) Create(ctx context.Context, items ...Maintenance) ([]string, error) {
 	var res struct {
 		IDs []string `json:"maintenanceids"`
@@ -79,7 +113,7 @@ func (s *MaintenanceService) Create(ctx context.Context, items ...Maintenance) (
 }
 
 // Update updates maintenances and returns the affected maintenance ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/maintenance/update
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/maintenance/update
 func (s *MaintenanceService) Update(ctx context.Context, items ...Maintenance) ([]string, error) {
 	var res struct {
 		IDs []string `json:"maintenanceids"`
@@ -89,7 +123,7 @@ func (s *MaintenanceService) Update(ctx context.Context, items ...Maintenance) (
 }
 
 // Delete deletes maintenances by id and returns the deleted maintenance ids.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/maintenance/delete
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/maintenance/delete
 func (s *MaintenanceService) Delete(ctx context.Context, ids ...string) ([]string, error) {
 	var res struct {
 		IDs []string `json:"maintenanceids"`
