@@ -1,4 +1,8 @@
-# Local response safety patch
+# Historical response safety patch
+
+This records the earlier response-safety patch before the grouped 7.4 interface
+revision. Its API examples and snapshot workflow are historical; current callers
+should use [MIGRATION.md](MIGRATION.md) and [README.md](README.md).
 
 - Upstream: https://github.com/Deepreo/gozabbix
 - Upstream revision: `432897ae0c316a0f7f662c157ef521bd76548b34`

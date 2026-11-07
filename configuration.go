@@ -25,7 +25,7 @@ type ConfigurationImportParams struct {
 
 // Export exports configuration in the requested format and returns the serialized
 // configuration as a string.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/configuration/export
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/configuration/export
 func (s *ConfigurationService) Export(ctx context.Context, params ConfigurationExportParams) (string, error) {
 	var out string
 	err := s.client.Call(ctx, "configuration.export", params, &out)
@@ -33,7 +33,7 @@ func (s *ConfigurationService) Export(ctx context.Context, params ConfigurationE
 }
 
 // Import imports the given configuration and reports whether it succeeded.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/configuration/import
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/configuration/import
 func (s *ConfigurationService) Import(ctx context.Context, params ConfigurationImportParams) (bool, error) {
 	var out bool
 	err := s.client.Call(ctx, "configuration.import", params, &out)
@@ -42,7 +42,7 @@ func (s *ConfigurationService) Import(ctx context.Context, params ConfigurationI
 
 // ImportCompare compares the given configuration against the current one and
 // returns the differences.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/configuration/importcompare
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/configuration/importcompare
 func (s *ConfigurationService) ImportCompare(ctx context.Context, params ConfigurationImportParams) (any, error) {
 	var out any
 	err := s.client.Call(ctx, "configuration.importcompare", params, &out)

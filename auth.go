@@ -79,7 +79,7 @@ func validateToken(token string) error {
 }
 
 // Session describes the authenticated user returned by user.login with userData.
-// https://www.zabbix.com/documentation/current/en/manual/api/reference/user/login
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/user/login
 type Session struct {
 	User
 	Type          int    `json:"type"`
