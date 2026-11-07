@@ -1,6 +1,11 @@
 package zabbix
 
-import "context"
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+)
 
 // SLAService wraps the "sla" API namespace.
 type SLAService struct{ client *Client }
@@ -122,10 +127,128 @@ type SLAGetSLIParams struct {
 	PeriodTo   *int64   `json:"period_to,omitempty"`
 }
 
+// SLIResult contains the reporting periods, service IDs, and corresponding SLI
+// values. SLI is indexed first by Periods and then by ServiceIDs. If either list
+// is empty, SLI is empty.
+type SLIResult struct {
+	Periods    []SLIPeriod  `json:"periods"`
+	ServiceIDs []string     `json:"serviceids"`
+	SLI        [][]SLIValue `json:"sli"`
+}
+
+// SLIPeriod is a reporting interval with an inclusive start and exclusive end.
+type SLIPeriod struct {
+	PeriodFrom int64 `json:"period_from"`
+	PeriodTo   int64 `json:"period_to"`
+}
+
+// SLIValue contains the measured availability and error budget for one service
+// in one reporting period. SLI may be -1 when availability cannot be calculated;
+// ErrorBudget may be negative when the service has exceeded its error budget.
+type SLIValue struct {
+	Uptime            int64                 `json:"uptime"`
+	Downtime          int64                 `json:"downtime"`
+	SLI               float64               `json:"sli"`
+	ErrorBudget       int64                 `json:"error_budget"`
+	ExcludedDowntimes []SLIExcludedDowntime `json:"excluded_downtimes"`
+}
+
+// SLIExcludedDowntime identifies a planned downtime excluded from a reported SLI.
+type SLIExcludedDowntime struct {
+	Name       string `json:"name"`
+	PeriodFrom int64  `json:"period_from"`
+	PeriodTo   int64  `json:"period_to"`
+}
+
 // GetSLI returns SLI (service level indicator) data for an SLA.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/sla/getsli
-func (s *SLAService) GetSLI(ctx context.Context, params SLAGetSLIParams) (any, error) {
-	var out any
-	err := s.client.Call(ctx, "sla.getsli", params, &out)
-	return out, err
+func (s *SLAService) GetSLI(ctx context.Context, params SLAGetSLIParams) (*SLIResult, error) {
+	// CSla::getSli derives serviceids from PHP array keys, which can encode IDs
+	// as JSON integers. RawMessage avoids converting those IDs through float64.
+	// Pointer scalars and non-nil arrays distinguish missing fields from zero.
+	var wire struct {
+		Periods []struct {
+			PeriodFrom *int64 `json:"period_from"`
+			PeriodTo   *int64 `json:"period_to"`
+		} `json:"periods"`
+		ServiceIDs []json.RawMessage `json:"serviceids"`
+		SLI        [][]struct {
+			Uptime            *int64   `json:"uptime"`
+			Downtime          *int64   `json:"downtime"`
+			SLI               *float64 `json:"sli"`
+			ErrorBudget       *int64   `json:"error_budget"`
+			ExcludedDowntimes []struct {
+				Name       *string `json:"name"`
+				PeriodFrom *int64  `json:"period_from"`
+				PeriodTo   *int64  `json:"period_to"`
+			} `json:"excluded_downtimes"`
+		} `json:"sli"`
+	}
+	if err := s.client.Call(ctx, "sla.getsli", params, &wire); err != nil {
+		return nil, err
+	}
+	if wire.Periods == nil || wire.ServiceIDs == nil || wire.SLI == nil {
+		return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI result requires periods, serviceids, and sli arrays"))
+	}
+	rows := len(wire.Periods)
+	if len(wire.ServiceIDs) == 0 {
+		// CSla::calculateSli returns [] when no services match, even if there
+		// are reporting periods; it does not return one empty row per period.
+		rows = 0
+	}
+	if len(wire.SLI) != rows || (len(wire.Periods) == 0 && len(wire.ServiceIDs) != 0) {
+		return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI dimensions do not match periods and services"))
+	}
+	out := &SLIResult{
+		Periods:    make([]SLIPeriod, len(wire.Periods)),
+		ServiceIDs: make([]string, len(wire.ServiceIDs)),
+		SLI:        make([][]SLIValue, len(wire.SLI)),
+	}
+	for i, period := range wire.Periods {
+		if period.PeriodFrom == nil || period.PeriodTo == nil {
+			return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI periods require both bounds"))
+		}
+		out.Periods[i] = SLIPeriod{PeriodFrom: *period.PeriodFrom, PeriodTo: *period.PeriodTo}
+	}
+	for i, raw := range wire.ServiceIDs {
+		raw = bytes.TrimSpace(raw)
+		id := string(raw)
+		if len(raw) != 0 && raw[0] == '"' {
+			if err := json.Unmarshal(raw, &id); err != nil {
+				return nil, requestError("sla.getsli", ErrorDecode, err)
+			}
+		}
+		if err := requireWriteID(id, "serviceid"); err != nil {
+			return nil, requestError("sla.getsli", ErrorProtocol, err)
+		}
+		out.ServiceIDs[i] = id
+	}
+	for i, row := range wire.SLI {
+		if len(row) != len(wire.ServiceIDs) {
+			return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI row does not match services"))
+		}
+		out.SLI[i] = make([]SLIValue, len(row))
+		for j, cell := range row {
+			if cell.Uptime == nil || cell.Downtime == nil || cell.SLI == nil || cell.ErrorBudget == nil || cell.ExcludedDowntimes == nil {
+				return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI value is missing required fields"))
+			}
+			value := SLIValue{
+				Uptime:            *cell.Uptime,
+				Downtime:          *cell.Downtime,
+				SLI:               *cell.SLI,
+				ErrorBudget:       *cell.ErrorBudget,
+				ExcludedDowntimes: make([]SLIExcludedDowntime, len(cell.ExcludedDowntimes)),
+			}
+			for k, downtime := range cell.ExcludedDowntimes {
+				if downtime.Name == nil || downtime.PeriodFrom == nil || downtime.PeriodTo == nil {
+					return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI excluded downtime is missing required fields"))
+				}
+				value.ExcludedDowntimes[k] = SLIExcludedDowntime{
+					Name: *downtime.Name, PeriodFrom: *downtime.PeriodFrom, PeriodTo: *downtime.PeriodTo,
+				}
+			}
+			out.SLI[i][j] = value
+		}
+	}
+	return out, nil
 }
