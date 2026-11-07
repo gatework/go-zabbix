@@ -5,16 +5,23 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.24.x', 'stable']
     steps:
       - uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: ${{ matrix.go }}
           # No third-party dependencies (no go.sum), so module caching is a no-op.
           cache: false
 
@@ -34,7 +41,7 @@ jobs:
         run: go build ./...
 
       - name: Test
-        run: go test -race -count=1 ./...
+        run: go test -race -shuffle=on -count=1 ./...
 
   lint:
     runs-on: ubuntu-latest
@@ -49,3 +56,15 @@ jobs:
         with:
           version: v2.12.2
           skip-cache: true
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: false
+      - name: Zabbix 7.4 round trips
+        run: bash scripts/integration.sh -v

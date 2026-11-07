@@ -1,7 +1,6 @@
 services:
   postgresql-server:
     image: postgres:17-alpine
-    container_name: postgresql-server
     restart: unless-stopped
     environment:
       POSTGRES_USER: zabbix
@@ -19,7 +18,6 @@ services:
 
   zabbix-server:
     image: zabbix/zabbix-server-pgsql:alpine-7.4-latest
-    container_name: zabbix-server
     restart: unless-stopped
     depends_on:
       postgresql-server:
@@ -30,7 +28,7 @@ services:
       POSTGRES_PASSWORD: zabbix
       POSTGRES_DB: zabbix
     ports:
-      - "10051:10051"
+      - "127.0.0.1:${ZABBIX_SERVER_PORT:-10051}:10051"
     volumes:
       - zabbix-server-data:/var/lib/zabbix
       - zabbix-snmptraps-data:/var/lib/zabbix/snmptraps
@@ -40,7 +38,6 @@ services:
 
   zabbix-web-nginx-pgsql:
     image: zabbix/zabbix-web-nginx-pgsql:alpine-7.4-latest
-    container_name: zabbix-web
     restart: unless-stopped
     depends_on:
       postgresql-server:
@@ -55,7 +52,7 @@ services:
       ZBX_SERVER_HOST: zabbix-server
       PHP_TZ: UTC
     ports:
-      - "8080:8080"
+      - "127.0.0.1:${ZABBIX_API_PORT:-8080}:8080"
     volumes:
       - zabbix-web-data:/usr/share/zabbix
     healthcheck:
@@ -68,7 +65,6 @@ services:
 
   zabbix-agent:
     image: zabbix/zabbix-agent:alpine-7.4-latest
-    container_name: zabbix-agent
     restart: unless-stopped
     depends_on:
       zabbix-server:
