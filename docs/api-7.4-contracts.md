@@ -229,6 +229,25 @@ The response field is the Go field and its JSON wire key. A `Relation[T]` is use
 
 `GetScriptsByHosts(ctx, []ScriptHostParams)` and `GetScriptsByEvents(ctx, []ScriptEventParams)` send arrays of objects containing `hostid` or `eventid`, optional `scriptid`, and optional `manualinput`. `*string` preserves an explicitly empty manual input. They return `map[string][]Script`, accept the server's empty `[]` for an empty lookup, and reject incorrect nested shapes. These lookups do not execute scripts. `integration_script_contract_test.go` verifies populated host and event lookups against Zabbix 7.4.16 using disposable URL scripts: grouping keys, script identity/scope, host/event/manual-input macro resolution, explicit empty manual input, API errors, and empty lookups. Both scopes share one trapper-event fixture and clean up all scripts. [Hosts manual](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/getscriptsbyhosts), [events manual](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/getscriptsbyevents), [source](https://raw.githubusercontent.com/zabbix/zabbix/0de072729e7e8dffd72f4176ee019ef0efade637/ui/include/classes/api/services/CScript.php).
 
+## SLI and configuration results
+
+`SLA.GetSLI(ctx, SLAGetSLIParams)` returns `*SLIResult`, containing `Periods`,
+exact string `ServiceIDs`, and the period-by-service `SLI` matrix. Values include
+uptime, downtime, SLI, error budget and excluded downtime intervals. The result
+requires complete fields and matching dimensions. No selected services produces
+an empty matrix even when reporting periods exist. `SLI == -1` and a negative
+error budget are valid server states. The server derives IDs from PHP array keys;
+the SDK decodes number or string IDs without a floating-point intermediate.
+Explicit empty service selections and epoch-zero period bounds are preserved.
+[Manual](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/sla/getsli),
+[source](https://raw.githubusercontent.com/zabbix/zabbix/0de072729e7e8dffd72f4176ee019ef0efade637/ui/include/classes/api/services/CSla.php).
+
+`Configuration.Export` returns serialized strings for JSON/XML/YAML. `ExportRaw`
+returns the raw configuration object as `json.RawMessage`; its schema remains
+format-dependent and is not converted through `any`/floating point.
+[Manual](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/configuration/export),
+[source](https://raw.githubusercontent.com/zabbix/zabbix/0de072729e7e8dffd72f4176ee019ef0efade637/ui/include/classes/api/services/CConfiguration.php).
+
 ## Validation boundary
 
 Unit fixtures cover emitted JSON, list/count/map variants, large counts, empty and absent selectors, malformed/partial responses, global macro separation, Script lookup arrays, HA status filtering, explicit zero timestamps, user access fields and all exposed selector return fields. `integration_query_contract_test.go` exercises all 51 Count and 50 GetMap collection capabilities plus the global macro variants against a configured real server. Populated CRUD/query integration tests provide separate evidence for mutation behavior. A passing empty-collection probe proves method/parameter acceptance and empty shape decoding; it does not prove populated fields for that namespace.

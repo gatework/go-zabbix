@@ -56,7 +56,12 @@ services:
     volumes:
       - zabbix-web-data:/usr/share/zabbix
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/api_jsonrpc.php || exit 1"]
+      test:
+        - CMD-SHELL
+        - >-
+          wget -q -O - --header='Content-Type: application/json-rpc'
+          --post-data='{"jsonrpc":"2.0","method":"apiinfo.version","params":[],"id":1}'
+          http://127.0.0.1:8080/api_jsonrpc.php | grep -q '"result":"7\.4\.'
       interval: 10s
       timeout: 5s
       retries: 12

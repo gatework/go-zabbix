@@ -56,20 +56,11 @@ func TestIntegrationSLIEmptySelectionAndEpoch(t *testing.T) {
 				SLAID: slaID, ServiceIDs: tc.serviceIDs, Periods: 1, PeriodFrom: integrationValue(int64(0)),
 			})
 			integrationCheck(t, err)
-			encoded, err := json.Marshal(result)
-			integrationCheck(t, err)
-			var decoded struct {
-				ServiceIDs []json.Number `json:"serviceids"`
-				Periods    []struct {
-					From int64 `json:"period_from"`
-				} `json:"periods"`
+			if len(result.ServiceIDs) != tc.want || (tc.want == 1 && result.ServiceIDs[0] != serviceID) {
+				t.Fatalf("SLI service selection = %+v", result)
 			}
-			integrationCheck(t, json.Unmarshal(encoded, &decoded))
-			if len(decoded.ServiceIDs) != tc.want || (tc.want == 1 && decoded.ServiceIDs[0].String() != serviceID) {
-				t.Fatalf("SLI service selection = %s", encoded)
-			}
-			if len(decoded.Periods) != 1 || decoded.Periods[0].From != 0 {
-				t.Fatalf("explicit epoch was omitted: %s", encoded)
+			if len(result.Periods) != 1 || result.Periods[0].PeriodFrom != 0 {
+				t.Fatalf("explicit epoch was omitted: %+v", result)
 			}
 		})
 	}

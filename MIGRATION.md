@@ -98,6 +98,25 @@ may legitimately return an empty ID list. Event acknowledgement normalizes
 integer response IDs without passing through floating point. See the
 [mutation matrix](docs/api-7.4-mutations.md) for method-specific inputs and results.
 
+## Specialized operations
+
+- `Script.GetScriptsByHosts` and `GetScriptsByEvents` now take per-host/event
+  parameter arrays and return `map[string][]Script`. Use `ScriptHostParams` or
+  `ScriptEventParams`; a `*string` manual input can explicitly send empty text.
+  `ScriptExecuteParams.ManualInput` is also a `*string`.
+- `SLA.GetSLI` returns `*SLIResult` instead of `any`. `Periods` and `ServiceIDs`
+  index the two dimensions of `SLI`. IDs remain exact strings even when the
+  server encodes integers larger than 2^53. `SLAGetSLIParams.PeriodFrom` and
+  `PeriodTo` are pointers; nil and Unix timestamp zero are distinct. Nil
+  `ServiceIDs` selects all matching services, while an allocated empty slice
+  selects none.
+- `Configuration.Export` returns a string for `json`, `xml`, or `yaml`.
+  For the `raw` object format, use `ExportRaw(ctx, options)`, which returns
+  `json.RawMessage` without losing dynamic numeric values.
+- Token generation must return a secret for every requested token ID. Script
+  execution must return a successful response with a value (empty text is
+  valid). Incomplete results return errors instead of false success.
+
 ## Errors and raw calls
 
 Use `errors.As` to inspect `*RequestError`, `*HTTPError` or `*APIError`, and
