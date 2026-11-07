@@ -44,6 +44,26 @@ func TestWriteJSONFixtures(t *testing.T) {
 			want:   `{"hostid":"42","description":"","status":0,"tags":[],"templates":[]}`,
 		},
 		{
+			name:   "host update retains an existing proxy assignment",
+			params: HostUpdateParams{HostID: "42", MonitoredBy: writeTestPointer(1), Name: writeTestPointer("router")},
+			want:   `{"hostid":"42","monitored_by":1,"name":"router"}`,
+		},
+		{
+			name:   "host update retains an existing proxy group assignment",
+			params: HostUpdateParams{HostID: "42", MonitoredBy: writeTestPointer(2), Name: writeTestPointer("router")},
+			want:   `{"hostid":"42","monitored_by":2,"name":"router"}`,
+		},
+		{
+			name:   "service create allows a value with the default propagation rule",
+			params: ServiceCreateParams{Name: "router", Algorithm: 1, PropagationValue: writeTestPointer(0)},
+			want:   `{"name":"router","algorithm":1,"sortorder":0,"propagation_value":0}`,
+		},
+		{
+			name:   "service update retains its existing propagation rule",
+			params: ServiceUpdateParams{ServiceID: "42", PropagationValue: writeTestPointer(2)},
+			want:   `{"serviceid":"42","propagation_value":2}`,
+		},
+		{
 			name:   "user group uses separate host and template permissions",
 			params: UserGroupUpdateParams{UsrGrpID: "8", HostGroupRights: []UserGroupRightInput{{ID: "3", Permission: 0}}, TemplateGroupRights: []UserGroupRightInput{}, Users: []UserRef{}},
 			want:   `{"usrgrpid":"8","hostgroup_rights":[{"id":"3","permission":0}],"templategroup_rights":[],"users":[]}`,
@@ -232,6 +252,8 @@ func TestWriteValidationRejectsMissingIdentityAndConditionalPayloads(t *testing.
 	cases := []interface{ validate() error }{
 		HostUpdateParams{}, ItemUpdateParams{ItemID: "-1"}, UserUpdateParams{UserID: "1.5"},
 		HostCreateParams{Host: "r"}, HostCreateParams{Host: "r", Groups: []HostGroupRef{{}}},
+		HostCreateParams{Host: "r", Groups: []HostGroupRef{{GroupID: "1"}}, MonitoredBy: writeTestPointer(1)},
+		HostCreateParams{Host: "r", Groups: []HostGroupRef{{GroupID: "1"}}, MonitoredBy: writeTestPointer(2)},
 		HostMacroCreateParams{Macro: "{$X}", Value: "x"},
 		HostInterfaceCreateParams{HostID: "1", Type: 2, Main: 1, UseIP: 1, IP: "192.0.2.1", Port: "161"},
 		HostInterfaceUpdateInput{}, SNMPInterfaceInput{Version: 2},
@@ -244,6 +266,7 @@ func TestWriteValidationRejectsMissingIdentityAndConditionalPayloads(t *testing.
 		UserMediaInput{MediaTypeID: "1", SendTo: 42},
 		GraphItemUpdateInput{}, DashboardWidgetUpdateInput{},
 		HostMacroUpdateInput{Macro: writeTestPointer("{$X}")},
+		ServiceCreateParams{Name: "x", PropagationRule: writeTestPointer(0)},
 		ServiceUpdateParams{ServiceID: "1", PropagationRule: writeTestPointer(0)},
 		MaintenanceCreateParams{Name: "x", Timeperiods: []MaintenancePeriodInput{{}}},
 		TaskCreateParams{Type: 7, Request: map[string]any{}},

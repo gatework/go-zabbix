@@ -347,8 +347,8 @@ func (p ServiceCreateParams) validate() error {
 			return err
 		}
 	}
-	if (p.PropagationRule == nil) != (p.PropagationValue == nil) {
-		return errors.New("zabbix: propagation_rule and propagation_value must be supplied together")
+	if p.PropagationRule != nil && p.PropagationValue == nil {
+		return errors.New("zabbix: propagation_value is required when propagation_rule is supplied")
 	}
 	return nil
 }
@@ -401,8 +401,8 @@ func (p ServiceUpdateParams) validate() error {
 			return err
 		}
 	}
-	if (p.PropagationRule == nil) != (p.PropagationValue == nil) {
-		return errors.New("zabbix: propagation_rule and propagation_value must be supplied together")
+	if p.PropagationRule != nil && p.PropagationValue == nil {
+		return errors.New("zabbix: propagation_value is required when propagation_rule is supplied")
 	}
 	return nil
 }
@@ -1591,12 +1591,6 @@ func (p HostUpdateParams) validate() error {
 		if err := value.validate(); err != nil {
 			return err
 		}
-	}
-	if p.MonitoredBy != nil && *p.MonitoredBy == 1 && (p.ProxyID == nil || *p.ProxyID == "") {
-		return errors.New("zabbix: proxyid is required when monitored_by is proxy")
-	}
-	if p.MonitoredBy != nil && *p.MonitoredBy == 2 && (p.ProxyGroupID == nil || *p.ProxyGroupID == "") {
-		return errors.New("zabbix: proxy_groupid is required when monitored_by is proxy group")
 	}
 	return nil
 }
