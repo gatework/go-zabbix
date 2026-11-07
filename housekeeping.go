@@ -42,8 +42,6 @@ func (s *HousekeepingService) Get(ctx context.Context) (*Housekeeping, error) {
 // Update updates the global housekeeping settings and returns the updated parameter
 // names.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/housekeeping/update
-func (s *HousekeepingService) Update(ctx context.Context, params Housekeeping) ([]string, error) {
-	var res []string
-	err := s.client.Call(ctx, "housekeeping.update", params, &res)
-	return res, err
+func (s *HousekeepingService) Update(ctx context.Context, params HousekeepingUpdateParams) ([]string, error) {
+	return mutateFields(ctx, s.client, "housekeeping.update", params)
 }

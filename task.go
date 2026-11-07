@@ -20,13 +20,6 @@ type Task struct {
 	Result  any    `json:"result,omitempty"`
 }
 
-// TaskCreate describes a task to create. Type selects the task kind and Request
-// carries the type-specific request payload.
-type TaskCreate struct {
-	Type    int `json:"type"`
-	Request any `json:"request"`
-}
-
 // TaskGetParams are the parameters for task.get. Unlike most get methods, task.get
 // does NOT accept the common query options (limit, sort, filter, search), so it
 // exposes only its supported parameters.
@@ -39,12 +32,8 @@ type TaskGetParams struct {
 
 // Create creates tasks and returns the new task ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/task/create
-func (s *TaskService) Create(ctx context.Context, tasks ...TaskCreate) ([]string, error) {
-	var res struct {
-		IDs []string `json:"taskids"`
-	}
-	err := s.client.Call(ctx, "task.create", tasks, &res)
-	return res.IDs, err
+func (s *TaskService) Create(ctx context.Context, tasks ...TaskCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "task.create", "taskids", tasks)
 }
 
 // Get retrieves tasks matching params.

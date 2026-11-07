@@ -116,30 +116,18 @@ func (s *UserService) GetMap(ctx context.Context, params UserGetParams) (map[str
 
 // Create creates one or more users and returns the new user ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/user/create
-func (s *UserService) Create(ctx context.Context, users ...User) ([]string, error) {
-	var res struct {
-		UserIDs []string `json:"userids"`
-	}
-	err := s.client.Call(ctx, "user.create", users, &res)
-	return res.UserIDs, err
+func (s *UserService) Create(ctx context.Context, users ...UserCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "user.create", "userids", users)
 }
 
 // Update updates one or more users and returns the affected user ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/user/update
-func (s *UserService) Update(ctx context.Context, users ...User) ([]string, error) {
-	var res struct {
-		UserIDs []string `json:"userids"`
-	}
-	err := s.client.Call(ctx, "user.update", users, &res)
-	return res.UserIDs, err
+func (s *UserService) Update(ctx context.Context, users ...UserUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "user.update", "userids", users)
 }
 
 // Delete deletes users by id and returns the deleted user ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/user/delete
 func (s *UserService) Delete(ctx context.Context, userIDs ...string) ([]string, error) {
-	var res struct {
-		UserIDs []string `json:"userids"`
-	}
-	err := s.client.Call(ctx, "user.delete", userIDs, &res)
-	return res.UserIDs, err
+	return deleteIDs(ctx, s.client, "user.delete", "userids", userIDs)
 }

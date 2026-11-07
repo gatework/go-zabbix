@@ -67,30 +67,18 @@ func (s *TemplateGroupService) GetMap(ctx context.Context, params TemplateGroupG
 
 // Create creates template groups and returns the new group ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/templategroup/create
-func (s *TemplateGroupService) Create(ctx context.Context, groups ...TemplateGroup) ([]string, error) {
-	var res struct {
-		IDs []string `json:"groupids"`
-	}
-	err := s.client.Call(ctx, "templategroup.create", groups, &res)
-	return res.IDs, err
+func (s *TemplateGroupService) Create(ctx context.Context, groups ...TemplateGroupCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "templategroup.create", "groupids", groups)
 }
 
 // Update updates template groups and returns the affected group ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/templategroup/update
-func (s *TemplateGroupService) Update(ctx context.Context, groups ...TemplateGroup) ([]string, error) {
-	var res struct {
-		IDs []string `json:"groupids"`
-	}
-	err := s.client.Call(ctx, "templategroup.update", groups, &res)
-	return res.IDs, err
+func (s *TemplateGroupService) Update(ctx context.Context, groups ...TemplateGroupUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "templategroup.update", "groupids", groups)
 }
 
 // Delete deletes template groups by id and returns the deleted group ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/templategroup/delete
 func (s *TemplateGroupService) Delete(ctx context.Context, groupIDs ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"groupids"`
-	}
-	err := s.client.Call(ctx, "templategroup.delete", groupIDs, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "templategroup.delete", "groupids", groupIDs)
 }

@@ -104,30 +104,18 @@ func (s *MaintenanceService) GetMap(ctx context.Context, params MaintenanceGetPa
 
 // Create creates maintenances and returns the new maintenance ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/maintenance/create
-func (s *MaintenanceService) Create(ctx context.Context, items ...Maintenance) ([]string, error) {
-	var res struct {
-		IDs []string `json:"maintenanceids"`
-	}
-	err := s.client.Call(ctx, "maintenance.create", items, &res)
-	return res.IDs, err
+func (s *MaintenanceService) Create(ctx context.Context, items ...MaintenanceCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "maintenance.create", "maintenanceids", items)
 }
 
 // Update updates maintenances and returns the affected maintenance ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/maintenance/update
-func (s *MaintenanceService) Update(ctx context.Context, items ...Maintenance) ([]string, error) {
-	var res struct {
-		IDs []string `json:"maintenanceids"`
-	}
-	err := s.client.Call(ctx, "maintenance.update", items, &res)
-	return res.IDs, err
+func (s *MaintenanceService) Update(ctx context.Context, items ...MaintenanceUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "maintenance.update", "maintenanceids", items)
 }
 
 // Delete deletes maintenances by id and returns the deleted maintenance ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/maintenance/delete
 func (s *MaintenanceService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"maintenanceids"`
-	}
-	err := s.client.Call(ctx, "maintenance.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "maintenance.delete", "maintenanceids", ids)
 }

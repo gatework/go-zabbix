@@ -109,32 +109,20 @@ func (s *ScriptService) GetMap(ctx context.Context, params ScriptGetParams) (map
 
 // Create creates scripts and returns the new script ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/create
-func (s *ScriptService) Create(ctx context.Context, items ...Script) ([]string, error) {
-	var res struct {
-		IDs []string `json:"scriptids"`
-	}
-	err := s.client.Call(ctx, "script.create", items, &res)
-	return res.IDs, err
+func (s *ScriptService) Create(ctx context.Context, items ...ScriptCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "script.create", "scriptids", items)
 }
 
 // Update updates scripts and returns the affected script ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/update
-func (s *ScriptService) Update(ctx context.Context, items ...Script) ([]string, error) {
-	var res struct {
-		IDs []string `json:"scriptids"`
-	}
-	err := s.client.Call(ctx, "script.update", items, &res)
-	return res.IDs, err
+func (s *ScriptService) Update(ctx context.Context, items ...ScriptUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "script.update", "scriptids", items)
 }
 
 // Delete deletes scripts by id and returns the deleted script ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/delete
 func (s *ScriptService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"scriptids"`
-	}
-	err := s.client.Call(ctx, "script.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "script.delete", "scriptids", ids)
 }
 
 // ScriptExecuteParams are the parameters for script.execute.

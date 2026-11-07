@@ -74,28 +74,16 @@ func (s *TemplateDashboardService) GetMap(ctx context.Context, params TemplateDa
 }
 
 // Create creates template dashboards and returns the new dashboard ids.
-func (s *TemplateDashboardService) Create(ctx context.Context, items ...TemplateDashboard) ([]string, error) {
-	var res struct {
-		IDs []string `json:"dashboardids"`
-	}
-	err := s.client.Call(ctx, "templatedashboard.create", items, &res)
-	return res.IDs, err
+func (s *TemplateDashboardService) Create(ctx context.Context, items ...TemplateDashboardCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "templatedashboard.create", "dashboardids", items)
 }
 
 // Update updates template dashboards and returns the affected dashboard ids.
-func (s *TemplateDashboardService) Update(ctx context.Context, items ...TemplateDashboard) ([]string, error) {
-	var res struct {
-		IDs []string `json:"dashboardids"`
-	}
-	err := s.client.Call(ctx, "templatedashboard.update", items, &res)
-	return res.IDs, err
+func (s *TemplateDashboardService) Update(ctx context.Context, items ...TemplateDashboardUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "templatedashboard.update", "dashboardids", items)
 }
 
 // Delete deletes template dashboards by id and returns the deleted dashboard ids.
 func (s *TemplateDashboardService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"dashboardids"`
-	}
-	err := s.client.Call(ctx, "templatedashboard.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "templatedashboard.delete", "dashboardids", ids)
 }

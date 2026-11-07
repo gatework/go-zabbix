@@ -141,30 +141,18 @@ func (s *ActionService) GetMap(ctx context.Context, params ActionGetParams) (map
 
 // Create creates actions and returns the new action ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/action/create
-func (s *ActionService) Create(ctx context.Context, items ...Action) ([]string, error) {
-	var res struct {
-		IDs []string `json:"actionids"`
-	}
-	err := s.client.Call(ctx, "action.create", items, &res)
-	return res.IDs, err
+func (s *ActionService) Create(ctx context.Context, items ...ActionCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "action.create", "actionids", items)
 }
 
 // Update updates actions and returns the affected action ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/action/update
-func (s *ActionService) Update(ctx context.Context, items ...Action) ([]string, error) {
-	var res struct {
-		IDs []string `json:"actionids"`
-	}
-	err := s.client.Call(ctx, "action.update", items, &res)
-	return res.IDs, err
+func (s *ActionService) Update(ctx context.Context, items ...ActionUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "action.update", "actionids", items)
 }
 
 // Delete deletes actions by id and returns the deleted action ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/action/delete
 func (s *ActionService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"actionids"`
-	}
-	err := s.client.Call(ctx, "action.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "action.delete", "actionids", ids)
 }

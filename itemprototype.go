@@ -113,30 +113,18 @@ func (s *ItemPrototypeService) GetMap(ctx context.Context, params ItemPrototypeG
 
 // Create creates item prototypes and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/itemprototype/create
-func (s *ItemPrototypeService) Create(ctx context.Context, items ...ItemPrototype) ([]string, error) {
-	var res struct {
-		IDs []string `json:"itemids"`
-	}
-	err := s.client.Call(ctx, "itemprototype.create", items, &res)
-	return res.IDs, err
+func (s *ItemPrototypeService) Create(ctx context.Context, items ...ItemPrototypeCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "itemprototype.create", "itemids", items)
 }
 
 // Update updates item prototypes and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/itemprototype/update
-func (s *ItemPrototypeService) Update(ctx context.Context, items ...ItemPrototype) ([]string, error) {
-	var res struct {
-		IDs []string `json:"itemids"`
-	}
-	err := s.client.Call(ctx, "itemprototype.update", items, &res)
-	return res.IDs, err
+func (s *ItemPrototypeService) Update(ctx context.Context, items ...ItemPrototypeUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "itemprototype.update", "itemids", items)
 }
 
 // Delete deletes item prototypes by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/itemprototype/delete
 func (s *ItemPrototypeService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"itemids"`
-	}
-	err := s.client.Call(ctx, "itemprototype.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "itemprototype.delete", "prototypeids", ids)
 }

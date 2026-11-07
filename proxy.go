@@ -104,30 +104,18 @@ func (s *ProxyService) GetMap(ctx context.Context, params ProxyGetParams) (map[s
 
 // Create creates proxies and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxy/create
-func (s *ProxyService) Create(ctx context.Context, proxies ...Proxy) ([]string, error) {
-	var res struct {
-		IDs []string `json:"proxyids"`
-	}
-	err := s.client.Call(ctx, "proxy.create", proxies, &res)
-	return res.IDs, err
+func (s *ProxyService) Create(ctx context.Context, proxies ...ProxyCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "proxy.create", "proxyids", proxies)
 }
 
 // Update updates proxies and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxy/update
-func (s *ProxyService) Update(ctx context.Context, proxies ...Proxy) ([]string, error) {
-	var res struct {
-		IDs []string `json:"proxyids"`
-	}
-	err := s.client.Call(ctx, "proxy.update", proxies, &res)
-	return res.IDs, err
+func (s *ProxyService) Update(ctx context.Context, proxies ...ProxyUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "proxy.update", "proxyids", proxies)
 }
 
 // Delete deletes proxies by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxy/delete
 func (s *ProxyService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"proxyids"`
-	}
-	err := s.client.Call(ctx, "proxy.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "proxy.delete", "proxyids", ids)
 }

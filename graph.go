@@ -112,30 +112,18 @@ func (s *GraphService) GetMap(ctx context.Context, params GraphGetParams) (map[s
 
 // Create creates graphs and returns the new graph ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/graph/create
-func (s *GraphService) Create(ctx context.Context, graphs ...Graph) ([]string, error) {
-	var res struct {
-		IDs []string `json:"graphids"`
-	}
-	err := s.client.Call(ctx, "graph.create", graphs, &res)
-	return res.IDs, err
+func (s *GraphService) Create(ctx context.Context, graphs ...GraphCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "graph.create", "graphids", graphs)
 }
 
 // Update updates graphs and returns the affected graph ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/graph/update
-func (s *GraphService) Update(ctx context.Context, graphs ...Graph) ([]string, error) {
-	var res struct {
-		IDs []string `json:"graphids"`
-	}
-	err := s.client.Call(ctx, "graph.update", graphs, &res)
-	return res.IDs, err
+func (s *GraphService) Update(ctx context.Context, graphs ...GraphUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "graph.update", "graphids", graphs)
 }
 
 // Delete deletes graphs by id and returns the deleted graph ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/graph/delete
 func (s *GraphService) Delete(ctx context.Context, graphIDs ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"graphids"`
-	}
-	err := s.client.Call(ctx, "graph.delete", graphIDs, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "graph.delete", "graphids", graphIDs)
 }

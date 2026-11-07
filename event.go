@@ -1,6 +1,9 @@
 package zabbix
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 // EventService wraps the "event" API namespace.
 type EventService struct{ client *Client }
@@ -142,19 +145,72 @@ func (s *EventService) GetMap(ctx context.Context, params EventGetParams) (map[s
 // EventAcknowledgeParams are the parameters for event.acknowledge. Action is a
 // bitmask of the AckAction* constants.
 type EventAcknowledgeParams struct {
-	EventIDs []string `json:"eventids"`
-	Action   int      `json:"action"`
-	Message  string   `json:"message,omitempty"`
-	Severity int      `json:"severity,omitempty"`
+	EventIDs      []string `json:"eventids"`
+	Action        int      `json:"action"`
+	Message       *string  `json:"message,omitempty"`
+	Severity      *int     `json:"severity,omitempty"`
+	SuppressUntil *int64   `json:"suppress_until,omitempty"`
+	CauseEventID  *string  `json:"cause_eventid,omitempty"`
+}
+
+func (p EventAcknowledgeParams) validate() error {
+	if len(p.EventIDs) == 0 {
+		return errors.New("zabbix: event.acknowledge requires event IDs")
+	}
+	for _, id := range p.EventIDs {
+		if err := requireWriteID(id, "EventAcknowledgeParams.EventIDs"); err != nil {
+			return err
+		}
+	}
+	const mask = AckActionClose | AckActionAcknowledge | AckActionAddMessage |
+		AckActionChangeSeverity | AckActionUnacknowledge | AckActionSuppress |
+		AckActionUnsuppress | AckActionChangeToCause | AckActionChangeToSymptom
+	if p.Action < 0 || p.Action&^mask != 0 {
+		return errors.New("zabbix: event.acknowledge action contains unsupported bits")
+	}
+	if p.Action&AckActionAcknowledge != 0 && p.Action&AckActionUnacknowledge != 0 {
+		return errors.New("zabbix: cannot acknowledge and unacknowledge the same event")
+	}
+	if p.Action&AckActionSuppress != 0 && p.Action&AckActionUnsuppress != 0 {
+		return errors.New("zabbix: cannot suppress and unsuppress the same event")
+	}
+	if p.Action&AckActionClose != 0 && p.Action&(AckActionSuppress|AckActionUnsuppress) != 0 {
+		return errors.New("zabbix: cannot close an event while changing its suppression")
+	}
+	if p.Action&AckActionChangeToCause != 0 && p.Action&AckActionChangeToSymptom != 0 {
+		return errors.New("zabbix: cannot change the same event to both cause and symptom")
+	}
+	if p.Action&AckActionAddMessage != 0 && (p.Message == nil || *p.Message == "") {
+		return errors.New("zabbix: adding an event message requires a nonempty message")
+	}
+	if p.Action&AckActionChangeSeverity != 0 && p.Severity == nil {
+		return errors.New("zabbix: changing event severity requires severity")
+	}
+	if p.Severity != nil && (*p.Severity < 0 || *p.Severity > 5) {
+		return errors.New("zabbix: event severity must be between 0 and 5")
+	}
+	if p.Action&AckActionSuppress != 0 && p.SuppressUntil == nil {
+		return errors.New("zabbix: suppressing an event requires suppress_until")
+	}
+	if p.SuppressUntil != nil && *p.SuppressUntil < 0 {
+		return errors.New("zabbix: suppress_until must not be negative")
+	}
+	if p.Action&AckActionChangeToSymptom != 0 {
+		if p.CauseEventID == nil {
+			return errors.New("zabbix: changing an event to a symptom requires cause_eventid")
+		}
+		if err := requireWriteID(*p.CauseEventID, "EventAcknowledgeParams.CauseEventID"); err != nil {
+			return err
+		}
+	} else if p.CauseEventID != nil {
+		return errors.New("zabbix: cause_eventid is only accepted when changing an event to a symptom")
+	}
+	return nil
 }
 
 // Acknowledge updates problem events (acknowledge, close, add message, change
 // severity, suppress, ...) and returns the affected event ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/event/acknowledge
 func (s *EventService) Acknowledge(ctx context.Context, params EventAcknowledgeParams) ([]string, error) {
-	var res struct {
-		EventIDs []string `json:"eventids"`
-	}
-	err := s.client.Call(ctx, "event.acknowledge", params, &res)
-	return res.EventIDs, err
+	return mutateObjectIDs(ctx, s.client, "event.acknowledge", "eventids", params, false)
 }

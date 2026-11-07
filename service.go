@@ -105,28 +105,16 @@ func (s *ServiceService) GetMap(ctx context.Context, params ServiceGetParams) (m
 }
 
 // Create creates services and returns the new service ids.
-func (s *ServiceService) Create(ctx context.Context, items ...Service) ([]string, error) {
-	var res struct {
-		IDs []string `json:"serviceids"`
-	}
-	err := s.client.Call(ctx, "service.create", items, &res)
-	return res.IDs, err
+func (s *ServiceService) Create(ctx context.Context, items ...ServiceCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "service.create", "serviceids", items)
 }
 
 // Update updates services and returns the affected service ids.
-func (s *ServiceService) Update(ctx context.Context, items ...Service) ([]string, error) {
-	var res struct {
-		IDs []string `json:"serviceids"`
-	}
-	err := s.client.Call(ctx, "service.update", items, &res)
-	return res.IDs, err
+func (s *ServiceService) Update(ctx context.Context, items ...ServiceUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "service.update", "serviceids", items)
 }
 
 // Delete deletes services by id and returns the deleted service ids.
 func (s *ServiceService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"serviceids"`
-	}
-	err := s.client.Call(ctx, "service.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "service.delete", "serviceids", ids)
 }

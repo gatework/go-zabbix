@@ -75,30 +75,18 @@ func (s *ProxyGroupService) GetMap(ctx context.Context, params ProxyGroupGetPara
 
 // Create creates proxy groups and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxygroup/create
-func (s *ProxyGroupService) Create(ctx context.Context, groups ...ProxyGroup) ([]string, error) {
-	var res struct {
-		IDs []string `json:"proxy_groupids"`
-	}
-	err := s.client.Call(ctx, "proxygroup.create", groups, &res)
-	return res.IDs, err
+func (s *ProxyGroupService) Create(ctx context.Context, groups ...ProxyGroupCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "proxygroup.create", "proxy_groupids", groups)
 }
 
 // Update updates proxy groups and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxygroup/update
-func (s *ProxyGroupService) Update(ctx context.Context, groups ...ProxyGroup) ([]string, error) {
-	var res struct {
-		IDs []string `json:"proxy_groupids"`
-	}
-	err := s.client.Call(ctx, "proxygroup.update", groups, &res)
-	return res.IDs, err
+func (s *ProxyGroupService) Update(ctx context.Context, groups ...ProxyGroupUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "proxygroup.update", "proxy_groupids", groups)
 }
 
 // Delete deletes proxy groups by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxygroup/delete
 func (s *ProxyGroupService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"proxy_groupids"`
-	}
-	err := s.client.Call(ctx, "proxygroup.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "proxygroup.delete", "proxy_groupids", ids)
 }

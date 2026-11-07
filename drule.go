@@ -77,30 +77,18 @@ func (s *DRuleService) GetMap(ctx context.Context, params DRuleGetParams) (map[s
 
 // Create creates discovery rules and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/drule/create
-func (s *DRuleService) Create(ctx context.Context, rules ...DRule) ([]string, error) {
-	var res struct {
-		IDs []string `json:"druleids"`
-	}
-	err := s.client.Call(ctx, "drule.create", rules, &res)
-	return res.IDs, err
+func (s *DRuleService) Create(ctx context.Context, rules ...DRuleCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "drule.create", "druleids", rules)
 }
 
 // Update updates discovery rules and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/drule/update
-func (s *DRuleService) Update(ctx context.Context, rules ...DRule) ([]string, error) {
-	var res struct {
-		IDs []string `json:"druleids"`
-	}
-	err := s.client.Call(ctx, "drule.update", rules, &res)
-	return res.IDs, err
+func (s *DRuleService) Update(ctx context.Context, rules ...DRuleUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "drule.update", "druleids", rules)
 }
 
 // Delete deletes discovery rules by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/drule/delete
 func (s *DRuleService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"druleids"`
-	}
-	err := s.client.Call(ctx, "drule.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "drule.delete", "druleids", ids)
 }

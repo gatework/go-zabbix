@@ -83,30 +83,18 @@ func (s *HostGroupService) GetMap(ctx context.Context, params HostGroupGetParams
 
 // Create creates host groups and returns the new group ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostgroup/create
-func (s *HostGroupService) Create(ctx context.Context, groups ...HostGroup) ([]string, error) {
-	var res struct {
-		GroupIDs []string `json:"groupids"`
-	}
-	err := s.client.Call(ctx, "hostgroup.create", groups, &res)
-	return res.GroupIDs, err
+func (s *HostGroupService) Create(ctx context.Context, groups ...HostGroupCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "hostgroup.create", "groupids", groups)
 }
 
 // Update updates host groups and returns the affected group ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostgroup/update
-func (s *HostGroupService) Update(ctx context.Context, groups ...HostGroup) ([]string, error) {
-	var res struct {
-		GroupIDs []string `json:"groupids"`
-	}
-	err := s.client.Call(ctx, "hostgroup.update", groups, &res)
-	return res.GroupIDs, err
+func (s *HostGroupService) Update(ctx context.Context, groups ...HostGroupUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "hostgroup.update", "groupids", groups)
 }
 
 // Delete deletes host groups by id and returns the deleted group ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostgroup/delete
 func (s *HostGroupService) Delete(ctx context.Context, groupIDs ...string) ([]string, error) {
-	var res struct {
-		GroupIDs []string `json:"groupids"`
-	}
-	err := s.client.Call(ctx, "hostgroup.delete", groupIDs, &res)
-	return res.GroupIDs, err
+	return deleteIDs(ctx, s.client, "hostgroup.delete", "groupids", groupIDs)
 }

@@ -77,30 +77,18 @@ func (s *ValueMapService) GetMap(ctx context.Context, params ValueMapGetParams) 
 
 // Create creates value maps and returns the new value map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/valuemap/create
-func (s *ValueMapService) Create(ctx context.Context, valuemaps ...ValueMap) ([]string, error) {
-	var res struct {
-		IDs []string `json:"valuemapids"`
-	}
-	err := s.client.Call(ctx, "valuemap.create", valuemaps, &res)
-	return res.IDs, err
+func (s *ValueMapService) Create(ctx context.Context, valuemaps ...ValueMapCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "valuemap.create", "valuemapids", valuemaps)
 }
 
 // Update updates value maps and returns the affected value map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/valuemap/update
-func (s *ValueMapService) Update(ctx context.Context, valuemaps ...ValueMap) ([]string, error) {
-	var res struct {
-		IDs []string `json:"valuemapids"`
-	}
-	err := s.client.Call(ctx, "valuemap.update", valuemaps, &res)
-	return res.IDs, err
+func (s *ValueMapService) Update(ctx context.Context, valuemaps ...ValueMapUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "valuemap.update", "valuemapids", valuemaps)
 }
 
 // Delete deletes value maps by id and returns the deleted value map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/valuemap/delete
 func (s *ValueMapService) Delete(ctx context.Context, valuemapIDs ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"valuemapids"`
-	}
-	err := s.client.Call(ctx, "valuemap.delete", valuemapIDs, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "valuemap.delete", "valuemapids", valuemapIDs)
 }

@@ -79,30 +79,18 @@ func (s *IconMapService) GetMap(ctx context.Context, params IconMapGetParams) (m
 
 // Create creates icon maps and returns the new icon map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/iconmap/create
-func (s *IconMapService) Create(ctx context.Context, iconmaps ...IconMap) ([]string, error) {
-	var res struct {
-		IDs []string `json:"iconmapids"`
-	}
-	err := s.client.Call(ctx, "iconmap.create", iconmaps, &res)
-	return res.IDs, err
+func (s *IconMapService) Create(ctx context.Context, iconmaps ...IconMapCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "iconmap.create", "iconmapids", iconmaps)
 }
 
 // Update updates icon maps and returns the affected icon map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/iconmap/update
-func (s *IconMapService) Update(ctx context.Context, iconmaps ...IconMap) ([]string, error) {
-	var res struct {
-		IDs []string `json:"iconmapids"`
-	}
-	err := s.client.Call(ctx, "iconmap.update", iconmaps, &res)
-	return res.IDs, err
+func (s *IconMapService) Update(ctx context.Context, iconmaps ...IconMapUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "iconmap.update", "iconmapids", iconmaps)
 }
 
 // Delete deletes icon maps by id and returns the deleted icon map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/iconmap/delete
 func (s *IconMapService) Delete(ctx context.Context, iconmapIDs ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"iconmapids"`
-	}
-	err := s.client.Call(ctx, "iconmap.delete", iconmapIDs, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "iconmap.delete", "iconmapids", iconmapIDs)
 }

@@ -104,30 +104,18 @@ func (s *RoleService) GetMap(ctx context.Context, params RoleGetParams) (map[str
 
 // Create creates roles and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/role/create
-func (s *RoleService) Create(ctx context.Context, items ...Role) ([]string, error) {
-	var res struct {
-		IDs []string `json:"roleids"`
-	}
-	err := s.client.Call(ctx, "role.create", items, &res)
-	return res.IDs, err
+func (s *RoleService) Create(ctx context.Context, items ...RoleCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "role.create", "roleids", items)
 }
 
 // Update updates roles and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/role/update
-func (s *RoleService) Update(ctx context.Context, items ...Role) ([]string, error) {
-	var res struct {
-		IDs []string `json:"roleids"`
-	}
-	err := s.client.Call(ctx, "role.update", items, &res)
-	return res.IDs, err
+func (s *RoleService) Update(ctx context.Context, items ...RoleUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "role.update", "roleids", items)
 }
 
 // Delete deletes roles by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/role/delete
 func (s *RoleService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"roleids"`
-	}
-	err := s.client.Call(ctx, "role.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "role.delete", "roleids", ids)
 }

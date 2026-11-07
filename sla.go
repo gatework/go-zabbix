@@ -96,30 +96,18 @@ func (s *SLAService) GetMap(ctx context.Context, params SLAGetParams) (map[strin
 }
 
 // Create creates SLAs and returns the new SLA ids.
-func (s *SLAService) Create(ctx context.Context, items ...SLA) ([]string, error) {
-	var res struct {
-		IDs []string `json:"slaids"`
-	}
-	err := s.client.Call(ctx, "sla.create", items, &res)
-	return res.IDs, err
+func (s *SLAService) Create(ctx context.Context, items ...SLACreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "sla.create", "slaids", items)
 }
 
 // Update updates SLAs and returns the affected SLA ids.
-func (s *SLAService) Update(ctx context.Context, items ...SLA) ([]string, error) {
-	var res struct {
-		IDs []string `json:"slaids"`
-	}
-	err := s.client.Call(ctx, "sla.update", items, &res)
-	return res.IDs, err
+func (s *SLAService) Update(ctx context.Context, items ...SLAUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "sla.update", "slaids", items)
 }
 
 // Delete deletes SLAs by id and returns the deleted SLA ids.
 func (s *SLAService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"slaids"`
-	}
-	err := s.client.Call(ctx, "sla.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "sla.delete", "slaids", ids)
 }
 
 // SLAGetSLIParams are the parameters for sla.getsli.

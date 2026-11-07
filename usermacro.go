@@ -69,32 +69,20 @@ func (s *UserMacroService) GetMap(ctx context.Context, params UserMacroGetParams
 
 // Create creates host/template user macros and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/create
-func (s *UserMacroService) Create(ctx context.Context, items ...UserMacro) ([]string, error) {
-	var res struct {
-		IDs []string `json:"hostmacroids"`
-	}
-	err := s.client.Call(ctx, "usermacro.create", items, &res)
-	return res.IDs, err
+func (s *UserMacroService) Create(ctx context.Context, items ...HostMacroCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "usermacro.create", "hostmacroids", items)
 }
 
 // Update updates host/template user macros and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/update
-func (s *UserMacroService) Update(ctx context.Context, items ...UserMacro) ([]string, error) {
-	var res struct {
-		IDs []string `json:"hostmacroids"`
-	}
-	err := s.client.Call(ctx, "usermacro.update", items, &res)
-	return res.IDs, err
+func (s *UserMacroService) Update(ctx context.Context, items ...HostMacroUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "usermacro.update", "hostmacroids", items)
 }
 
 // Delete deletes host/template user macros by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/delete
 func (s *UserMacroService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"hostmacroids"`
-	}
-	err := s.client.Call(ctx, "usermacro.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "usermacro.delete", "hostmacroids", ids)
 }
 
 // GlobalMacroGetParams queries server-wide macros without host-macro filters.
@@ -153,30 +141,18 @@ func (s *UserMacroService) GetGlobalMap(ctx context.Context, params GlobalMacroG
 
 // CreateGlobal creates global macros and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/createglobal
-func (s *UserMacroService) CreateGlobal(ctx context.Context, items ...GlobalMacro) ([]string, error) {
-	var res struct {
-		IDs []string `json:"globalmacroids"`
-	}
-	err := s.client.Call(ctx, "usermacro.createglobal", items, &res)
-	return res.IDs, err
+func (s *UserMacroService) CreateGlobal(ctx context.Context, items ...GlobalMacroCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "usermacro.createglobal", "globalmacroids", items)
 }
 
 // UpdateGlobal updates global macros and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/updateglobal
-func (s *UserMacroService) UpdateGlobal(ctx context.Context, items ...GlobalMacro) ([]string, error) {
-	var res struct {
-		IDs []string `json:"globalmacroids"`
-	}
-	err := s.client.Call(ctx, "usermacro.updateglobal", items, &res)
-	return res.IDs, err
+func (s *UserMacroService) UpdateGlobal(ctx context.Context, items ...GlobalMacroUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "usermacro.updateglobal", "globalmacroids", items)
 }
 
 // DeleteGlobal deletes global macros by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/deleteglobal
 func (s *UserMacroService) DeleteGlobal(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"globalmacroids"`
-	}
-	err := s.client.Call(ctx, "usermacro.deleteglobal", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "usermacro.deleteglobal", "globalmacroids", ids)
 }

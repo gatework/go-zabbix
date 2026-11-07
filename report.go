@@ -92,28 +92,16 @@ func (s *ReportService) GetMap(ctx context.Context, params ReportGetParams) (map
 }
 
 // Create creates reports and returns the new report ids.
-func (s *ReportService) Create(ctx context.Context, items ...Report) ([]string, error) {
-	var res struct {
-		IDs []string `json:"reportids"`
-	}
-	err := s.client.Call(ctx, "report.create", items, &res)
-	return res.IDs, err
+func (s *ReportService) Create(ctx context.Context, items ...ReportCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "report.create", "reportids", items)
 }
 
 // Update updates reports and returns the affected report ids.
-func (s *ReportService) Update(ctx context.Context, items ...Report) ([]string, error) {
-	var res struct {
-		IDs []string `json:"reportids"`
-	}
-	err := s.client.Call(ctx, "report.update", items, &res)
-	return res.IDs, err
+func (s *ReportService) Update(ctx context.Context, items ...ReportUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "report.update", "reportids", items)
 }
 
 // Delete deletes reports by id and returns the deleted report ids.
 func (s *ReportService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"reportids"`
-	}
-	err := s.client.Call(ctx, "report.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "report.delete", "reportids", ids)
 }

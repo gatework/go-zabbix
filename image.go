@@ -68,30 +68,18 @@ func (s *ImageService) GetMap(ctx context.Context, params ImageGetParams) (map[s
 
 // Create creates images and returns the new image ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/image/create
-func (s *ImageService) Create(ctx context.Context, images ...Image) ([]string, error) {
-	var res struct {
-		IDs []string `json:"imageids"`
-	}
-	err := s.client.Call(ctx, "image.create", images, &res)
-	return res.IDs, err
+func (s *ImageService) Create(ctx context.Context, images ...ImageCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "image.create", "imageids", images)
 }
 
 // Update updates images and returns the affected image ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/image/update
-func (s *ImageService) Update(ctx context.Context, images ...Image) ([]string, error) {
-	var res struct {
-		IDs []string `json:"imageids"`
-	}
-	err := s.client.Call(ctx, "image.update", images, &res)
-	return res.IDs, err
+func (s *ImageService) Update(ctx context.Context, images ...ImageUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "image.update", "imageids", images)
 }
 
 // Delete deletes images by id and returns the deleted image ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/image/delete
 func (s *ImageService) Delete(ctx context.Context, imageIDs ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"imageids"`
-	}
-	err := s.client.Call(ctx, "image.delete", imageIDs, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "image.delete", "imageids", imageIDs)
 }

@@ -237,30 +237,18 @@ func (s *HostService) GetMap(ctx context.Context, params HostGetParams) (map[str
 
 // Create creates hosts and returns the new host ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/host/create
-func (s *HostService) Create(ctx context.Context, hosts ...Host) ([]string, error) {
-	var res struct {
-		HostIDs []string `json:"hostids"`
-	}
-	err := s.client.Call(ctx, "host.create", hosts, &res)
-	return res.HostIDs, err
+func (s *HostService) Create(ctx context.Context, hosts ...HostCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "host.create", "hostids", hosts)
 }
 
 // Update updates hosts and returns the affected host ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/host/update
-func (s *HostService) Update(ctx context.Context, hosts ...Host) ([]string, error) {
-	var res struct {
-		HostIDs []string `json:"hostids"`
-	}
-	err := s.client.Call(ctx, "host.update", hosts, &res)
-	return res.HostIDs, err
+func (s *HostService) Update(ctx context.Context, hosts ...HostUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "host.update", "hostids", hosts)
 }
 
 // Delete deletes hosts by id and returns the deleted host ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/host/delete
 func (s *HostService) Delete(ctx context.Context, hostIDs ...string) ([]string, error) {
-	var res struct {
-		HostIDs []string `json:"hostids"`
-	}
-	err := s.client.Call(ctx, "host.delete", hostIDs, &res)
-	return res.HostIDs, err
+	return deleteIDs(ctx, s.client, "host.delete", "hostids", hostIDs)
 }

@@ -237,10 +237,11 @@ func TestEventAcknowledge(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	message := "looking into it"
 	ids, err := c.Event().Acknowledge(context.Background(), EventAcknowledgeParams{
 		EventIDs: []string{"42"},
 		Action:   AckActionAcknowledge | AckActionAddMessage,
-		Message:  "looking into it",
+		Message:  &message,
 	})
 	if err != nil {
 		t.Fatalf("Acknowledge: %v", err)

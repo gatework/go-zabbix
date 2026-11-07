@@ -66,30 +66,18 @@ func (s *MFAService) GetMap(ctx context.Context, params MFAGetParams) (map[strin
 
 // Create creates MFA methods and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mfa/create
-func (s *MFAService) Create(ctx context.Context, items ...MFA) ([]string, error) {
-	var res struct {
-		IDs []string `json:"mfaids"`
-	}
-	err := s.client.Call(ctx, "mfa.create", items, &res)
-	return res.IDs, err
+func (s *MFAService) Create(ctx context.Context, items ...MFACreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "mfa.create", "mfaids", items)
 }
 
 // Update updates MFA methods and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mfa/update
-func (s *MFAService) Update(ctx context.Context, items ...MFA) ([]string, error) {
-	var res struct {
-		IDs []string `json:"mfaids"`
-	}
-	err := s.client.Call(ctx, "mfa.update", items, &res)
-	return res.IDs, err
+func (s *MFAService) Update(ctx context.Context, items ...MFAUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "mfa.update", "mfaids", items)
 }
 
 // Delete deletes MFA methods by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mfa/delete
 func (s *MFAService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"mfaids"`
-	}
-	err := s.client.Call(ctx, "mfa.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "mfa.delete", "mfaids", ids)
 }

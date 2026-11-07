@@ -63,28 +63,16 @@ func (s *ModuleService) GetMap(ctx context.Context, params ModuleGetParams) (map
 }
 
 // Create creates modules and returns the new module ids.
-func (s *ModuleService) Create(ctx context.Context, items ...Module) ([]string, error) {
-	var res struct {
-		IDs []string `json:"moduleids"`
-	}
-	err := s.client.Call(ctx, "module.create", items, &res)
-	return res.IDs, err
+func (s *ModuleService) Create(ctx context.Context, items ...ModuleCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "module.create", "moduleids", items)
 }
 
 // Update updates modules and returns the affected module ids.
-func (s *ModuleService) Update(ctx context.Context, items ...Module) ([]string, error) {
-	var res struct {
-		IDs []string `json:"moduleids"`
-	}
-	err := s.client.Call(ctx, "module.update", items, &res)
-	return res.IDs, err
+func (s *ModuleService) Update(ctx context.Context, items ...ModuleUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "module.update", "moduleids", items)
 }
 
 // Delete deletes modules by id and returns the deleted module ids.
 func (s *ModuleService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"moduleids"`
-	}
-	err := s.client.Call(ctx, "module.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "module.delete", "moduleids", ids)
 }

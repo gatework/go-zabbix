@@ -156,32 +156,20 @@ func (s *MapService) GetMap(ctx context.Context, params MapGetParams) (map[strin
 
 // Create creates maps and returns the new map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/map/create
-func (s *MapService) Create(ctx context.Context, maps ...Map) ([]string, error) {
-	var res struct {
-		IDs []string `json:"sysmapids"`
-	}
-	err := s.client.Call(ctx, "map.create", maps, &res)
-	return res.IDs, err
+func (s *MapService) Create(ctx context.Context, maps ...MapCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "map.create", "sysmapids", maps)
 }
 
 // Update updates maps and returns the affected map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/map/update
-func (s *MapService) Update(ctx context.Context, maps ...Map) ([]string, error) {
-	var res struct {
-		IDs []string `json:"sysmapids"`
-	}
-	err := s.client.Call(ctx, "map.update", maps, &res)
-	return res.IDs, err
+func (s *MapService) Update(ctx context.Context, maps ...MapUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "map.update", "sysmapids", maps)
 }
 
 // Delete deletes maps by id and returns the deleted map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/map/delete
 func (s *MapService) Delete(ctx context.Context, sysmapIDs ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"sysmapids"`
-	}
-	err := s.client.Call(ctx, "map.delete", sysmapIDs, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "map.delete", "sysmapids", sysmapIDs)
 }
 
 // MapShape is a shape selected by selectShapes.

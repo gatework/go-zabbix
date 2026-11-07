@@ -38,8 +38,6 @@ func (s *AuthenticationService) Get(ctx context.Context) (*Authentication, error
 // Update updates the global authentication settings and returns the updated
 // parameter names.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/authentication/update
-func (s *AuthenticationService) Update(ctx context.Context, params Authentication) ([]string, error) {
-	var res []string
-	err := s.client.Call(ctx, "authentication.update", params, &res)
-	return res, err
+func (s *AuthenticationService) Update(ctx context.Context, params AuthenticationUpdateParams) ([]string, error) {
+	return mutateFields(ctx, s.client, "authentication.update", params)
 }

@@ -113,30 +113,18 @@ func (s *GraphPrototypeService) GetMap(ctx context.Context, params GraphPrototyp
 
 // Create creates graph prototypes and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/graphprototype/create
-func (s *GraphPrototypeService) Create(ctx context.Context, graphs ...GraphPrototype) ([]string, error) {
-	var res struct {
-		IDs []string `json:"graphids"`
-	}
-	err := s.client.Call(ctx, "graphprototype.create", graphs, &res)
-	return res.IDs, err
+func (s *GraphPrototypeService) Create(ctx context.Context, graphs ...GraphPrototypeCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "graphprototype.create", "graphids", graphs)
 }
 
 // Update updates graph prototypes and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/graphprototype/update
-func (s *GraphPrototypeService) Update(ctx context.Context, graphs ...GraphPrototype) ([]string, error) {
-	var res struct {
-		IDs []string `json:"graphids"`
-	}
-	err := s.client.Call(ctx, "graphprototype.update", graphs, &res)
-	return res.IDs, err
+func (s *GraphPrototypeService) Update(ctx context.Context, graphs ...GraphPrototypeUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "graphprototype.update", "graphids", graphs)
 }
 
 // Delete deletes graph prototypes by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/graphprototype/delete
 func (s *GraphPrototypeService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"graphids"`
-	}
-	err := s.client.Call(ctx, "graphprototype.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "graphprototype.delete", "graphids", ids)
 }

@@ -112,30 +112,18 @@ func (s *ItemService) GetMap(ctx context.Context, params ItemGetParams) (map[str
 
 // Create creates items and returns the new item ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/item/create
-func (s *ItemService) Create(ctx context.Context, items ...Item) ([]string, error) {
-	var res struct {
-		ItemIDs []string `json:"itemids"`
-	}
-	err := s.client.Call(ctx, "item.create", items, &res)
-	return res.ItemIDs, err
+func (s *ItemService) Create(ctx context.Context, items ...ItemCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "item.create", "itemids", items)
 }
 
 // Update updates items and returns the affected item ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/item/update
-func (s *ItemService) Update(ctx context.Context, items ...Item) ([]string, error) {
-	var res struct {
-		ItemIDs []string `json:"itemids"`
-	}
-	err := s.client.Call(ctx, "item.update", items, &res)
-	return res.ItemIDs, err
+func (s *ItemService) Update(ctx context.Context, items ...ItemUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "item.update", "itemids", items)
 }
 
 // Delete deletes items by id and returns the deleted item ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/item/delete
 func (s *ItemService) Delete(ctx context.Context, itemIDs ...string) ([]string, error) {
-	var res struct {
-		ItemIDs []string `json:"itemids"`
-	}
-	err := s.client.Call(ctx, "item.delete", itemIDs, &res)
-	return res.ItemIDs, err
+	return deleteIDs(ctx, s.client, "item.delete", "itemids", itemIDs)
 }

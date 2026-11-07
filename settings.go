@@ -42,8 +42,6 @@ func (s *SettingsService) Get(ctx context.Context) (*Settings, error) {
 
 // Update updates the global settings and returns the updated parameter names.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/settings/update
-func (s *SettingsService) Update(ctx context.Context, params Settings) ([]string, error) {
-	var res []string
-	err := s.client.Call(ctx, "settings.update", params, &res)
-	return res, err
+func (s *SettingsService) Update(ctx context.Context, params SettingsUpdateParams) ([]string, error) {
+	return mutateFields(ctx, s.client, "settings.update", params)
 }

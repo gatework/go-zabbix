@@ -81,32 +81,20 @@ func (s *UserDirectoryService) GetMap(ctx context.Context, params UserDirectoryG
 
 // Create creates user directories and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/userdirectory/create
-func (s *UserDirectoryService) Create(ctx context.Context, items ...UserDirectory) ([]string, error) {
-	var res struct {
-		IDs []string `json:"userdirectoryids"`
-	}
-	err := s.client.Call(ctx, "userdirectory.create", items, &res)
-	return res.IDs, err
+func (s *UserDirectoryService) Create(ctx context.Context, items ...UserDirectoryCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "userdirectory.create", "userdirectoryids", items)
 }
 
 // Update updates user directories and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/userdirectory/update
-func (s *UserDirectoryService) Update(ctx context.Context, items ...UserDirectory) ([]string, error) {
-	var res struct {
-		IDs []string `json:"userdirectoryids"`
-	}
-	err := s.client.Call(ctx, "userdirectory.update", items, &res)
-	return res.IDs, err
+func (s *UserDirectoryService) Update(ctx context.Context, items ...UserDirectoryUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "userdirectory.update", "userdirectoryids", items)
 }
 
 // Delete deletes user directories by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/userdirectory/delete
 func (s *UserDirectoryService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"userdirectoryids"`
-	}
-	err := s.client.Call(ctx, "userdirectory.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "userdirectory.delete", "userdirectoryids", ids)
 }
 
 // Test checks the connection and configuration of a user directory. The params and

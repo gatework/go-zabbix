@@ -116,30 +116,18 @@ func (s *TriggerService) GetMap(ctx context.Context, params TriggerGetParams) (m
 
 // Create creates triggers and returns the new trigger ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/trigger/create
-func (s *TriggerService) Create(ctx context.Context, triggers ...Trigger) ([]string, error) {
-	var res struct {
-		TriggerIDs []string `json:"triggerids"`
-	}
-	err := s.client.Call(ctx, "trigger.create", triggers, &res)
-	return res.TriggerIDs, err
+func (s *TriggerService) Create(ctx context.Context, triggers ...TriggerCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "trigger.create", "triggerids", triggers)
 }
 
 // Update updates triggers and returns the affected trigger ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/trigger/update
-func (s *TriggerService) Update(ctx context.Context, triggers ...Trigger) ([]string, error) {
-	var res struct {
-		TriggerIDs []string `json:"triggerids"`
-	}
-	err := s.client.Call(ctx, "trigger.update", triggers, &res)
-	return res.TriggerIDs, err
+func (s *TriggerService) Update(ctx context.Context, triggers ...TriggerUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "trigger.update", "triggerids", triggers)
 }
 
 // Delete deletes triggers by id and returns the deleted trigger ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/trigger/delete
 func (s *TriggerService) Delete(ctx context.Context, triggerIDs ...string) ([]string, error) {
-	var res struct {
-		TriggerIDs []string `json:"triggerids"`
-	}
-	err := s.client.Call(ctx, "trigger.delete", triggerIDs, &res)
-	return res.TriggerIDs, err
+	return deleteIDs(ctx, s.client, "trigger.delete", "triggerids", triggerIDs)
 }

@@ -92,30 +92,18 @@ func (s *ConnectorService) GetMap(ctx context.Context, params ConnectorGetParams
 
 // Create creates connectors and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/connector/create
-func (s *ConnectorService) Create(ctx context.Context, connectors ...Connector) ([]string, error) {
-	var res struct {
-		IDs []string `json:"connectorids"`
-	}
-	err := s.client.Call(ctx, "connector.create", connectors, &res)
-	return res.IDs, err
+func (s *ConnectorService) Create(ctx context.Context, connectors ...ConnectorCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "connector.create", "connectorids", connectors)
 }
 
 // Update updates connectors and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/connector/update
-func (s *ConnectorService) Update(ctx context.Context, connectors ...Connector) ([]string, error) {
-	var res struct {
-		IDs []string `json:"connectorids"`
-	}
-	err := s.client.Call(ctx, "connector.update", connectors, &res)
-	return res.IDs, err
+func (s *ConnectorService) Update(ctx context.Context, connectors ...ConnectorUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "connector.update", "connectorids", connectors)
 }
 
 // Delete deletes connectors by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/connector/delete
 func (s *ConnectorService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"connectorids"`
-	}
-	err := s.client.Call(ctx, "connector.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "connector.delete", "connectorids", ids)
 }

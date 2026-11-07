@@ -95,30 +95,18 @@ func (s *UserGroupService) GetMap(ctx context.Context, params UserGroupGetParams
 
 // Create creates user groups and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usergroup/create
-func (s *UserGroupService) Create(ctx context.Context, items ...UserGroup) ([]string, error) {
-	var res struct {
-		IDs []string `json:"usrgrpids"`
-	}
-	err := s.client.Call(ctx, "usergroup.create", items, &res)
-	return res.IDs, err
+func (s *UserGroupService) Create(ctx context.Context, items ...UserGroupCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "usergroup.create", "usrgrpids", items)
 }
 
 // Update updates user groups and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usergroup/update
-func (s *UserGroupService) Update(ctx context.Context, items ...UserGroup) ([]string, error) {
-	var res struct {
-		IDs []string `json:"usrgrpids"`
-	}
-	err := s.client.Call(ctx, "usergroup.update", items, &res)
-	return res.IDs, err
+func (s *UserGroupService) Update(ctx context.Context, items ...UserGroupUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "usergroup.update", "usrgrpids", items)
 }
 
 // Delete deletes user groups by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usergroup/delete
 func (s *UserGroupService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"usrgrpids"`
-	}
-	err := s.client.Call(ctx, "usergroup.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "usergroup.delete", "usrgrpids", ids)
 }

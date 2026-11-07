@@ -93,30 +93,18 @@ func (s *CorrelationService) GetMap(ctx context.Context, params CorrelationGetPa
 
 // Create creates correlations and returns the new correlation ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/correlation/create
-func (s *CorrelationService) Create(ctx context.Context, items ...Correlation) ([]string, error) {
-	var res struct {
-		IDs []string `json:"correlationids"`
-	}
-	err := s.client.Call(ctx, "correlation.create", items, &res)
-	return res.IDs, err
+func (s *CorrelationService) Create(ctx context.Context, items ...CorrelationCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "correlation.create", "correlationids", items)
 }
 
 // Update updates correlations and returns the affected correlation ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/correlation/update
-func (s *CorrelationService) Update(ctx context.Context, items ...Correlation) ([]string, error) {
-	var res struct {
-		IDs []string `json:"correlationids"`
-	}
-	err := s.client.Call(ctx, "correlation.update", items, &res)
-	return res.IDs, err
+func (s *CorrelationService) Update(ctx context.Context, items ...CorrelationUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "correlation.update", "correlationids", items)
 }
 
 // Delete deletes correlations by id and returns the deleted correlation ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/correlation/delete
 func (s *CorrelationService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"correlationids"`
-	}
-	err := s.client.Call(ctx, "correlation.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "correlation.delete", "correlationids", ids)
 }

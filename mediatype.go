@@ -113,30 +113,18 @@ func (s *MediaTypeService) GetMap(ctx context.Context, params MediaTypeGetParams
 
 // Create creates media types and returns the new media type ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mediatype/create
-func (s *MediaTypeService) Create(ctx context.Context, items ...MediaType) ([]string, error) {
-	var res struct {
-		IDs []string `json:"mediatypeids"`
-	}
-	err := s.client.Call(ctx, "mediatype.create", items, &res)
-	return res.IDs, err
+func (s *MediaTypeService) Create(ctx context.Context, items ...MediaTypeCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "mediatype.create", "mediatypeids", items)
 }
 
 // Update updates media types and returns the affected media type ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mediatype/update
-func (s *MediaTypeService) Update(ctx context.Context, items ...MediaType) ([]string, error) {
-	var res struct {
-		IDs []string `json:"mediatypeids"`
-	}
-	err := s.client.Call(ctx, "mediatype.update", items, &res)
-	return res.IDs, err
+func (s *MediaTypeService) Update(ctx context.Context, items ...MediaTypeUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "mediatype.update", "mediatypeids", items)
 }
 
 // Delete deletes media types by id and returns the deleted media type ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mediatype/delete
 func (s *MediaTypeService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"mediatypeids"`
-	}
-	err := s.client.Call(ctx, "mediatype.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "mediatype.delete", "mediatypeids", ids)
 }

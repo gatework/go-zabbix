@@ -104,30 +104,18 @@ func (s *TemplateService) GetMap(ctx context.Context, params TemplateGetParams) 
 
 // Create creates templates and returns the new template ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/template/create
-func (s *TemplateService) Create(ctx context.Context, templates ...Template) ([]string, error) {
-	var res struct {
-		TemplateIDs []string `json:"templateids"`
-	}
-	err := s.client.Call(ctx, "template.create", templates, &res)
-	return res.TemplateIDs, err
+func (s *TemplateService) Create(ctx context.Context, templates ...TemplateCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "template.create", "templateids", templates)
 }
 
 // Update updates templates and returns the affected template ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/template/update
-func (s *TemplateService) Update(ctx context.Context, templates ...Template) ([]string, error) {
-	var res struct {
-		TemplateIDs []string `json:"templateids"`
-	}
-	err := s.client.Call(ctx, "template.update", templates, &res)
-	return res.TemplateIDs, err
+func (s *TemplateService) Update(ctx context.Context, templates ...TemplateUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "template.update", "templateids", templates)
 }
 
 // Delete deletes templates by id and returns the deleted template ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/template/delete
 func (s *TemplateService) Delete(ctx context.Context, templateIDs ...string) ([]string, error) {
-	var res struct {
-		TemplateIDs []string `json:"templateids"`
-	}
-	err := s.client.Call(ctx, "template.delete", templateIDs, &res)
-	return res.TemplateIDs, err
+	return deleteIDs(ctx, s.client, "template.delete", "templateids", templateIDs)
 }

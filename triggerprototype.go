@@ -102,30 +102,18 @@ func (s *TriggerPrototypeService) GetMap(ctx context.Context, params TriggerProt
 
 // Create creates trigger prototypes and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/triggerprototype/create
-func (s *TriggerPrototypeService) Create(ctx context.Context, triggers ...TriggerPrototype) ([]string, error) {
-	var res struct {
-		IDs []string `json:"triggerids"`
-	}
-	err := s.client.Call(ctx, "triggerprototype.create", triggers, &res)
-	return res.IDs, err
+func (s *TriggerPrototypeService) Create(ctx context.Context, triggers ...TriggerPrototypeCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "triggerprototype.create", "triggerids", triggers)
 }
 
 // Update updates trigger prototypes and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/triggerprototype/update
-func (s *TriggerPrototypeService) Update(ctx context.Context, triggers ...TriggerPrototype) ([]string, error) {
-	var res struct {
-		IDs []string `json:"triggerids"`
-	}
-	err := s.client.Call(ctx, "triggerprototype.update", triggers, &res)
-	return res.IDs, err
+func (s *TriggerPrototypeService) Update(ctx context.Context, triggers ...TriggerPrototypeUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "triggerprototype.update", "triggerids", triggers)
 }
 
 // Delete deletes trigger prototypes by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/triggerprototype/delete
 func (s *TriggerPrototypeService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"triggerids"`
-	}
-	err := s.client.Call(ctx, "triggerprototype.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "triggerprototype.delete", "triggerids", ids)
 }

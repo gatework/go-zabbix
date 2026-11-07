@@ -140,30 +140,18 @@ func (s *DiscoveryRuleService) GetMap(ctx context.Context, params DiscoveryRuleG
 
 // Create creates LLD rules and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/discoveryrule/create
-func (s *DiscoveryRuleService) Create(ctx context.Context, rules ...DiscoveryRule) ([]string, error) {
-	var res struct {
-		IDs []string `json:"itemids"`
-	}
-	err := s.client.Call(ctx, "discoveryrule.create", rules, &res)
-	return res.IDs, err
+func (s *DiscoveryRuleService) Create(ctx context.Context, rules ...DiscoveryRuleCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "discoveryrule.create", "itemids", rules)
 }
 
 // Update updates LLD rules and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/discoveryrule/update
-func (s *DiscoveryRuleService) Update(ctx context.Context, rules ...DiscoveryRule) ([]string, error) {
-	var res struct {
-		IDs []string `json:"itemids"`
-	}
-	err := s.client.Call(ctx, "discoveryrule.update", rules, &res)
-	return res.IDs, err
+func (s *DiscoveryRuleService) Update(ctx context.Context, rules ...DiscoveryRuleUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "discoveryrule.update", "itemids", rules)
 }
 
 // Delete deletes LLD rules by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/discoveryrule/delete
 func (s *DiscoveryRuleService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"itemids"`
-	}
-	err := s.client.Call(ctx, "discoveryrule.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "discoveryrule.delete", "ruleids", ids)
 }

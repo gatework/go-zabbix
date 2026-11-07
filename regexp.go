@@ -77,30 +77,18 @@ func (s *RegexpService) GetMap(ctx context.Context, params RegexpGetParams) (map
 
 // Create creates global regular expressions and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/regexp/create
-func (s *RegexpService) Create(ctx context.Context, regexps ...Regexp) ([]string, error) {
-	var res struct {
-		IDs []string `json:"regexpids"`
-	}
-	err := s.client.Call(ctx, "regexp.create", regexps, &res)
-	return res.IDs, err
+func (s *RegexpService) Create(ctx context.Context, regexps ...RegexpCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "regexp.create", "regexpids", regexps)
 }
 
 // Update updates global regular expressions and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/regexp/update
-func (s *RegexpService) Update(ctx context.Context, regexps ...Regexp) ([]string, error) {
-	var res struct {
-		IDs []string `json:"regexpids"`
-	}
-	err := s.client.Call(ctx, "regexp.update", regexps, &res)
-	return res.IDs, err
+func (s *RegexpService) Update(ctx context.Context, regexps ...RegexpUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "regexp.update", "regexpids", regexps)
 }
 
 // Delete deletes global regular expressions by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/regexp/delete
 func (s *RegexpService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"regexpids"`
-	}
-	err := s.client.Call(ctx, "regexp.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "regexp.delete", "regexpids", ids)
 }

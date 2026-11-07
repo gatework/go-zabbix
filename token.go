@@ -80,32 +80,20 @@ func (s *APITokenService) GetMap(ctx context.Context, params TokenGetParams) (ma
 
 // Create creates tokens and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/token/create
-func (s *APITokenService) Create(ctx context.Context, items ...Token) ([]string, error) {
-	var res struct {
-		IDs []string `json:"tokenids"`
-	}
-	err := s.client.Call(ctx, "token.create", items, &res)
-	return res.IDs, err
+func (s *APITokenService) Create(ctx context.Context, items ...TokenCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "token.create", "tokenids", items)
 }
 
 // Update updates tokens and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/token/update
-func (s *APITokenService) Update(ctx context.Context, items ...Token) ([]string, error) {
-	var res struct {
-		IDs []string `json:"tokenids"`
-	}
-	err := s.client.Call(ctx, "token.update", items, &res)
-	return res.IDs, err
+func (s *APITokenService) Update(ctx context.Context, items ...TokenUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "token.update", "tokenids", items)
 }
 
 // Delete deletes tokens by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/token/delete
 func (s *APITokenService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"tokenids"`
-	}
-	err := s.client.Call(ctx, "token.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "token.delete", "tokenids", ids)
 }
 
 // Generate generates the authorization secrets for the given tokens and returns the

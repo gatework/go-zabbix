@@ -106,30 +106,18 @@ func (s *HostPrototypeService) GetMap(ctx context.Context, params HostPrototypeG
 
 // Create creates host prototypes and returns the new ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostprototype/create
-func (s *HostPrototypeService) Create(ctx context.Context, hosts ...HostPrototype) ([]string, error) {
-	var res struct {
-		IDs []string `json:"hostids"`
-	}
-	err := s.client.Call(ctx, "hostprototype.create", hosts, &res)
-	return res.IDs, err
+func (s *HostPrototypeService) Create(ctx context.Context, hosts ...HostPrototypeCreateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "hostprototype.create", "hostids", hosts)
 }
 
 // Update updates host prototypes and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostprototype/update
-func (s *HostPrototypeService) Update(ctx context.Context, hosts ...HostPrototype) ([]string, error) {
-	var res struct {
-		IDs []string `json:"hostids"`
-	}
-	err := s.client.Call(ctx, "hostprototype.update", hosts, &res)
-	return res.IDs, err
+func (s *HostPrototypeService) Update(ctx context.Context, hosts ...HostPrototypeUpdateParams) ([]string, error) {
+	return mutateIDs(ctx, s.client, "hostprototype.update", "hostids", hosts)
 }
 
 // Delete deletes host prototypes by id and returns the deleted ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostprototype/delete
 func (s *HostPrototypeService) Delete(ctx context.Context, ids ...string) ([]string, error) {
-	var res struct {
-		IDs []string `json:"hostids"`
-	}
-	err := s.client.Call(ctx, "hostprototype.delete", ids, &res)
-	return res.IDs, err
+	return deleteIDs(ctx, s.client, "hostprototype.delete", "hostids", ids)
 }
