@@ -2,6 +2,7 @@
 
 - Upstream: https://github.com/Deepreo/gozabbix
 - Upstream revision: `432897ae0c316a0f7f662c157ef521bd76548b34`
+- Published module: `github.com/gatework/go-zabbix`
 - Local branch: `motor-circuit-readonly`
 - License: upstream GPL-3.0 `LICENSE`, unchanged.
 - Production changes: `client.go` only. The existing public API, service helpers,
@@ -59,7 +60,7 @@ truncation, missing protocol checks, partial output mutation, redirects and
 credential-bearing HTTP error bodies. Existing TLS/context/Bearer behavior is
 covered without duplicating its implementation.
 
-The first patched full offline run passed:
+The first patched full offline run passed before the module path was renamed:
 
 ```text
 docker exec circuit-gozabbix-sdk-dev go test -race ./...

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-`gozabbix` is a Go client library for the [Zabbix JSON-RPC API](https://www.zabbix.com/documentation/current/en/manual/api), targeting **Zabbix 7.4**. It is imported as `github.com/Deepreo/gozabbix` and has **no third-party dependencies** — only the Go standard library (requires the Go toolchain pinned in [go.mod](go.mod)).
+`gozabbix` is a Go client library for the [Zabbix JSON-RPC API](https://www.zabbix.com/documentation/current/en/manual/api), targeting **Zabbix 7.4**. It is imported as `github.com/gatework/go-zabbix` and has **no third-party dependencies** — only the Go standard library (requires the Go toolchain pinned in [go.mod](go.mod)).
 
 ## Commands
 

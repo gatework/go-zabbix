@@ -16,7 +16,7 @@ works for both session tokens obtained via `user.login` and pre-created API toke
 ## Install
 
 ```bash
-go get github.com/Deepreo/gozabbix
+go get github.com/gatework/go-zabbix
 ```
 
 ## Usage
@@ -32,7 +32,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/Deepreo/gozabbix"
+	"github.com/gatework/go-zabbix"
 )
 
 func main() {

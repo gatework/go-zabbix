@@ -1,3 +1,3 @@
-module github.com/Deepreo/gozabbix
+module github.com/gatework/go-zabbix
 
 go 1.24
