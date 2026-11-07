@@ -17,6 +17,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -66,6 +67,13 @@ func New(apiURL string, opts ...Option) (*Client, error) {
 	for _, opt := range opts {
 		opt(c)
 	}
+	// Keep redirects from forwarding credentials, even with an injected client.
+	// Copy client settings so the caller's redirect policy is not modified.
+	httpClient := *c.httpClient
+	httpClient.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	c.httpClient = &httpClient
 	return c, nil
 }
 
@@ -121,18 +129,23 @@ type rpcRequest struct {
 type rpcResponse struct {
 	Jsonrpc string          `json:"jsonrpc"`
 	Result  json.RawMessage `json:"result"`
-	Error   *APIError       `json:"error"`
-	ID      int64           `json:"id"`
+	Error   json.RawMessage `json:"error"`
+	ID      *int64          `json:"id"`
 }
 
 // Call invokes an arbitrary authenticated Zabbix API method and decodes the
-// result into out (which may be nil). It is the escape hatch for methods this
-// library does not yet wrap with a typed helper.
+// result into out (which may be nil). A non-nil out must be a non-nil pointer;
+// it is replaced only after successful typed decoding. It is the escape hatch
+// for methods this library does not yet wrap with a typed helper.
 func (c *Client) Call(ctx context.Context, method string, params, out any) error {
 	return c.do(ctx, method, params, out, true)
 }
 
 func (c *Client) do(ctx context.Context, method string, params, out any, authenticate bool) error {
+	destination := reflect.ValueOf(out)
+	if out != nil && (destination.Kind() != reflect.Pointer || destination.IsNil()) {
+		return errors.New("gozabbix: output must be nil or a non-nil pointer")
+	}
 	if params == nil {
 		params = []any{} // Zabbix expects a present params field (empty array for parameterless methods).
 	}
@@ -168,26 +181,67 @@ func (c *Client) do(ctx context.Context, method string, params, out any, authent
 	}
 	defer httpResp.Body.Close()
 
-	raw, err := io.ReadAll(io.LimitReader(httpResp.Body, c.maxBytes))
+	if httpResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("gozabbix: %s: unexpected http status %d", method, httpResp.StatusCode)
+	}
+	limited := &io.LimitedReader{R: httpResp.Body, N: c.maxBytes}
+	raw, err := io.ReadAll(limited)
 	if err != nil {
 		return fmt.Errorf("gozabbix: read response: %w", err)
 	}
-	if httpResp.StatusCode != http.StatusOK {
-		return fmt.Errorf("gozabbix: %s: unexpected http status %d: %s",
-			method, httpResp.StatusCode, strings.TrimSpace(string(raw)))
+	if limited.N == 0 {
+		// Probe one additional byte: a truncated prefix may itself be valid JSON.
+		// Reading separately also avoids overflowing maxBytes + 1 for large limits.
+		var extra [1]byte
+		n, err := io.ReadFull(httpResp.Body, extra[:])
+		if n != 0 {
+			return fmt.Errorf("gozabbix: response exceeds %d byte limit", c.maxBytes)
+		}
+		if err != nil && err != io.EOF {
+			return fmt.Errorf("gozabbix: read response: %w", err)
+		}
 	}
 
 	var resp rpcResponse
 	if err := json.Unmarshal(raw, &resp); err != nil {
 		return fmt.Errorf("gozabbix: decode response: %w", err)
 	}
-	if resp.Error != nil {
-		return resp.Error
+	if err := resp.validate(reqBody.ID); err != nil {
+		return err
 	}
-	if out != nil && len(resp.Result) > 0 {
-		if err := json.Unmarshal(resp.Result, out); err != nil {
+	if out != nil {
+		decoded := reflect.New(destination.Type().Elem())
+		if err := json.Unmarshal(resp.Result, decoded.Interface()); err != nil {
 			return fmt.Errorf("gozabbix: decode result of %s: %w", method, err)
 		}
+		destination.Elem().Set(decoded.Elem())
+	}
+	return nil
+}
+
+func (resp rpcResponse) validate(requestID int64) error {
+	if resp.Jsonrpc != jsonrpcVersion {
+		return errors.New("gozabbix: invalid JSON-RPC version")
+	}
+	if resp.ID == nil || *resp.ID != requestID {
+		return errors.New("gozabbix: invalid JSON-RPC response id")
+	}
+	if (len(resp.Result) == 0) == (len(resp.Error) == 0) {
+		return errors.New("gozabbix: response must contain exactly one result or error")
+	}
+	if len(resp.Error) != 0 {
+		var apiError struct {
+			Code    *int    `json:"code"`
+			Message *string `json:"message"`
+			Data    string  `json:"data"`
+		}
+		if err := json.Unmarshal(resp.Error, &apiError); err != nil || apiError.Code == nil || apiError.Message == nil {
+			return errors.New("gozabbix: invalid JSON-RPC error")
+		}
+		return &APIError{Code: *apiError.Code, Message: *apiError.Message, Data: apiError.Data}
+	}
+	if bytes.Equal(bytes.TrimSpace(resp.Result), []byte("null")) {
+		return errors.New("gozabbix: null JSON-RPC result")
 	}
 	return nil
 }
