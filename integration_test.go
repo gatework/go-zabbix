@@ -11,6 +11,7 @@ package zabbix
 import (
 	"context"
 	"flag"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -24,17 +25,24 @@ var (
 // loginClient returns an authenticated client and registers logout on cleanup.
 func loginClient(t *testing.T) (*Client, context.Context) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	t.Cleanup(cancel)
 
 	c, err := New(*zbxURL, WithTimeout(15*time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(c.CloseIdleConnections)
 	if err := c.Login(ctx, *zbxUser, *zbxPass); err != nil {
 		t.Fatalf("login: %v", err)
 	}
-	t.Cleanup(func() { _ = c.User().Logout(context.Background()) })
+	t.Cleanup(func() {
+		cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
+		defer stop()
+		if err := c.Logout(cleanup); err != nil {
+			t.Errorf("logout: %v", err)
+		}
+	})
 	return c, ctx
 }
 
@@ -45,6 +53,7 @@ func TestIntegrationVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer c.CloseIdleConnections()
 	v, err := c.APIInfo().Version(ctx)
 	if err != nil {
 		t.Fatalf("apiinfo.version: %v", err)
@@ -60,7 +69,7 @@ func TestIntegrationReadNamespaces(t *testing.T) {
 
 	t.Run("user.get self", func(t *testing.T) {
 		users, err := c.User().Get(ctx, UserGetParams{
-			GetParams:    GetParams{Output: []string{"userid", "username", "name"}},
+			Output:       []string{"userid", "username", "name"},
 			SelectMedias: "extend",
 			SelectRole:   "extend",
 		})
@@ -72,7 +81,7 @@ func TestIntegrationReadNamespaces(t *testing.T) {
 
 	t.Run("hostgroup.get", func(t *testing.T) {
 		groups, err := c.HostGroup().Get(ctx, HostGroupGetParams{
-			GetParams: GetParams{Output: "extend", Limit: 5},
+			Output: "extend", Limit: 5,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -82,12 +91,12 @@ func TestIntegrationReadNamespaces(t *testing.T) {
 
 	t.Run("host.get with selects", func(t *testing.T) {
 		hosts, err := c.Host().Get(ctx, HostGetParams{
-			GetParams:        GetParams{Output: []string{"hostid", "host", "name", "status", "monitored_by"}, Limit: 5},
-			SelectInterfaces: "extend",
-			SelectGroups:     "extend",
-			SelectTemplates:  "extend",
-			SelectTags:       "extend",
-			SelectMacros:     "extend",
+			Output: []string{"hostid", "host", "name", "status", "monitored_by"}, Limit: 5,
+			SelectInterfaces:      "extend",
+			SelectHostGroups:      "extend",
+			SelectParentTemplates: "extend",
+			SelectTags:            "extend",
+			SelectMacros:          "extend",
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -95,7 +104,7 @@ func TestIntegrationReadNamespaces(t *testing.T) {
 		t.Logf("hosts: %d", len(hosts))
 		for _, h := range hosts {
 			t.Logf("  %s %q status=%s interfaces=%d hostgroups=%d templates=%d",
-				h.HostID, h.Name, h.Status, len(h.Interfaces), len(h.HostGroups), len(h.ParentTemplates))
+				h.HostID, h.Name, h.Status, len(h.Interfaces.Items), len(h.HostGroups), len(h.ParentTemplates.Items))
 			if len(h.HostGroups) == 0 {
 				t.Errorf("host %s decoded 0 host groups; selectHostGroups output key mismatch?", h.HostID)
 			}
@@ -104,8 +113,8 @@ func TestIntegrationReadNamespaces(t *testing.T) {
 
 	t.Run("template.get", func(t *testing.T) {
 		tpls, err := c.Template().Get(ctx, TemplateGetParams{
-			GetParams:    GetParams{Output: []string{"templateid", "host", "name"}, Limit: 5},
-			SelectGroups: "extend",
+			Output: []string{"templateid", "host", "name"}, Limit: 5,
+			SelectTemplateGroups: "extend",
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -115,7 +124,7 @@ func TestIntegrationReadNamespaces(t *testing.T) {
 
 	t.Run("item.get", func(t *testing.T) {
 		items, err := c.Item().Get(ctx, ItemGetParams{
-			GetParams:  GetParams{Output: []string{"itemid", "name", "key_", "value_type", "lastvalue"}, Limit: 5},
+			Output: []string{"itemid", "name", "key_", "value_type", "lastvalue"}, Limit: 5,
 			SelectTags: "extend",
 		})
 		if err != nil {
@@ -126,7 +135,7 @@ func TestIntegrationReadNamespaces(t *testing.T) {
 
 	t.Run("trigger.get", func(t *testing.T) {
 		triggers, err := c.Trigger().Get(ctx, TriggerGetParams{
-			GetParams:   GetParams{Output: []string{"triggerid", "description", "priority", "status"}, Limit: 5},
+			Output: []string{"triggerid", "description", "priority", "status"}, Limit: 5,
 			SelectHosts: "extend",
 			SelectTags:  "extend",
 		})
@@ -138,7 +147,7 @@ func TestIntegrationReadNamespaces(t *testing.T) {
 
 	t.Run("problem.get", func(t *testing.T) {
 		problems, err := c.Problem().Get(ctx, ProblemGetParams{
-			GetParams:  GetParams{Output: "extend", Limit: 5},
+			Output: "extend", Limit: 5,
 			SelectTags: "extend",
 		})
 		if err != nil {
@@ -149,9 +158,9 @@ func TestIntegrationReadNamespaces(t *testing.T) {
 
 	t.Run("event.get", func(t *testing.T) {
 		events, err := c.Event().Get(ctx, EventGetParams{
-			GetParams:  GetParams{Output: "extend", Limit: 5, SortField: []string{"clock"}, SortOrder: []string{"DESC"}},
+			Output: "extend", Limit: 5, SortField: []string{"clock"}, SortOrder: []string{"DESC"},
 			SelectTags: "extend",
-			TimeFrom:   time.Now().Add(-365 * 24 * time.Hour).Unix(),
+			TimeFrom:   integrationValue(time.Now().Add(-365 * 24 * time.Hour).Unix()),
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -165,8 +174,8 @@ func TestIntegrationReadNamespaces(t *testing.T) {
 func TestIntegrationHostGroupCRUD(t *testing.T) {
 	c, ctx := loginClient(t)
 
-	const name = "gozabbix-it-tmpgroup"
-	ids, err := c.HostGroup().Create(ctx, HostGroup{Name: name})
+	name := fmt.Sprintf("go-zabbix-crud-%d", time.Now().UnixNano())
+	ids, err := c.HostGroup().Create(ctx, HostGroupCreateParams{Name: name})
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -177,13 +186,20 @@ func TestIntegrationHostGroupCRUD(t *testing.T) {
 	t.Logf("created host group %s", groupID)
 
 	// Ensure it is cleaned up even if a later step fails.
+	deleted := false
 	t.Cleanup(func() {
-		_, _ = c.HostGroup().Delete(context.Background(), groupID)
+		if !deleted {
+			cleanup, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if _, err := c.HostGroup().Delete(cleanup, groupID); err != nil {
+				t.Errorf("cleanup: %v", err)
+			}
+		}
 	})
 
 	got, err := c.HostGroup().Get(ctx, HostGroupGetParams{
-		GetParams: GetParams{Output: "extend"},
-		GroupIDs:  []string{groupID},
+		Output:   "extend",
+		GroupIDs: []string{groupID},
 	})
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -199,5 +215,6 @@ func TestIntegrationHostGroupCRUD(t *testing.T) {
 	if len(delIDs) != 1 || delIDs[0] != groupID {
 		t.Fatalf("delete returned %v, want [%s]", delIDs, groupID)
 	}
+	deleted = true
 	t.Logf("deleted host group %s", groupID)
 }

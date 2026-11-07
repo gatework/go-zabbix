@@ -13,12 +13,12 @@ import (
 	"testing"
 )
 
-var sensitiveJSONError = errors.New("payload-password-secret")
+var errSensitiveJSON = errors.New("payload-password-secret")
 
 type failingJSON struct{}
 
-func (failingJSON) MarshalJSON() ([]byte, error) { return nil, sensitiveJSONError }
-func (*failingJSON) UnmarshalJSON([]byte) error  { return sensitiveJSONError }
+func (failingJSON) MarshalJSON() ([]byte, error) { return nil, errSensitiveJSON }
+func (*failingJSON) UnmarshalJSON([]byte) error  { return errSensitiveJSON }
 
 func TestRequestErrorHidesTransportTextAndPreservesCauses(t *testing.T) {
 	var logs bytes.Buffer
@@ -68,7 +68,7 @@ func TestLocalRequestErrorsDoNotSendRequests(t *testing.T) {
 		cause  error
 	}{
 		{"nil context", nil, nil, nil},
-		{"marshal failure", context.Background(), failingJSON{}, sensitiveJSONError},
+		{"marshal failure", context.Background(), failingJSON{}, errSensitiveJSON},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			err := c.Call(tc.ctx, "host.get", tc.params, nil)
@@ -115,7 +115,7 @@ func TestRequestErrorPreservesDecodeAndAPIDataWithoutPrintingIt(t *testing.T) {
 				if strings.Contains(apiErr.Error(), "secret") {
 					t.Fatal("API error default text printed server data")
 				}
-			} else if requestErr.Kind != ErrorDecode || !errors.Is(err, sensitiveJSONError) {
+			} else if requestErr.Kind != ErrorDecode || !errors.Is(err, errSensitiveJSON) {
 				t.Fatal("decode cause was lost")
 			}
 		})

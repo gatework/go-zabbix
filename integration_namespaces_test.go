@@ -12,66 +12,65 @@ func intPtr(i int) *int { return &i }
 // empty result sets are fine on a fresh install.
 func TestIntegrationNamespaceReads(t *testing.T) {
 	c, ctx := loginClient(t)
-	lim := GetParams{Limit: 3}
 
 	checks := []struct {
 		name string
 		fn   func() error
 	}{
-		{"usergroup.get", func() error { _, e := c.UserGroup().Get(ctx, UserGroupGetParams{GetParams: lim}); return e }},
-		{"role.get", func() error { _, e := c.Role().Get(ctx, RoleGetParams{GetParams: lim}); return e }},
-		{"usermacro.get", func() error { _, e := c.UserMacro().Get(ctx, UserMacroGetParams{GetParams: lim}); return e }},
-		{"usermacro.getglobal", func() error { _, e := c.UserMacro().GetGlobal(ctx, UserMacroGetParams{GetParams: lim}); return e }},
-		{"userdirectory.get", func() error { _, e := c.UserDirectory().Get(ctx, UserDirectoryGetParams{GetParams: lim}); return e }},
-		{"token.get", func() error { _, e := c.APIToken().Get(ctx, TokenGetParams{GetParams: lim}); return e }},
-		{"mfa.get", func() error { _, e := c.MFA().Get(ctx, MFAGetParams{GetParams: lim}); return e }},
-		{"action.get", func() error { _, e := c.Action().Get(ctx, ActionGetParams{GetParams: lim}); return e }},
-		{"alert.get", func() error { _, e := c.Alert().Get(ctx, AlertGetParams{GetParams: lim}); return e }},
-		{"mediatype.get", func() error { _, e := c.MediaType().Get(ctx, MediaTypeGetParams{GetParams: lim}); return e }},
-		{"script.get", func() error { _, e := c.Script().Get(ctx, ScriptGetParams{GetParams: lim}); return e }},
-		{"correlation.get", func() error { _, e := c.Correlation().Get(ctx, CorrelationGetParams{GetParams: lim}); return e }},
-		{"maintenance.get", func() error { _, e := c.Maintenance().Get(ctx, MaintenanceGetParams{GetParams: lim}); return e }},
-		{"service.get", func() error { _, e := c.Service().Get(ctx, ServiceGetParams{GetParams: lim}); return e }},
-		{"sla.get", func() error { _, e := c.SLA().Get(ctx, SLAGetParams{GetParams: lim}); return e }},
-		{"report.get", func() error { _, e := c.Report().Get(ctx, ReportGetParams{GetParams: lim}); return e }},
-		{"dashboard.get", func() error { _, e := c.Dashboard().Get(ctx, DashboardGetParams{GetParams: lim}); return e }},
+		{"usergroup.get", func() error { _, e := c.UserGroup().Get(ctx, UserGroupGetParams{Limit: 3}); return e }},
+		{"role.get", func() error { _, e := c.Role().Get(ctx, RoleGetParams{Limit: 3}); return e }},
+		{"usermacro.get", func() error { _, e := c.UserMacro().Get(ctx, UserMacroGetParams{Limit: 3}); return e }},
+		{"usermacro.getglobal", func() error { _, e := c.UserMacro().GetGlobal(ctx, GlobalMacroGetParams{Limit: 3}); return e }},
+		{"userdirectory.get", func() error { _, e := c.UserDirectory().Get(ctx, UserDirectoryGetParams{Limit: 3}); return e }},
+		{"token.get", func() error { _, e := c.APIToken().Get(ctx, TokenGetParams{Limit: 3}); return e }},
+		{"mfa.get", func() error { _, e := c.MFA().Get(ctx, MFAGetParams{Limit: 3}); return e }},
+		{"action.get", func() error { _, e := c.Action().Get(ctx, ActionGetParams{Limit: 3}); return e }},
+		{"alert.get", func() error { _, e := c.Alert().Get(ctx, AlertGetParams{Limit: 3}); return e }},
+		{"mediatype.get", func() error { _, e := c.MediaType().Get(ctx, MediaTypeGetParams{Limit: 3}); return e }},
+		{"script.get", func() error { _, e := c.Script().Get(ctx, ScriptGetParams{Limit: 3}); return e }},
+		{"correlation.get", func() error { _, e := c.Correlation().Get(ctx, CorrelationGetParams{Limit: 3}); return e }},
+		{"maintenance.get", func() error { _, e := c.Maintenance().Get(ctx, MaintenanceGetParams{Limit: 3}); return e }},
+		{"service.get", func() error { _, e := c.Service().Get(ctx, ServiceGetParams{Limit: 3}); return e }},
+		{"sla.get", func() error { _, e := c.SLA().Get(ctx, SLAGetParams{Limit: 3}); return e }},
+		{"report.get", func() error { _, e := c.Report().Get(ctx, ReportGetParams{Limit: 3}); return e }},
+		{"dashboard.get", func() error { _, e := c.Dashboard().Get(ctx, DashboardGetParams{Limit: 3}); return e }},
 		{"templatedashboard.get", func() error {
-			_, e := c.TemplateDashboard().Get(ctx, TemplateDashboardGetParams{GetParams: lim})
+			_, e := c.TemplateDashboard().Get(ctx, TemplateDashboardGetParams{Limit: 3})
 			return e
 		}},
-		{"module.get", func() error { _, e := c.Module().Get(ctx, ModuleGetParams{GetParams: lim}); return e }},
-		{"drule.get", func() error { _, e := c.DRule().Get(ctx, DRuleGetParams{GetParams: lim}); return e }},
-		{"dcheck.get", func() error { _, e := c.DCheck().Get(ctx, DCheckGetParams{GetParams: lim}); return e }},
-		{"dhost.get", func() error { _, e := c.DHost().Get(ctx, DHostGetParams{GetParams: lim}); return e }},
-		{"dservice.get", func() error { _, e := c.DService().Get(ctx, DServiceGetParams{GetParams: lim}); return e }},
-		{"discoveryrule.get", func() error { _, e := c.DiscoveryRule().Get(ctx, DiscoveryRuleGetParams{GetParams: lim}); return e }},
-		{"itemprototype.get", func() error { _, e := c.ItemPrototype().Get(ctx, ItemPrototypeGetParams{GetParams: lim}); return e }},
+		{"module.get", func() error { _, e := c.Module().Get(ctx, ModuleGetParams{Limit: 3}); return e }},
+		{"drule.get", func() error { _, e := c.DRule().Get(ctx, DRuleGetParams{Limit: 3}); return e }},
+		{"dcheck.get", func() error { _, e := c.DCheck().Get(ctx, DCheckGetParams{Limit: 3}); return e }},
+		{"dhost.get", func() error { _, e := c.DHost().Get(ctx, DHostGetParams{Limit: 3}); return e }},
+		{"dservice.get", func() error { _, e := c.DService().Get(ctx, DServiceGetParams{Limit: 3}); return e }},
+		{"discoveryrule.get", func() error { _, e := c.DiscoveryRule().Get(ctx, DiscoveryRuleGetParams{Limit: 3}); return e }},
+		{"itemprototype.get", func() error { _, e := c.ItemPrototype().Get(ctx, ItemPrototypeGetParams{Limit: 3}); return e }},
 		{"triggerprototype.get", func() error {
-			_, e := c.TriggerPrototype().Get(ctx, TriggerPrototypeGetParams{GetParams: lim})
+			_, e := c.TriggerPrototype().Get(ctx, TriggerPrototypeGetParams{Limit: 3})
 			return e
 		}},
-		{"graphprototype.get", func() error { _, e := c.GraphPrototype().Get(ctx, GraphPrototypeGetParams{GetParams: lim}); return e }},
-		{"hostprototype.get", func() error { _, e := c.HostPrototype().Get(ctx, HostPrototypeGetParams{GetParams: lim}); return e }},
-		{"templategroup.get", func() error { _, e := c.TemplateGroup().Get(ctx, TemplateGroupGetParams{GetParams: lim}); return e }},
-		{"graph.get", func() error { _, e := c.Graph().Get(ctx, GraphGetParams{GetParams: lim}); return e }},
-		{"graphitem.get", func() error { _, e := c.GraphItem().Get(ctx, GraphItemGetParams{GetParams: lim}); return e }},
-		{"valuemap.get", func() error { _, e := c.ValueMap().Get(ctx, ValueMapGetParams{GetParams: lim}); return e }},
-		{"map.get", func() error { _, e := c.Map().Get(ctx, MapGetParams{GetParams: lim}); return e }},
-		{"iconmap.get", func() error { _, e := c.IconMap().Get(ctx, IconMapGetParams{GetParams: lim}); return e }},
-		{"image.get", func() error { _, e := c.Image().Get(ctx, ImageGetParams{GetParams: lim}); return e }},
-		{"hostinterface.get", func() error { _, e := c.HostInterface().Get(ctx, HostInterfaceGetParams{GetParams: lim}); return e }},
-		{"proxy.get", func() error { _, e := c.Proxy().Get(ctx, ProxyGetParams{GetParams: lim}); return e }},
-		{"proxygroup.get", func() error { _, e := c.ProxyGroup().Get(ctx, ProxyGroupGetParams{GetParams: lim}); return e }},
-		{"connector.get", func() error { _, e := c.Connector().Get(ctx, ConnectorGetParams{GetParams: lim}); return e }},
-		{"auditlog.get", func() error { _, e := c.AuditLog().Get(ctx, AuditLogGetParams{GetParams: lim}); return e }},
+		{"graphprototype.get", func() error { _, e := c.GraphPrototype().Get(ctx, GraphPrototypeGetParams{Limit: 3}); return e }},
+		{"hostprototype.get", func() error { _, e := c.HostPrototype().Get(ctx, HostPrototypeGetParams{Limit: 3}); return e }},
+		{"templategroup.get", func() error { _, e := c.TemplateGroup().Get(ctx, TemplateGroupGetParams{Limit: 3}); return e }},
+		{"graph.get", func() error { _, e := c.Graph().Get(ctx, GraphGetParams{Limit: 3}); return e }},
+		{"graphitem.get", func() error { _, e := c.GraphItem().Get(ctx, GraphItemGetParams{Limit: 3}); return e }},
+		{"valuemap.get", func() error { _, e := c.ValueMap().Get(ctx, ValueMapGetParams{Limit: 3}); return e }},
+		{"map.get", func() error { _, e := c.Map().Get(ctx, MapGetParams{Limit: 3}); return e }},
+		{"iconmap.get", func() error { _, e := c.IconMap().Get(ctx, IconMapGetParams{Limit: 3}); return e }},
+		{"image.get", func() error { _, e := c.Image().Get(ctx, ImageGetParams{Limit: 3}); return e }},
+		{"hostinterface.get", func() error { _, e := c.HostInterface().Get(ctx, HostInterfaceGetParams{Limit: 3}); return e }},
+		{"proxy.get", func() error { _, e := c.Proxy().Get(ctx, ProxyGetParams{Limit: 3}); return e }},
+		{"proxygroup.get", func() error { _, e := c.ProxyGroup().Get(ctx, ProxyGroupGetParams{Limit: 3}); return e }},
+		{"connector.get", func() error { _, e := c.Connector().Get(ctx, ConnectorGetParams{Limit: 3}); return e }},
+		{"auditlog.get", func() error { _, e := c.AuditLog().Get(ctx, AuditLogGetParams{Limit: 3}); return e }},
 		{"task.get", func() error { _, e := c.Task().Get(ctx, TaskGetParams{Output: "extend"}); return e }},
-		{"regexp.get", func() error { _, e := c.Regexp().Get(ctx, RegexpGetParams{GetParams: lim}); return e }},
-		{"hanode.get", func() error { _, e := c.HANode().Get(ctx, HANodeGetParams{GetParams: lim}); return e }},
+		{"regexp.get", func() error { _, e := c.Regexp().Get(ctx, RegexpGetParams{Limit: 3}); return e }},
+		{"hanode.get", func() error { _, e := c.HANode().Get(ctx, HANodeGetParams{Limit: 3}); return e }},
 		{"history.get", func() error {
-			_, e := c.History().Get(ctx, HistoryGetParams{GetParams: lim, History: intPtr(3)})
+			_, e := c.History().Get(ctx, HistoryGetParams{Limit: 3, History: intPtr(3)})
 			return e
 		}},
-		{"trend.get", func() error { _, e := c.Trend().Get(ctx, TrendGetParams{GetParams: lim}); return e }},
+		{"trend.get", func() error { _, e := c.Trend().Get(ctx, TrendGetParams{Limit: 3}); return e }},
 
 		// Global singletons (get takes no params).
 		{"settings.get", func() error { _, e := c.Settings().Get(ctx); return e }},
@@ -90,7 +89,6 @@ func TestIntegrationNamespaceReads(t *testing.T) {
 	}
 
 	for _, ch := range checks {
-		ch := ch
 		t.Run(ch.name, func(t *testing.T) {
 			if err := ch.fn(); err != nil {
 				t.Errorf("%s: %v", ch.name, err)
