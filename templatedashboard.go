@@ -80,7 +80,7 @@ func (s *TemplateDashboardService) Create(ctx context.Context, items ...Template
 
 // Update updates template dashboards and returns the affected dashboard ids.
 func (s *TemplateDashboardService) Update(ctx context.Context, items ...TemplateDashboardUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "templatedashboard.update", "dashboardids", items)
+	return updateIDs(ctx, s.client, "templatedashboard.update", "dashboardids", items)
 }
 
 // Delete deletes template dashboards by id and returns the deleted dashboard ids.

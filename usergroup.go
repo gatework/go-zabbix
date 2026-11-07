@@ -102,7 +102,7 @@ func (s *UserGroupService) Create(ctx context.Context, items ...UserGroupCreateP
 // Update updates user groups and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usergroup/update
 func (s *UserGroupService) Update(ctx context.Context, items ...UserGroupUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "usergroup.update", "usrgrpids", items)
+	return updateIDs(ctx, s.client, "usergroup.update", "usrgrpids", items)
 }
 
 // Delete deletes user groups by id and returns the deleted ids.

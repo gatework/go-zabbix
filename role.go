@@ -28,10 +28,10 @@ type RoleRules struct {
 	UIDefaultAccess      string             `json:"ui.default_access,omitempty"`
 	ServicesReadMode     string             `json:"services.read.mode,omitempty"`
 	ServicesReadList     []Service          `json:"services.read.list,omitempty"`
-	ServicesReadTag      *Tag               `json:"services.read.tag,omitempty"`
+	ServicesReadTag      *ServiceAccessTag  `json:"services.read.tag,omitempty"`
 	ServicesWriteMode    string             `json:"services.write.mode,omitempty"`
 	ServicesWriteList    []Service          `json:"services.write.list,omitempty"`
-	ServicesWriteTag     *Tag               `json:"services.write.tag,omitempty"`
+	ServicesWriteTag     *ServiceAccessTag  `json:"services.write.tag,omitempty"`
 	Modules              []RoleModuleStatus `json:"modules,omitempty"`
 	ModulesDefaultAccess string             `json:"modules.default_access,omitempty"`
 	APIAccess            string             `json:"api.access,omitempty"`
@@ -39,6 +39,13 @@ type RoleRules struct {
 	API                  []string           `json:"api,omitempty"`
 	Actions              []RoleRuleStatus   `json:"actions,omitempty"`
 	ActionsDefaultAccess string             `json:"actions.default_access,omitempty"`
+}
+
+// ServiceAccessTag is a tag condition granting a role access to services.
+// Empty Tag and Value fields mean there is no tag-based access condition.
+type ServiceAccessTag struct {
+	Tag   string `json:"tag"`
+	Value string `json:"value"`
 }
 
 // RoleRuleStatus controls one UI element or action.
@@ -111,7 +118,7 @@ func (s *RoleService) Create(ctx context.Context, items ...RoleCreateParams) ([]
 // Update updates roles and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/role/update
 func (s *RoleService) Update(ctx context.Context, items ...RoleUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "role.update", "roleids", items)
+	return updateIDs(ctx, s.client, "role.update", "roleids", items)
 }
 
 // Delete deletes roles by id and returns the deleted ids.

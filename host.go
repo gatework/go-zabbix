@@ -244,7 +244,7 @@ func (s *HostService) Create(ctx context.Context, hosts ...HostCreateParams) ([]
 // Update updates hosts and returns the affected host ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/host/update
 func (s *HostService) Update(ctx context.Context, hosts ...HostUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "host.update", "hostids", hosts)
+	return updateIDs(ctx, s.client, "host.update", "hostids", hosts)
 }
 
 // Delete deletes hosts by id and returns the deleted host ids.

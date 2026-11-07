@@ -147,7 +147,7 @@ func (s *DiscoveryRuleService) Create(ctx context.Context, rules ...DiscoveryRul
 // Update updates LLD rules and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/discoveryrule/update
 func (s *DiscoveryRuleService) Update(ctx context.Context, rules ...DiscoveryRuleUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "discoveryrule.update", "itemids", rules)
+	return updateIDs(ctx, s.client, "discoveryrule.update", "itemids", rules)
 }
 
 // Delete deletes LLD rules by id and returns the deleted ids.

@@ -163,7 +163,7 @@ func (s *MapService) Create(ctx context.Context, maps ...MapCreateParams) ([]str
 // Update updates maps and returns the affected map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/map/update
 func (s *MapService) Update(ctx context.Context, maps ...MapUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "map.update", "sysmapids", maps)
+	return updateIDs(ctx, s.client, "map.update", "sysmapids", maps)
 }
 
 // Delete deletes maps by id and returns the deleted map ids.

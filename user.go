@@ -123,7 +123,7 @@ func (s *UserService) Create(ctx context.Context, users ...UserCreateParams) ([]
 // Update updates one or more users and returns the affected user ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/user/update
 func (s *UserService) Update(ctx context.Context, users ...UserUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "user.update", "userids", users)
+	return updateIDs(ctx, s.client, "user.update", "userids", users)
 }
 
 // Delete deletes users by id and returns the deleted user ids.

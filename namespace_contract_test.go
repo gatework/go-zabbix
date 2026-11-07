@@ -74,6 +74,7 @@ func TestEveryExposedSelectorHasAResultField(t *testing.T) {
 		{"item.get", "selectHosts", "hosts", false, ItemGetParams{}, Item{}, `[{"hostid":"1"}]`},
 		{"item.get", "selectTriggers", "triggers", true, ItemGetParams{}, Item{}, `[{"triggerid":"2"}]`},
 		{"item.get", "selectTags", "tags", false, ItemGetParams{}, Item{}, `[{"tag":"env","value":"prod"}]`},
+		{"item.get", "selectPreprocessing", "preprocessing", false, ItemGetParams{}, Item{}, `[{"type":"12","params":"$.value","error_handler":"2","error_handler_params":"fallback"}]`},
 		{"itemprototype.get", "selectHosts", "hosts", false, ItemPrototypeGetParams{}, ItemPrototype{}, `[{"hostid":"1"}]`},
 		{"itemprototype.get", "selectTags", "tags", false, ItemPrototypeGetParams{}, ItemPrototype{}, `[{"tag":"env","value":"prod"}]`},
 		{"itemprototype.get", "selectPreprocessing", "preprocessing", false, ItemPrototypeGetParams{}, ItemPrototype{}, `[{"type":"1","params":"2"}]`},

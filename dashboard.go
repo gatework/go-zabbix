@@ -121,7 +121,7 @@ func (s *DashboardService) Create(ctx context.Context, items ...DashboardCreateP
 
 // Update updates dashboards and returns the affected dashboard ids.
 func (s *DashboardService) Update(ctx context.Context, items ...DashboardUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "dashboard.update", "dashboardids", items)
+	return updateIDs(ctx, s.client, "dashboard.update", "dashboardids", items)
 }
 
 // Delete deletes dashboards by id and returns the deleted dashboard ids.

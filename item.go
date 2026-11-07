@@ -11,34 +11,57 @@ func (c *Client) Item() *ItemService { return &ItemService{c} }
 // Item object.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/item/object
 type Item struct {
-	ItemID       string            `json:"itemid,omitempty"`
-	HostID       string            `json:"hostid,omitempty"`
-	Name         string            `json:"name,omitempty"`
-	Key          string            `json:"key_,omitempty"`
-	Type         string            `json:"type,omitempty"`
-	ValueType    string            `json:"value_type,omitempty"`
-	Delay        string            `json:"delay,omitempty"`
-	History      string            `json:"history,omitempty"`
-	Trends       string            `json:"trends,omitempty"`
-	Status       string            `json:"status,omitempty"`
-	Units        string            `json:"units,omitempty"`
-	ValueMapID   string            `json:"valuemapid,omitempty"`
-	Description  string            `json:"description,omitempty"`
-	InterfaceID  string            `json:"interfaceid,omitempty"`
-	TemplateID   string            `json:"templateid,omitempty"`
-	Flags        string            `json:"flags,omitempty"`
-	State        string            `json:"state,omitempty"`
-	Error        string            `json:"error,omitempty"`
-	LastClock    string            `json:"lastclock,omitempty"`
-	LastNS       string            `json:"lastns,omitempty"`
-	LastValue    string            `json:"lastvalue,omitempty"`
-	PrevValue    string            `json:"prevvalue,omitempty"`
-	SNMPOID      string            `json:"snmp_oid,omitempty"`
-	Params       string            `json:"params,omitempty"`
-	MasterItemID string            `json:"master_itemid,omitempty"`
-	Tags         []Tag             `json:"tags,omitempty"`
-	Hosts        []Host            `json:"hosts,omitempty"`
-	Triggers     Relation[Trigger] `json:"triggers,omitzero"`
+	ItemID          string              `json:"itemid,omitempty"`
+	HostID          string              `json:"hostid,omitempty"`
+	Name            string              `json:"name,omitempty"`
+	Key             string              `json:"key_,omitempty"`
+	Type            string              `json:"type,omitempty"`
+	ValueType       string              `json:"value_type,omitempty"`
+	Delay           string              `json:"delay,omitempty"`
+	History         string              `json:"history,omitempty"`
+	Trends          string              `json:"trends,omitempty"`
+	Status          string              `json:"status,omitempty"`
+	Units           string              `json:"units,omitempty"`
+	ValueMapID      string              `json:"valuemapid,omitempty"`
+	Description     string              `json:"description,omitempty"`
+	InterfaceID     string              `json:"interfaceid,omitempty"`
+	TemplateID      string              `json:"templateid,omitempty"`
+	Flags           string              `json:"flags,omitempty"`
+	State           string              `json:"state,omitempty"`
+	Error           string              `json:"error,omitempty"`
+	LastClock       string              `json:"lastclock,omitempty"`
+	LastNS          string              `json:"lastns,omitempty"`
+	LastValue       string              `json:"lastvalue,omitempty"`
+	PrevValue       string              `json:"prevvalue,omitempty"`
+	SNMPOID         string              `json:"snmp_oid,omitempty"`
+	Params          string              `json:"params,omitempty"`
+	MasterItemID    string              `json:"master_itemid,omitempty"`
+	URL             string              `json:"url,omitempty"`
+	QueryFields     []ItemHTTPField     `json:"query_fields,omitempty"`
+	Headers         []ItemHTTPField     `json:"headers,omitempty"`
+	RequestMethod   string              `json:"request_method,omitempty"`
+	PostType        string              `json:"post_type,omitempty"`
+	Posts           string              `json:"posts,omitempty"`
+	Timeout         string              `json:"timeout,omitempty"`
+	StatusCodes     string              `json:"status_codes,omitempty"`
+	FollowRedirects string              `json:"follow_redirects,omitempty"`
+	RetrieveMode    string              `json:"retrieve_mode,omitempty"`
+	OutputFormat    string              `json:"output_format,omitempty"`
+	HTTPProxy       string              `json:"http_proxy,omitempty"`
+	AuthType        string              `json:"authtype,omitempty"`
+	Username        string              `json:"username,omitempty"`
+	Password        string              `json:"password,omitempty"`
+	VerifyPeer      string              `json:"verify_peer,omitempty"`
+	VerifyHost      string              `json:"verify_host,omitempty"`
+	SSLCertFile     string              `json:"ssl_cert_file,omitempty"`
+	SSLKeyFile      string              `json:"ssl_key_file,omitempty"`
+	SSLKeyPassword  string              `json:"ssl_key_password,omitempty"`
+	AllowTraps      string              `json:"allow_traps,omitempty"`
+	TrapperHosts    string              `json:"trapper_hosts,omitempty"`
+	Preprocessing   []ItemPreprocessing `json:"preprocessing,omitempty"`
+	Tags            []Tag               `json:"tags,omitempty"`
+	Hosts           []Host              `json:"hosts,omitempty"`
+	Triggers        Relation[Trigger]   `json:"triggers,omitzero"`
 }
 
 // ItemGetParams are the parameters for item.get.
@@ -70,6 +93,7 @@ type ItemGetParams struct {
 	SelectHosts            any            `json:"selectHosts,omitempty"`
 	SelectTriggers         any            `json:"selectTriggers,omitempty"`
 	SelectTags             any            `json:"selectTags,omitempty"`
+	SelectPreprocessing    any            `json:"selectPreprocessing,omitempty"`
 }
 
 // Get retrieves items matching params.
@@ -119,7 +143,7 @@ func (s *ItemService) Create(ctx context.Context, items ...ItemCreateParams) ([]
 // Update updates items and returns the affected item ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/item/update
 func (s *ItemService) Update(ctx context.Context, items ...ItemUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "item.update", "itemids", items)
+	return updateIDs(ctx, s.client, "item.update", "itemids", items)
 }
 
 // Delete deletes items by id and returns the deleted item ids.

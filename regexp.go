@@ -84,7 +84,7 @@ func (s *RegexpService) Create(ctx context.Context, regexps ...RegexpCreateParam
 // Update updates global regular expressions and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/regexp/update
 func (s *RegexpService) Update(ctx context.Context, regexps ...RegexpUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "regexp.update", "regexpids", regexps)
+	return updateIDs(ctx, s.client, "regexp.update", "regexpids", regexps)
 }
 
 // Delete deletes global regular expressions by id and returns the deleted ids.

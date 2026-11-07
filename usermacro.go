@@ -76,7 +76,7 @@ func (s *UserMacroService) Create(ctx context.Context, items ...HostMacroCreateP
 // Update updates host/template user macros and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/update
 func (s *UserMacroService) Update(ctx context.Context, items ...HostMacroUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "usermacro.update", "hostmacroids", items)
+	return updateIDs(ctx, s.client, "usermacro.update", "hostmacroids", items)
 }
 
 // Delete deletes host/template user macros by id and returns the deleted ids.
@@ -148,7 +148,7 @@ func (s *UserMacroService) CreateGlobal(ctx context.Context, items ...GlobalMacr
 // UpdateGlobal updates global macros and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/usermacro/updateglobal
 func (s *UserMacroService) UpdateGlobal(ctx context.Context, items ...GlobalMacroUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "usermacro.updateglobal", "globalmacroids", items)
+	return updateIDs(ctx, s.client, "usermacro.updateglobal", "globalmacroids", items)
 }
 
 // DeleteGlobal deletes global macros by id and returns the deleted ids.

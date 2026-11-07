@@ -84,7 +84,7 @@ func (s *ValueMapService) Create(ctx context.Context, valuemaps ...ValueMapCreat
 // Update updates value maps and returns the affected value map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/valuemap/update
 func (s *ValueMapService) Update(ctx context.Context, valuemaps ...ValueMapUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "valuemap.update", "valuemapids", valuemaps)
+	return updateIDs(ctx, s.client, "valuemap.update", "valuemapids", valuemaps)
 }
 
 // Delete deletes value maps by id and returns the deleted value map ids.

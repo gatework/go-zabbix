@@ -74,7 +74,7 @@ func (s *TemplateGroupService) Create(ctx context.Context, groups ...TemplateGro
 // Update updates template groups and returns the affected group ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/templategroup/update
 func (s *TemplateGroupService) Update(ctx context.Context, groups ...TemplateGroupUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "templategroup.update", "groupids", groups)
+	return updateIDs(ctx, s.client, "templategroup.update", "groupids", groups)
 }
 
 // Delete deletes template groups by id and returns the deleted group ids.

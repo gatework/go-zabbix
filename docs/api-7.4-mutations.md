@@ -24,7 +24,7 @@ rules were also checked against [the pinned 7.4 server source](https://github.co
 | [`action.delete`](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/action/delete) | [`Action.Delete`](../action.go) | `...string` | `actionids` IDs |
 | [`action.update`](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/action/update) | [`Action.Update`](../action.go) | `...ActionUpdateParams` | `actionids` IDs |
 | [`authentication.update`](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/authentication/update) | [`Authentication.Update`](../authentication.go) | `AuthenticationUpdateParams` | updated field names |
-| [`autoregistration.update`](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/autoregistration/update) | [`Autoregistration.Update`](../autoregistration.go) | `AutoregistrationUpdateParams` | updated field names |
+| [`autoregistration.update`](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/autoregistration/update) | [`Autoregistration.Update`](../autoregistration.go) | `AutoregistrationUpdateParams` | boolean `true`, exposed as `error` only |
 | [`connector.create`](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/connector/create) | [`Connector.Create`](../connector.go) | `...ConnectorCreateParams` | `connectorids` IDs |
 | [`connector.delete`](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/connector/delete) | [`Connector.Delete`](../connector.go) | `...string` | `connectorids` IDs |
 | [`connector.update`](https://www.zabbix.com/documentation/7.4/en/manual/api/reference/connector/update) | [`Connector.Update`](../connector.go) | `...ConnectorUpdateParams` | `connectorids` IDs |
@@ -158,9 +158,29 @@ rules were also checked against [the pinned 7.4 server source](https://github.co
 - `itemprototype.delete` returns `prototypeids`; `discoveryrule.delete` returns `ruleids`.
 - `hostinterface.massadd` in 7.4.16 nests `interfaceids` one extra time. Only that operation accepts the known nested shape, alongside the documented flat array.
 - `hostinterface.massremove` with no match and `replacehostinterfaces` with an empty replacement return a legitimate empty ID list.
-- `event.acknowledge` can return integer IDs after PHP array-key normalization. They are converted to decimal strings without a float intermediate. Explicit severity `0` and `suppress_until: 0` are preserved.
+- `event.acknowledge`, `mfa.delete`, and `hostinterface.massremove` can return integer IDs after PHP array-key normalization. Only these methods accept integer ID tokens; they are converted to decimal strings without a float intermediate. Explicit event severity `0` and `suppress_until: 0` are preserved.
 - Host macros contain their owning `HostID`. Nested host macros and global macros have separate inputs.
 - User-group host and template permissions are independent `hostgroup_rights` and `templategroup_rights` collections.
+- Role service-access tags have their own read/input types. An empty tag clears that condition while unrelated role rules remain unchanged; ordinary entity-tag validation is unchanged.
+- Ordinary HTTP agent items expose URL, ordered query fields/headers, request/body options, timeout/status/redirect behavior, proxy/authentication/TLS fields, trap settings, and preprocessing. Partial updates omit unspecified properties; non-nil empty lists clear them. Preprocessing step presence requirements follow [the pinned 7.4 rules](https://github.com/zabbix/zabbix/blob/0de072729e7e8dffd72f4176ee019ef0efade637/ui/include/classes/api/services/CItemGeneral.php#L395).
+
+## Request and receipt correspondence
+
+| Operation | Receipt check |
+| --- | --- |
+| Ordinary create | One unique decimal ID per submitted object |
+| `task.create` | One ID per task request; a pending task ID may repeat |
+| ID update/delete | Same decimal ID multiset as the request; order and leading zeros do not affect identity |
+| `event.acknowledge` | Deduplicate original request strings, then compare decimal ID multiplicities; cause-event ID is not part of the receipt |
+| `hostinterface.massadd` | One unique ID for every host/interface pair |
+| `hostinterface.massremove` | Unique IDs for matched interfaces; count is state-dependent and may be zero |
+| `hostinterface.replacehostinterfaces` | Same length and positions as the replacement list; existing IDs correspond, new IDs are unique and do not reuse existing IDs |
+| Authentication/housekeeping/settings update | Exact submitted field names; a nonempty geomaps provider additionally returns tile URL, maximum zoom and attribution |
+| Autoregistration update | Boolean `true` |
+
+Comparison uses decimal strings, preserving wire IDs and precision. These checks
+reject false success responses without claiming that a receipt proves persisted
+state. State-dependent server restrictions remain authoritative.
 
 The HTTP fixtures verify outgoing payloads, zero/empty distinctions, malformed
 responses and exact IDs. Docker integration tests create their own entities and

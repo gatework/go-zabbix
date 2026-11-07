@@ -88,7 +88,7 @@ func (s *UserDirectoryService) Create(ctx context.Context, items ...UserDirector
 // Update updates user directories and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/userdirectory/update
 func (s *UserDirectoryService) Update(ctx context.Context, items ...UserDirectoryUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "userdirectory.update", "userdirectoryids", items)
+	return updateIDs(ctx, s.client, "userdirectory.update", "userdirectoryids", items)
 }
 
 // Delete deletes user directories by id and returns the deleted ids.

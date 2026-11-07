@@ -113,7 +113,7 @@ func (s *HostPrototypeService) Create(ctx context.Context, hosts ...HostPrototyp
 // Update updates host prototypes and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostprototype/update
 func (s *HostPrototypeService) Update(ctx context.Context, hosts ...HostPrototypeUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "hostprototype.update", "hostids", hosts)
+	return updateIDs(ctx, s.client, "hostprototype.update", "hostids", hosts)
 }
 
 // Delete deletes host prototypes by id and returns the deleted ids.

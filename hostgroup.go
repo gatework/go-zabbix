@@ -90,7 +90,7 @@ func (s *HostGroupService) Create(ctx context.Context, groups ...HostGroupCreate
 // Update updates host groups and returns the affected group ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostgroup/update
 func (s *HostGroupService) Update(ctx context.Context, groups ...HostGroupUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "hostgroup.update", "groupids", groups)
+	return updateIDs(ctx, s.client, "hostgroup.update", "groupids", groups)
 }
 
 // Delete deletes host groups by id and returns the deleted group ids.

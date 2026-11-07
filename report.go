@@ -98,7 +98,7 @@ func (s *ReportService) Create(ctx context.Context, items ...ReportCreateParams)
 
 // Update updates reports and returns the affected report ids.
 func (s *ReportService) Update(ctx context.Context, items ...ReportUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "report.update", "reportids", items)
+	return updateIDs(ctx, s.client, "report.update", "reportids", items)
 }
 
 // Delete deletes reports by id and returns the deleted report ids.

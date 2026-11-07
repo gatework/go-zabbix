@@ -73,7 +73,7 @@ func (s *MFAService) Create(ctx context.Context, items ...MFACreateParams) ([]st
 // Update updates MFA methods and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mfa/update
 func (s *MFAService) Update(ctx context.Context, items ...MFAUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "mfa.update", "mfaids", items)
+	return updateIDs(ctx, s.client, "mfa.update", "mfaids", items)
 }
 
 // Delete deletes MFA methods by id and returns the deleted ids.

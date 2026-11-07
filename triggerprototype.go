@@ -109,7 +109,7 @@ func (s *TriggerPrototypeService) Create(ctx context.Context, triggers ...Trigge
 // Update updates trigger prototypes and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/triggerprototype/update
 func (s *TriggerPrototypeService) Update(ctx context.Context, triggers ...TriggerPrototypeUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "triggerprototype.update", "triggerids", triggers)
+	return updateIDs(ctx, s.client, "triggerprototype.update", "triggerids", triggers)
 }
 
 // Delete deletes trigger prototypes by id and returns the deleted ids.

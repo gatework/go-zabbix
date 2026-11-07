@@ -148,7 +148,7 @@ func (s *ActionService) Create(ctx context.Context, items ...ActionCreateParams)
 // Update updates actions and returns the affected action ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/action/update
 func (s *ActionService) Update(ctx context.Context, items ...ActionUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "action.update", "actionids", items)
+	return updateIDs(ctx, s.client, "action.update", "actionids", items)
 }
 
 // Delete deletes actions by id and returns the deleted action ids.

@@ -74,7 +74,7 @@ func (s *HostInterfaceService) Create(ctx context.Context, interfaces ...HostInt
 // Update updates host interfaces and returns the affected interface ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostinterface/update
 func (s *HostInterfaceService) Update(ctx context.Context, interfaces ...HostInterfaceUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "hostinterface.update", "interfaceids", interfaces)
+	return updateIDs(ctx, s.client, "hostinterface.update", "interfaceids", interfaces)
 }
 
 // Delete deletes host interfaces by id and returns the deleted interface ids.

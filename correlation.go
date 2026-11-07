@@ -100,7 +100,7 @@ func (s *CorrelationService) Create(ctx context.Context, items ...CorrelationCre
 // Update updates correlations and returns the affected correlation ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/correlation/update
 func (s *CorrelationService) Update(ctx context.Context, items ...CorrelationUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "correlation.update", "correlationids", items)
+	return updateIDs(ctx, s.client, "correlation.update", "correlationids", items)
 }
 
 // Delete deletes correlations by id and returns the deleted correlation ids.

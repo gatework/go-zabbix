@@ -25,6 +25,15 @@ A superseded authentication operation cannot clear or overwrite newer credential
 Call `Logout` before replacing a live session if that earlier session must be
 revoked. Credential setters and `ClearCredentials` change local state only.
 
+`Session.GUIAccess` and `Session.DebugMode` now use the embedded `User` fields,
+both `json.Number`. Use `.String()` or `.Int64()` rather than comparing an `int`
+or `string` directly. Keyed session literals must put these fields inside
+`User: zabbix.User{...}`. This accepts the server's stored strings and computed
+numeric defaults without shadowing either field. A valid session created by
+`LoginWithUserData` is logged out if the remaining user data cannot be decoded;
+that cleanup is bounded independently of caller cancellation and leaves existing
+credentials unchanged.
+
 Different construction options no longer depend on their order. A supplied
 `http.Client` is copied. Its transport remains shared unless TLS customization
 requires an owned clone. Incompatible TLS options return a constructor error
@@ -94,9 +103,42 @@ Mutation helpers validate the operation-specific result key. In 7.4,
 `itemprototype.delete` returns `prototypeids` and `discoveryrule.delete` returns
 `ruleids`. The observed nested `hostinterface.massadd` response is normalized to
 its ID list. Removing nonmatching interfaces or replacing them with an empty set
-may legitimately return an empty ID list. Event acknowledgement normalizes
-integer response IDs without passing through floating point. See the
+may legitimately return an empty ID list. Event acknowledgement, MFA deletion,
+and interface mass removal normalize integer response IDs without passing
+through floating point. Other ID results retain their string-only contract.
+Create receipts must match the number of submitted objects; update/delete
+receipts must match the submitted ID multiplicities, regardless of order or
+leading zeros. Documented Task and bulk-interface exceptions are preserved.
+These checks validate the receipt; use a read-back to verify persisted state. See the
 [mutation matrix](docs/api-7.4-mutations.md) for method-specific inputs and results.
+
+`Autoregistration.Update` now returns only `error`, matching the server's boolean
+success result. Replace `_, err := client.Autoregistration().Update(...)` with
+`err := client.Autoregistration().Update(...)`. Authentication, housekeeping and
+settings still return field names, which must match the submitted properties
+(including the server-derived tile properties for a named geomaps provider).
+
+## Role service access and HTTP items
+
+`RoleRules.ServicesReadTag` and `ServicesWriteTag` now use `ServiceAccessTag`;
+their writable counterparts use `*ServiceAccessTagInput`. These permission
+conditions differ from ordinary entity tags: `&ServiceAccessTagInput{Tag: ""}`
+clears a condition. A nil pointer preserves it, and a nonempty tag with an empty
+value matches any value. `TagInput` still requires a nonempty entity tag name.
+
+Ordinary `Item` reads and `ItemCreateParams`/`ItemUpdateParams` now expose HTTP
+agent configuration, ordered `QueryFields`/`Headers`, and `Preprocessing`.
+Use `ItemHTTPFieldInput{Name: "X-Source", Value: "monitoring"}` for a header.
+Lists preserve repeated names and empty values. A nil list omits it; an allocated
+empty list clears it. HTTP item creation (type 19) requires URL and interval;
+partial updates can rely on stored properties. Body syntax, macros and
+state-dependent constraints remain server-validated.
+
+Use `ItemGetParams{SelectPreprocessing: "extend"}` or a field list to read steps;
+the selector does not accept `"count"`. Supplied `ItemPreprocessingInput` steps
+replace the entire step configuration, so required parameters and error-handler
+properties must be present. A fallback value can explicitly be empty; a custom
+error message cannot. This shared validation also applies to item prototypes.
 
 ## Specialized operations
 

@@ -120,7 +120,7 @@ func (s *ItemPrototypeService) Create(ctx context.Context, items ...ItemPrototyp
 // Update updates item prototypes and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/itemprototype/update
 func (s *ItemPrototypeService) Update(ctx context.Context, items ...ItemPrototypeUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "itemprototype.update", "itemids", items)
+	return updateIDs(ctx, s.client, "itemprototype.update", "itemids", items)
 }
 
 // Delete deletes item prototypes by id and returns the deleted ids.

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 )
 
 // queryArguments keeps protocol validation at the typed namespace boundary.
@@ -58,10 +59,8 @@ func validateSelection(raw []byte, allowCount bool) error {
 	if err := json.Unmarshal(raw, &fields); err != nil {
 		return err
 	}
-	for _, field := range fields {
-		if field == "" {
-			return errors.New("selected field must not be empty")
-		}
+	if slices.Contains(fields, "") {
+		return errors.New("selected field must not be empty")
 	}
 	return nil
 }
@@ -227,9 +226,10 @@ var querySelectors = map[string]map[string]bool{
 		"selectMappings": false,
 	},
 	"item.get": {
-		"selectHosts":    false,
-		"selectTriggers": true,
-		"selectTags":     false,
+		"selectHosts":         false,
+		"selectTriggers":      true,
+		"selectTags":          false,
+		"selectPreprocessing": false,
 	},
 	"itemprototype.get": {
 		"selectHosts":         false,

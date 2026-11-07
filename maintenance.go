@@ -111,7 +111,7 @@ func (s *MaintenanceService) Create(ctx context.Context, items ...MaintenanceCre
 // Update updates maintenances and returns the affected maintenance ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/maintenance/update
 func (s *MaintenanceService) Update(ctx context.Context, items ...MaintenanceUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "maintenance.update", "maintenanceids", items)
+	return updateIDs(ctx, s.client, "maintenance.update", "maintenanceids", items)
 }
 
 // Delete deletes maintenances by id and returns the deleted maintenance ids.

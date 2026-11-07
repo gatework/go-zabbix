@@ -107,7 +107,7 @@ func (s *SLAService) Create(ctx context.Context, items ...SLACreateParams) ([]st
 
 // Update updates SLAs and returns the affected SLA ids.
 func (s *SLAService) Update(ctx context.Context, items ...SLAUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "sla.update", "slaids", items)
+	return updateIDs(ctx, s.client, "sla.update", "slaids", items)
 }
 
 // Delete deletes SLAs by id and returns the deleted SLA ids.

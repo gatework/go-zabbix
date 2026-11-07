@@ -111,7 +111,7 @@ func (s *ServiceService) Create(ctx context.Context, items ...ServiceCreateParam
 
 // Update updates services and returns the affected service ids.
 func (s *ServiceService) Update(ctx context.Context, items ...ServiceUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "service.update", "serviceids", items)
+	return updateIDs(ctx, s.client, "service.update", "serviceids", items)
 }
 
 // Delete deletes services by id and returns the deleted service ids.

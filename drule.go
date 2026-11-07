@@ -84,7 +84,7 @@ func (s *DRuleService) Create(ctx context.Context, rules ...DRuleCreateParams) (
 // Update updates discovery rules and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/drule/update
 func (s *DRuleService) Update(ctx context.Context, rules ...DRuleUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "drule.update", "druleids", rules)
+	return updateIDs(ctx, s.client, "drule.update", "druleids", rules)
 }
 
 // Delete deletes discovery rules by id and returns the deleted ids.

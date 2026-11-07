@@ -111,7 +111,7 @@ func (s *TemplateService) Create(ctx context.Context, templates ...TemplateCreat
 // Update updates templates and returns the affected template ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/template/update
 func (s *TemplateService) Update(ctx context.Context, templates ...TemplateUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "template.update", "templateids", templates)
+	return updateIDs(ctx, s.client, "template.update", "templateids", templates)
 }
 
 // Delete deletes templates by id and returns the deleted template ids.

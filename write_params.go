@@ -2639,23 +2639,46 @@ func (p TriggerUpdateParams) validate() error {
 // ItemCreateParams contains writable Zabbix 7.4 fields.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/item/object
 type ItemCreateParams struct {
-	HostID       string     `json:"hostid"`
-	Name         string     `json:"name"`
-	Key          string     `json:"key_"`
-	Type         int        `json:"type"`
-	ValueType    int        `json:"value_type"`
-	Delay        *string    `json:"delay,omitempty"`
-	History      *string    `json:"history,omitempty"`
-	Trends       *string    `json:"trends,omitempty"`
-	Status       *int       `json:"status,omitempty"`
-	Units        *string    `json:"units,omitempty"`
-	ValueMapID   *string    `json:"valuemapid,omitempty"`
-	Description  *string    `json:"description,omitempty"`
-	InterfaceID  *string    `json:"interfaceid,omitempty"`
-	SNMPOID      *string    `json:"snmp_oid,omitempty"`
-	Params       *string    `json:"params,omitempty"`
-	MasterItemID *string    `json:"master_itemid,omitempty"`
-	Tags         []TagInput `json:"tags,omitzero"`
+	HostID          string                   `json:"hostid"`
+	Name            string                   `json:"name"`
+	Key             string                   `json:"key_"`
+	Type            int                      `json:"type"`
+	ValueType       int                      `json:"value_type"`
+	Delay           *string                  `json:"delay,omitempty"`
+	History         *string                  `json:"history,omitempty"`
+	Trends          *string                  `json:"trends,omitempty"`
+	Status          *int                     `json:"status,omitempty"`
+	Units           *string                  `json:"units,omitempty"`
+	ValueMapID      *string                  `json:"valuemapid,omitempty"`
+	Description     *string                  `json:"description,omitempty"`
+	InterfaceID     *string                  `json:"interfaceid,omitempty"`
+	SNMPOID         *string                  `json:"snmp_oid,omitempty"`
+	Params          *string                  `json:"params,omitempty"`
+	MasterItemID    *string                  `json:"master_itemid,omitempty"`
+	URL             *string                  `json:"url,omitempty"`
+	QueryFields     []ItemHTTPFieldInput     `json:"query_fields,omitzero"`
+	Headers         []ItemHTTPFieldInput     `json:"headers,omitzero"`
+	RequestMethod   *int                     `json:"request_method,omitempty"`
+	PostType        *int                     `json:"post_type,omitempty"`
+	Posts           *string                  `json:"posts,omitempty"`
+	Timeout         *string                  `json:"timeout,omitempty"`
+	StatusCodes     *string                  `json:"status_codes,omitempty"`
+	FollowRedirects *int                     `json:"follow_redirects,omitempty"`
+	RetrieveMode    *int                     `json:"retrieve_mode,omitempty"`
+	OutputFormat    *int                     `json:"output_format,omitempty"`
+	HTTPProxy       *string                  `json:"http_proxy,omitempty"`
+	AuthType        *int                     `json:"authtype,omitempty"`
+	Username        *string                  `json:"username,omitempty"`
+	Password        *string                  `json:"password,omitempty"`
+	VerifyPeer      *int                     `json:"verify_peer,omitempty"`
+	VerifyHost      *int                     `json:"verify_host,omitempty"`
+	SSLCertFile     *string                  `json:"ssl_cert_file,omitempty"`
+	SSLKeyFile      *string                  `json:"ssl_key_file,omitempty"`
+	SSLKeyPassword  *string                  `json:"ssl_key_password,omitempty"`
+	AllowTraps      *int                     `json:"allow_traps,omitempty"`
+	TrapperHosts    *string                  `json:"trapper_hosts,omitempty"`
+	Preprocessing   []ItemPreprocessingInput `json:"preprocessing,omitzero"`
+	Tags            []TagInput               `json:"tags,omitzero"`
 }
 
 func (p ItemCreateParams) validate() error {
@@ -2668,6 +2691,32 @@ func (p ItemCreateParams) validate() error {
 	if p.Key == "" {
 		return errors.New("zabbix: ItemCreateParams.Key is required")
 	}
+	if p.Type == 19 {
+		if p.URL == nil || *p.URL == "" {
+			return errors.New("zabbix: ItemCreateParams.URL is required for HTTP agent items")
+		}
+		if p.Delay == nil || *p.Delay == "" {
+			return errors.New("zabbix: ItemCreateParams.Delay is required for HTTP agent items")
+		}
+		if p.PostType != nil && (*p.PostType == 2 || *p.PostType == 3) && (p.Posts == nil || *p.Posts == "") {
+			return errors.New("zabbix: ItemCreateParams.Posts is required for JSON or XML data")
+		}
+	}
+	for _, value := range p.QueryFields {
+		if err := value.validate(); err != nil {
+			return err
+		}
+	}
+	for _, value := range p.Headers {
+		if err := value.validate(); err != nil {
+			return err
+		}
+	}
+	for _, value := range p.Preprocessing {
+		if err := value.validate(); err != nil {
+			return err
+		}
+	}
 	for _, value := range p.Tags {
 		if err := value.validate(); err != nil {
 			return err
@@ -2679,28 +2728,66 @@ func (p ItemCreateParams) validate() error {
 // ItemUpdateParams contains writable Zabbix 7.4 fields.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/item/object
 type ItemUpdateParams struct {
-	ItemID       string     `json:"itemid"`
-	Name         *string    `json:"name,omitempty"`
-	Key          *string    `json:"key_,omitempty"`
-	Type         *int       `json:"type,omitempty"`
-	ValueType    *int       `json:"value_type,omitempty"`
-	Delay        *string    `json:"delay,omitempty"`
-	History      *string    `json:"history,omitempty"`
-	Trends       *string    `json:"trends,omitempty"`
-	Status       *int       `json:"status,omitempty"`
-	Units        *string    `json:"units,omitempty"`
-	ValueMapID   *string    `json:"valuemapid,omitempty"`
-	Description  *string    `json:"description,omitempty"`
-	InterfaceID  *string    `json:"interfaceid,omitempty"`
-	SNMPOID      *string    `json:"snmp_oid,omitempty"`
-	Params       *string    `json:"params,omitempty"`
-	MasterItemID *string    `json:"master_itemid,omitempty"`
-	Tags         []TagInput `json:"tags,omitzero"`
+	ItemID          string                   `json:"itemid"`
+	Name            *string                  `json:"name,omitempty"`
+	Key             *string                  `json:"key_,omitempty"`
+	Type            *int                     `json:"type,omitempty"`
+	ValueType       *int                     `json:"value_type,omitempty"`
+	Delay           *string                  `json:"delay,omitempty"`
+	History         *string                  `json:"history,omitempty"`
+	Trends          *string                  `json:"trends,omitempty"`
+	Status          *int                     `json:"status,omitempty"`
+	Units           *string                  `json:"units,omitempty"`
+	ValueMapID      *string                  `json:"valuemapid,omitempty"`
+	Description     *string                  `json:"description,omitempty"`
+	InterfaceID     *string                  `json:"interfaceid,omitempty"`
+	SNMPOID         *string                  `json:"snmp_oid,omitempty"`
+	Params          *string                  `json:"params,omitempty"`
+	MasterItemID    *string                  `json:"master_itemid,omitempty"`
+	URL             *string                  `json:"url,omitempty"`
+	QueryFields     []ItemHTTPFieldInput     `json:"query_fields,omitzero"`
+	Headers         []ItemHTTPFieldInput     `json:"headers,omitzero"`
+	RequestMethod   *int                     `json:"request_method,omitempty"`
+	PostType        *int                     `json:"post_type,omitempty"`
+	Posts           *string                  `json:"posts,omitempty"`
+	Timeout         *string                  `json:"timeout,omitempty"`
+	StatusCodes     *string                  `json:"status_codes,omitempty"`
+	FollowRedirects *int                     `json:"follow_redirects,omitempty"`
+	RetrieveMode    *int                     `json:"retrieve_mode,omitempty"`
+	OutputFormat    *int                     `json:"output_format,omitempty"`
+	HTTPProxy       *string                  `json:"http_proxy,omitempty"`
+	AuthType        *int                     `json:"authtype,omitempty"`
+	Username        *string                  `json:"username,omitempty"`
+	Password        *string                  `json:"password,omitempty"`
+	VerifyPeer      *int                     `json:"verify_peer,omitempty"`
+	VerifyHost      *int                     `json:"verify_host,omitempty"`
+	SSLCertFile     *string                  `json:"ssl_cert_file,omitempty"`
+	SSLKeyFile      *string                  `json:"ssl_key_file,omitempty"`
+	SSLKeyPassword  *string                  `json:"ssl_key_password,omitempty"`
+	AllowTraps      *int                     `json:"allow_traps,omitempty"`
+	TrapperHosts    *string                  `json:"trapper_hosts,omitempty"`
+	Preprocessing   []ItemPreprocessingInput `json:"preprocessing,omitzero"`
+	Tags            []TagInput               `json:"tags,omitzero"`
 }
 
 func (p ItemUpdateParams) validate() error {
 	if err := requireWriteID(p.ItemID, "ItemUpdateParams.ItemID"); err != nil {
 		return err
+	}
+	for _, value := range p.QueryFields {
+		if err := value.validate(); err != nil {
+			return err
+		}
+	}
+	for _, value := range p.Headers {
+		if err := value.validate(); err != nil {
+			return err
+		}
+	}
+	for _, value := range p.Preprocessing {
+		if err := value.validate(); err != nil {
+			return err
+		}
 	}
 	for _, value := range p.Tags {
 		if err := value.validate(); err != nil {

@@ -123,7 +123,7 @@ func (s *TriggerService) Create(ctx context.Context, triggers ...TriggerCreatePa
 // Update updates triggers and returns the affected trigger ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/trigger/update
 func (s *TriggerService) Update(ctx context.Context, triggers ...TriggerUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "trigger.update", "triggerids", triggers)
+	return updateIDs(ctx, s.client, "trigger.update", "triggerids", triggers)
 }
 
 // Delete deletes triggers by id and returns the deleted trigger ids.

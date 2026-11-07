@@ -2,6 +2,7 @@ package zabbix
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -84,8 +85,6 @@ type Session struct {
 	User
 	Type          int    `json:"type"`
 	UserIP        string `json:"userip"`
-	DebugMode     int    `json:"debug_mode"`
-	GUIAccess     string `json:"gui_access"`
 	MFAID         int    `json:"mfaid"`
 	Deprovisioned bool   `json:"deprovisioned"`
 	AuthType      int    `json:"auth_type"`
@@ -110,7 +109,9 @@ func (c *Client) Login(ctx context.Context, username, password string) error {
 }
 
 // LoginWithUserData logs in and returns the full session. It has the same
-// credential replacement and concurrency behavior as Login.
+// credential replacement and concurrency behavior as Login. If user-data
+// decoding fails after a valid session ID is returned, that session is logged
+// out with a bounded cleanup context and existing credentials are preserved.
 func (c *Client) LoginWithUserData(ctx context.Context, username, password string) (*Session, error) {
 	return c.login(ctx, username, password, true)
 }
@@ -124,17 +125,34 @@ func (c *Client) login(ctx context.Context, username, password string, userData 
 	generation := c.generation
 	c.mu.Unlock()
 
-	session := &Session{}
-	var out any = &session.SessionID
-	if userData {
-		out = session
-	}
 	params := loginParams{Username: username, Password: password, UserData: userData}
-	if err := c.doWithToken(ctx, "user.login", params, out, ""); err != nil {
+	var raw json.RawMessage
+	if err := c.doWithToken(ctx, "user.login", params, &raw, ""); err != nil {
 		return nil, err
 	}
-	if err := validateToken(session.SessionID); err != nil {
+	var sessionID string
+	if userData {
+		// Recover the session independently of the user fields so a failed full
+		// decode can still clean up the session created by this login.
+		var result struct {
+			SessionID string `json:"sessionid"`
+		}
+		if err := json.Unmarshal(raw, &result); err != nil {
+			return nil, requestError("user.login", ErrorDecode, err)
+		}
+		sessionID = result.SessionID
+	} else if err := json.Unmarshal(raw, &sessionID); err != nil {
+		return nil, requestError("user.login", ErrorDecode, err)
+	}
+	if err := validateToken(sessionID); err != nil {
 		return nil, requestError("user.login", ErrorProtocol, err)
+	}
+	session := &Session{SessionID: sessionID}
+	if userData {
+		if err := json.Unmarshal(raw, session); err != nil {
+			cleanupErr := c.cleanupSession(ctx, sessionID)
+			return nil, requestError("user.login", ErrorDecode, errors.Join(err, cleanupErr))
+		}
 	}
 	c.mu.Lock()
 	if c.generation == generation {
@@ -143,13 +161,14 @@ func (c *Client) login(ctx context.Context, username, password string, userData 
 		return session, nil
 	}
 	c.mu.Unlock()
+	cleanupErr := c.cleanupSession(ctx, sessionID)
+	return nil, requestError("user.login", ErrorAuth, errors.Join(ErrAuthStateChanged, cleanupErr))
+}
 
-	// Cleanup must survive cancellation of the superseded login, but must never
-	// run unbounded. It uses its own token and cannot change local credentials.
+func (c *Client) cleanupSession(ctx context.Context, token string) error {
 	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), authCleanupTimeout)
 	defer cancel()
-	cleanupErr := c.logoutSession(cleanupCtx, session.SessionID)
-	return nil, requestError("user.login", ErrorAuth, errors.Join(ErrAuthStateChanged, cleanupErr))
+	return c.logoutSession(cleanupCtx, token)
 }
 
 // Logout invalidates the current session and clears it only if no newer

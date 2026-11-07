@@ -116,7 +116,7 @@ func (s *ScriptService) Create(ctx context.Context, items ...ScriptCreateParams)
 // Update updates scripts and returns the affected script ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/update
 func (s *ScriptService) Update(ctx context.Context, items ...ScriptUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "script.update", "scriptids", items)
+	return updateIDs(ctx, s.client, "script.update", "scriptids", items)
 }
 
 // Delete deletes scripts by id and returns the deleted script ids.

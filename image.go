@@ -75,7 +75,7 @@ func (s *ImageService) Create(ctx context.Context, images ...ImageCreateParams) 
 // Update updates images and returns the affected image ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/image/update
 func (s *ImageService) Update(ctx context.Context, images ...ImageUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "image.update", "imageids", images)
+	return updateIDs(ctx, s.client, "image.update", "imageids", images)
 }
 
 // Delete deletes images by id and returns the deleted image ids.

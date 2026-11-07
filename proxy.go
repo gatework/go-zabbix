@@ -111,7 +111,7 @@ func (s *ProxyService) Create(ctx context.Context, proxies ...ProxyCreateParams)
 // Update updates proxies and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxy/update
 func (s *ProxyService) Update(ctx context.Context, proxies ...ProxyUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "proxy.update", "proxyids", proxies)
+	return updateIDs(ctx, s.client, "proxy.update", "proxyids", proxies)
 }
 
 // Delete deletes proxies by id and returns the deleted ids.

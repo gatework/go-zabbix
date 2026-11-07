@@ -43,8 +43,17 @@ func awaitAuthResult(t *testing.T, result <-chan error) error {
 }
 
 func TestLoginIsAnonymousWithExistingCredentials(t *testing.T) {
-	for _, userData := range []bool{false, true} {
-		t.Run(map[bool]string{false: "token", true: "user-data"}[userData], func(t *testing.T) {
+	for _, tc := range []struct {
+		name                 string
+		userData             bool
+		guiAccess, debugMode any
+		wantGUI, wantDebug   string
+	}{
+		{name: "token"},
+		{name: "default user-data", userData: true, guiAccess: 0, debugMode: 0, wantGUI: "0", wantDebug: "0"},
+		{name: "debug user-data", userData: true, guiAccess: "1", debugMode: "1", wantGUI: "1", wantDebug: "1"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls.Add(1)
@@ -57,8 +66,11 @@ func TestLoginIsAnonymousWithExistingCredentials(t *testing.T) {
 					if r.Header.Get("Authorization") != "" {
 						t.Error("login included old credentials")
 					}
-					if userData {
-						writeRPCResult(w, req.ID, map[string]any{"sessionid": "new-session", "userid": "7", "type": 3, "mfaid": 0})
+					if tc.userData {
+						writeRPCResult(w, req.ID, map[string]any{
+							"sessionid": "new-session", "userid": "7", "type": 3, "mfaid": 0,
+							"gui_access": tc.guiAccess, "debug_mode": tc.debugMode,
+						})
 					} else {
 						writeRPCResult(w, req.ID, "new-session")
 					}
@@ -74,10 +86,14 @@ func TestLoginIsAnonymousWithExistingCredentials(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if userData {
+			if tc.userData {
 				session, err := c.LoginWithUserData(context.Background(), "Admin", "password-secret")
 				if err != nil || session == nil || session.UserID != "7" || session.SessionID != "new-session" {
 					t.Fatalf("login with user data: %v", err)
+				}
+				user := session.User
+				if user.GUIAccess.String() != tc.wantGUI || user.DebugMode.String() != tc.wantDebug {
+					t.Fatalf("user access fields = %s/%s, want %s/%s", user.GUIAccess, user.DebugMode, tc.wantGUI, tc.wantDebug)
 				}
 			} else if err := c.Login(context.Background(), "Admin", "password-secret"); err != nil {
 				t.Fatal(err)
@@ -103,11 +119,16 @@ func TestInvalidAuthenticationResultsPreserveCredentials(t *testing.T) {
 		{"wrong token type", `{}`, false, ErrorDecode},
 		{"missing session", `{}`, true, ErrorProtocol},
 		{"blank session", `{"sessionid":" "}`, true, ErrorProtocol},
+		{"null session", `{"sessionid":null}`, true, ErrorProtocol},
+		{"control in session", `{"sessionid":"session\nsecret"}`, true, ErrorProtocol},
+		{"numeric session", `{"sessionid":42}`, true, ErrorDecode},
 		{"wrong session type", `"session-secret"`, true, ErrorDecode},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			var calls atomic.Int32
 			c := responseServer(t, func(req rpcRequest) string {
+				calls.Add(1)
 				return `{"jsonrpc":"2.0","id":1,"result":` + tc.result + `}`
 			}, WithAPIToken("original-token"))
 			var err error
@@ -123,6 +144,35 @@ func TestInvalidAuthenticationResultsPreserveCredentials(t *testing.T) {
 			state, _ := c.authSnapshot()
 			if state.kind != credentialAPI || state.token != "original-token" {
 				t.Fatal("failed login changed credentials")
+			}
+			if calls.Load() != 1 {
+				t.Fatal("invalid session authorized cleanup")
+			}
+		})
+	}
+}
+
+func TestInvalidLoginEnvelopeDoesNotAuthorizeCleanup(t *testing.T) {
+	for name, body := range map[string]string{
+		"wrong version": `{"jsonrpc":"1.0","id":1,"result":{"sessionid":"orphan-secret"}}`,
+		"wrong id":      `{"jsonrpc":"2.0","id":2,"result":{"sessionid":"orphan-secret"}}`,
+		"trailing JSON": `{"jsonrpc":"2.0","id":1,"result":{"sessionid":"orphan-secret"}} {}`,
+		"mixed result":  `{"jsonrpc":"2.0","id":1,"result":{"sessionid":"orphan-secret"},"error":{"code":-1,"message":"secret"}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			var calls atomic.Int32
+			c := responseServer(t, func(rpcRequest) string {
+				calls.Add(1)
+				return body
+			}, WithAPIToken("original-token"))
+			session, err := c.LoginWithUserData(context.Background(), "Admin", "password")
+			var requestErr *RequestError
+			if session != nil || !errors.As(err, &requestErr) || requestErr.Kind != ErrorProtocol {
+				t.Fatalf("invalid login envelope: %v", err)
+			}
+			state, _ := c.authSnapshot()
+			if calls.Load() != 1 || state.kind != credentialAPI || state.token != "original-token" {
+				t.Fatal("invalid envelope authorized cleanup or changed credentials")
 			}
 		})
 	}
@@ -210,7 +260,7 @@ func TestLogoutCannotClearNewerCredentials(t *testing.T) {
 			}
 			done := make(chan error, 1)
 			go func() { done <- c.Logout(context.Background()) }()
-			<-started
+			awaitRequestStart(t, started, done)
 			if sameSession {
 				err = c.SetSessionToken("original-session")
 			} else {
@@ -291,15 +341,20 @@ func TestLaterLoginReservationSupersedesEarlierLogin(t *testing.T) {
 	}
 	first, second := make(chan error, 1), make(chan error, 1)
 	go func() { first <- c.Login(context.Background(), "first", "password") }()
-	<-firstStarted
+	awaitRequestStart(t, firstStarted, first)
 	go func() { second <- c.Login(context.Background(), "second", "password") }()
-	<-secondStarted
+	awaitRequestStart(t, secondStarted, second)
 	releaseFirst()
 	if err := awaitAuthResult(t, first); !errors.Is(err, ErrAuthStateChanged) {
 		t.Fatalf("older login committed while newer login pending: %v", err)
 	}
-	if got := <-cleaned; got != "Bearer first-session" {
-		t.Fatalf("cleanup logged out wrong session: %q", got)
+	select {
+	case got := <-cleaned:
+		if got != "Bearer first-session" {
+			t.Fatalf("cleanup logged out wrong session: %q", got)
+		}
+	default:
+		t.Fatal("superseded login did not clean up its session")
 	}
 	state, _ := c.authSnapshot()
 	if state.token != "original" {
@@ -326,9 +381,20 @@ func (b onCloseBody) Close() error {
 	return err
 }
 
-func TestStaleLoginCleanupIsBoundedAndPreservesErrors(t *testing.T) {
-	for _, cleanupFails := range []bool{false, true} {
-		t.Run(map[bool]string{false: "success", true: "cleanup failure"}[cleanupFails], func(t *testing.T) {
+func TestLoginCleanupIsBoundedAndPreservesErrors(t *testing.T) {
+	for _, tc := range []struct {
+		name                  string
+		userData, malformed   bool
+		replace, cleanupFails bool
+	}{
+		{name: "stale login", replace: true},
+		{name: "stale login cleanup failure", replace: true, cleanupFails: true},
+		{name: "stale user-data login", userData: true, replace: true},
+		{name: "malformed user-data", userData: true, malformed: true},
+		{name: "malformed user-data cleanup failure", userData: true, malformed: true, cleanupFails: true},
+		{name: "superseded malformed user-data", userData: true, malformed: true, replace: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			var c *Client
@@ -343,6 +409,13 @@ func TestStaleLoginCleanupIsBoundedAndPreservesErrors(t *testing.T) {
 				result := any(true)
 				if rpc.Method == "user.login" {
 					result = "orphan-session"
+					if tc.userData {
+						user := map[string]any{"sessionid": "orphan-session", "userid": "7", "gui_access": 0, "debug_mode": "1"}
+						if tc.malformed {
+							user["auth_type"] = "response-secret"
+						}
+						result = user
+					}
 				}
 				raw, err := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": rpc.ID, "result": result})
 				if err != nil {
@@ -351,8 +424,10 @@ func TestStaleLoginCleanupIsBoundedAndPreservesErrors(t *testing.T) {
 				resp := &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(string(raw)))}
 				if rpc.Method == "user.login" {
 					resp.Body = onCloseBody{ReadCloser: resp.Body, close: func() {
-						if err := c.SetAPIToken("new-api-token"); err != nil {
-							t.Error(err)
+						if tc.replace {
+							if err := c.SetAPIToken("new-api-token"); err != nil {
+								t.Error(err)
+							}
 						}
 						cancel()
 					}}
@@ -364,28 +439,52 @@ func TestStaleLoginCleanupIsBoundedAndPreservesErrors(t *testing.T) {
 					if req.Context().Err() != nil || !ok || time.Until(deadline) > authCleanupTimeout || time.Until(deadline) <= 0 {
 						t.Error("cleanup reused cancellation or has no finite deadline")
 					}
-					if cleanupFails {
+					if tc.cleanupFails {
 						resp.StatusCode = http.StatusBadGateway
 					}
 				}
 				return resp, nil
 			})
 			var err error
-			c, err = New("https://example.invalid/", WithHTTPClient(&http.Client{Transport: tr}))
+			c, err = New("https://example.invalid/", WithAPIToken("original-token"), WithHTTPClient(&http.Client{Transport: tr}))
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = c.Login(ctx, "Admin", "password-secret")
-			if !errors.Is(err, ErrAuthStateChanged) {
-				t.Fatalf("missing stale-state error: %v", err)
+			if tc.userData {
+				var session *Session
+				session, err = c.LoginWithUserData(ctx, "Admin", "password-secret")
+				if session != nil {
+					t.Fatal("failed login exposed a partial session")
+				}
+			} else {
+				err = c.Login(ctx, "Admin", "password-secret")
+			}
+			wantKind := ErrorAuth
+			if tc.malformed {
+				wantKind = ErrorDecode
+			}
+			var requestErr *RequestError
+			if !errors.As(err, &requestErr) || requestErr.Method != "user.login" || requestErr.Kind != wantKind {
+				t.Fatalf("login failure kind: %v", err)
+			}
+			var decodeErr *json.UnmarshalTypeError
+			if errors.As(err, &decodeErr) != tc.malformed || errors.Is(err, ErrAuthStateChanged) == tc.malformed {
+				t.Fatalf("login failure cause was lost: %v", err)
 			}
 			var httpErr *HTTPError
-			if errors.As(err, &httpErr) != cleanupFails || cleanupFails && httpErr.StatusCode != http.StatusBadGateway {
+			if errors.As(err, &httpErr) != tc.cleanupFails || tc.cleanupFails && httpErr.StatusCode != http.StatusBadGateway {
 				t.Fatalf("cleanup cause was lost: %v", err)
 			}
+			if strings.Contains(err.Error(), "secret") || ctx.Err() != context.Canceled {
+				t.Fatal("login error exposed payload data or cancellation was not exercised")
+			}
+			wantToken := "original-token"
+			if tc.replace {
+				wantToken = "new-api-token"
+			}
 			state, _ := c.authSnapshot()
-			if state.kind != credentialAPI || state.token != "new-api-token" || calls != 2 {
-				t.Fatal("cleanup changed new credentials or retried requests")
+			if state.kind != credentialAPI || state.token != wantToken || calls != 2 {
+				t.Fatalf("cleanup changed credentials or sent the wrong number of requests: calls = %d", calls)
 			}
 		})
 	}
@@ -418,7 +517,7 @@ func TestEmptyLogoutSupersedesPendingLogin(t *testing.T) {
 	}
 	done := make(chan error, 1)
 	go func() { done <- c.Login(context.Background(), "Admin", "password") }()
-	<-started
+	awaitRequestStart(t, started, done)
 	if err := c.Logout(context.Background()); err != nil {
 		t.Fatal(err)
 	}

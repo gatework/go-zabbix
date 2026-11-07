@@ -85,8 +85,7 @@ func TestSingletonUpdateRequiresFieldsAndPreservesExplicitZero(t *testing.T) {
 			return err
 		},
 		"autoregistration": func() error {
-			_, err := c.Autoregistration().Update(context.Background(), AutoregistrationUpdateParams{})
-			return err
+			return c.Autoregistration().Update(context.Background(), AutoregistrationUpdateParams{})
 		},
 		"housekeeping": func() error {
 			_, err := c.Housekeeping().Update(context.Background(), HousekeepingUpdateParams{})
@@ -181,14 +180,14 @@ func TestEventAcknowledgeRejectsMalformedNumericIDs(t *testing.T) {
 	}
 }
 
-func TestNumericMutationIDsRemainInvalidOutsideEventAcknowledge(t *testing.T) {
+func TestNumericMutationIDsRemainInvalidOutsideKnownMethods(t *testing.T) {
 	c := responseServer(t, func(req rpcRequest) string {
 		return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":{"groupids":[9007199254740993]}}`, req.ID)
 	})
 	ids, err := c.HostGroup().Delete(context.Background(), "9007199254740993")
 	var requestErr *RequestError
 	if err == nil || ids != nil || !errors.As(err, &requestErr) || requestErr.Kind != ErrorDecode {
-		t.Fatalf("numeric IDs accepted outside acknowledgement: %v, error = %v", ids, err)
+		t.Fatalf("numeric IDs accepted outside known methods: %v, error = %v", ids, err)
 	}
 }
 

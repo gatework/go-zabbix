@@ -6,40 +6,140 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 type writeParams interface {
 	validate() error
 }
 
+type identifiedWriteParams interface {
+	writeParams
+	writeID() string
+}
+
+type objectWriteParams interface {
+	writeParams
+	validateResult([]string) error
+}
+
 func mutateIDs[T writeParams](
 	ctx context.Context, client *Client, method, key string, params []T,
 ) ([]string, error) {
+	if err := validateWriteList(method, params); err != nil {
+		return nil, err
+	}
+	ids, err := mutationIDs(ctx, client, method, key, params, false)
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) != len(params) {
+		return nil, requestError(method, ErrorProtocol, errors.New("created id count does not match object count"))
+	}
+	// Task creation may reuse pending tasks, including several entries referring
+	// to the same item or to dependent items sharing a master item.
+	if method != "task.create" {
+		if err := uniqueIDs(ids); err != nil {
+			return nil, requestError(method, ErrorProtocol, err)
+		}
+	}
+	return ids, nil
+}
+
+func updateIDs[T identifiedWriteParams](
+	ctx context.Context, client *Client, method, key string, params []T,
+) ([]string, error) {
+	if err := validateWriteList(method, params); err != nil {
+		return nil, err
+	}
+	expected := make([]string, len(params))
+	for i, param := range params {
+		expected[i] = param.writeID()
+	}
+	ids, err := mutationIDs(ctx, client, method, key, params, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := correspondingIDs(ids, expected); err != nil {
+		return nil, requestError(method, ErrorProtocol, err)
+	}
+	return ids, nil
+}
+
+func validateWriteList[T writeParams](method string, params []T) error {
 	if len(params) == 0 {
-		return nil, requestError(method, ErrorInvalidParams, errors.New("at least one object is required"))
+		return requestError(method, ErrorInvalidParams, errors.New("at least one object is required"))
 	}
 	for i, param := range params {
 		if err := param.validate(); err != nil {
-			return nil, requestError(method, ErrorInvalidParams, fmt.Errorf("object %d: %w", i, err))
+			return requestError(method, ErrorInvalidParams, fmt.Errorf("object %d: %w", i, err))
 		}
 	}
-	return mutationIDs(ctx, client, method, key, params, false)
+	return nil
 }
 
 func deleteIDs(ctx context.Context, client *Client, method, key string, ids []string) ([]string, error) {
 	if err := checkIDs(ids); err != nil {
 		return nil, requestError(method, ErrorInvalidParams, err)
 	}
-	return mutationIDs(ctx, client, method, key, ids, false)
+	result, err := mutationIDs(ctx, client, method, key, ids, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := correspondingIDs(result, ids); err != nil {
+		return nil, requestError(method, ErrorProtocol, err)
+	}
+	return result, nil
 }
 
-func mutateObjectIDs[T writeParams](
+func mutateObjectIDs[T objectWriteParams](
 	ctx context.Context, client *Client, method, key string, params T, allowEmpty bool,
 ) ([]string, error) {
 	if err := params.validate(); err != nil {
 		return nil, requestError(method, ErrorInvalidParams, err)
 	}
-	return mutationIDs(ctx, client, method, key, params, allowEmpty)
+	ids, err := mutationIDs(ctx, client, method, key, params, allowEmpty)
+	if err != nil {
+		return nil, err
+	}
+	if err := params.validateResult(ids); err != nil {
+		return nil, requestError(method, ErrorProtocol, err)
+	}
+	return ids, nil
+}
+
+// Compare decimal identities without changing their wire representation or
+// passing through a floating-point or machine-sized integer representation.
+func canonicalID(id string) string { return strings.TrimLeft(id, "0") }
+
+func correspondingIDs(actual, expected []string) error {
+	if len(actual) != len(expected) {
+		return errors.New("affected id count does not match request")
+	}
+	remaining := make(map[string]int, len(expected))
+	for _, id := range expected {
+		remaining[canonicalID(id)]++
+	}
+	for _, id := range actual {
+		key := canonicalID(id)
+		if remaining[key] == 0 {
+			return errors.New("affected ids do not match request")
+		}
+		remaining[key]--
+	}
+	return nil
+}
+
+func uniqueIDs(ids []string) error {
+	seen := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		key := canonicalID(id)
+		if _, exists := seen[key]; exists {
+			return errors.New("result contains duplicate ids")
+		}
+		seen[key] = struct{}{}
+	}
+	return nil
 }
 
 func checkIDs(ids []string) error {
@@ -82,11 +182,11 @@ func mutationIDs(
 	}
 	var ids []string
 	var err error
-	if method == "event.acknowledge" {
-		// PHP's array_keys(array_flip(eventids)) converts decimal keys to
-		// integers. Preserve those JSON number tokens without float conversion.
-		ids, err = acknowledgedEventIDs(raw)
-	} else {
+	switch method {
+	case "event.acknowledge", "hostinterface.massremove", "mfa.delete":
+		// These operations return PHP array keys, which may be JSON integers.
+		ids, err = decimalMutationIDs(raw)
+	default:
 		err = json.Unmarshal(raw, &ids)
 	}
 	if err != nil {
@@ -101,7 +201,7 @@ func mutationIDs(
 	return ids, nil
 }
 
-func acknowledgedEventIDs(raw json.RawMessage) ([]string, error) {
+func decimalMutationIDs(raw json.RawMessage) ([]string, error) {
 	var values []json.RawMessage
 	if err := json.Unmarshal(raw, &values); err != nil {
 		return nil, err
@@ -125,27 +225,68 @@ func acknowledgedEventIDs(raw json.RawMessage) ([]string, error) {
 func mutateFields[T writeParams](
 	ctx context.Context, client *Client, method string, params T,
 ) ([]string, error) {
+	body, expected, err := settingArguments(method, params)
+	if err != nil {
+		return nil, err
+	}
+	if method == "settings.update" {
+		var provider string
+		if raw, ok := expected["geomaps_tile_provider"]; ok {
+			if err := json.Unmarshal(raw, &provider); err != nil {
+				return nil, requestError(method, ErrorInvalidParams, err)
+			}
+		}
+		if provider != "" {
+			for _, field := range []string{"geomaps_tile_url", "geomaps_max_zoom", "geomaps_attribution"} {
+				expected[field] = nil
+			}
+		}
+	}
+	var fields []string
+	if err := client.Call(ctx, method, body, &fields); err != nil {
+		return nil, err
+	}
+	if len(fields) != len(expected) {
+		return nil, requestError(method, ErrorProtocol, errors.New("updated fields do not match request"))
+	}
+	for _, field := range fields {
+		if _, ok := expected[field]; !ok {
+			return nil, requestError(method, ErrorProtocol, errors.New("unexpected or duplicate updated field"))
+		}
+		delete(expected, field)
+	}
+	return fields, nil
+}
+
+func mutateSetting[T writeParams](ctx context.Context, client *Client, method string, params T) error {
+	body, _, err := settingArguments(method, params)
+	if err != nil {
+		return err
+	}
+	var success bool
+	if err := client.Call(ctx, method, body, &success); err != nil {
+		return err
+	}
+	if !success {
+		return requestError(method, ErrorProtocol, errors.New("update result is not true"))
+	}
+	return nil
+}
+
+func settingArguments[T writeParams](method string, params T) (json.RawMessage, map[string]json.RawMessage, error) {
 	if err := params.validate(); err != nil {
-		return nil, requestError(method, ErrorInvalidParams, err)
+		return nil, nil, requestError(method, ErrorInvalidParams, err)
 	}
 	body, err := json.Marshal(params)
 	if err != nil {
-		return nil, requestError(method, ErrorInvalidParams, err)
+		return nil, nil, requestError(method, ErrorInvalidParams, err)
 	}
-	if string(body) == "{}" {
-		return nil, requestError(method, ErrorInvalidParams, errors.New("at least one setting is required"))
-	}
-	var fields []string
-	if err := client.Call(ctx, method, params, &fields); err != nil {
-		return nil, err
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(body, &fields); err != nil {
+		return nil, nil, requestError(method, ErrorInvalidParams, err)
 	}
 	if len(fields) == 0 {
-		return nil, requestError(method, ErrorProtocol, errors.New("missing updated field names"))
+		return nil, nil, requestError(method, ErrorInvalidParams, errors.New("at least one setting is required"))
 	}
-	for _, field := range fields {
-		if field == "" {
-			return nil, requestError(method, ErrorProtocol, errors.New("empty updated field name"))
-		}
-	}
-	return fields, nil
+	return body, fields, nil
 }

@@ -87,7 +87,7 @@ The field column lists the actual JSON query names apart from selectors. `GetMap
 
 ## Selector response matrix
 
-The response field is the Go field and its JSON wire key. A `Relation[T]` is used exactly where count is accepted; plain slices retain a list-only contract. The namespace evidence above covers each selector in this table. `namespace_contract_test.go` verifies all 119 selectors have an outgoing field and a populated decoded result field, and checks their count capability.
+The response field is the Go field and its JSON wire key. A `Relation[T]` is used exactly where count is accepted; plain slices retain a list-only contract. The namespace evidence above covers each selector in this table. `namespace_contract_test.go` verifies all 120 selectors have an outgoing field and a populated decoded result field, and checks their count capability.
 
 | Namespace | Selector | Count | Response field and type |
 | --- | --- | --- | --- |
@@ -149,6 +149,7 @@ The response field is the Go field and its JSON wire key. A `Relation[T]` is use
 | `item` | `selectHosts` | no | `Item.Hosts` (`hosts`): `[]Host` |
 | `item` | `selectTriggers` | yes | `Item.Triggers` (`triggers`): `Relation[Trigger]` |
 | `item` | `selectTags` | no | `Item.Tags` (`tags`): `[]Tag` |
+| `item` | `selectPreprocessing` | no | `Item.Preprocessing` (`preprocessing`): `[]ItemPreprocessing` |
 | `itemprototype` | `selectHosts` | no | `ItemPrototype.Hosts` (`hosts`): `[]Host` |
 | `itemprototype` | `selectTags` | no | `ItemPrototype.Tags` (`tags`): `[]Tag` |
 | `itemprototype` | `selectPreprocessing` | no | `ItemPrototype.Preprocessing` (`preprocessing`): `[]ItemPrototypePreprocessing` |
@@ -211,7 +212,7 @@ The response field is the Go field and its JSON wire key. A `Relation[T]` is use
 | `usergroup` | `selectTemplateGroupRights` | no | `UserGroup.TemplateGroupRights` (`templategroup_rights`): `[]UserGroupRight` |
 | `valuemap` | `selectMappings` | yes | `ValueMap.Mappings` (`mappings`): `Relation[ValueMapMapping]` |
 
-`image.get` additionally exposes boolean `select_image`, returning the base64 string in `Image.Image`; it is not a string/field-list selector and does not accept count. `user.get` exposes boolean `getAccess`; `GUIAccess`, `DebugMode`, and `UsersStatus` use `json.Number` because computed defaults are JSON numbers and stored values are strings. `Service.ReadOnly` is a JSON boolean. `Role.Rules` is a selected typed `RoleRules` object; its module IDs use `json.Number` because PHP array keys can produce numeric IDs. These representations are verified against the 7.4 source and fixtures.
+`image.get` additionally exposes boolean `select_image`, returning the base64 string in `Image.Image`; it is not a string/field-list selector and does not accept count. `user.get` exposes boolean `getAccess`; `GUIAccess`, `DebugMode`, and `UsersStatus` use `json.Number` because computed defaults are JSON numbers and stored values are strings. `Service.ReadOnly` is a JSON boolean. `Role.Rules` is a selected typed `RoleRules` object; its module IDs use `json.Number` because PHP array keys can produce numeric IDs. Role service read/write tag conditions use `ServiceAccessTag`, which permits the empty tag that clears access filtering. `Session` uses the same `User.GUIAccess` and `User.DebugMode` numeric representations without shadow fields. These representations are verified against the 7.4 source and fixtures.
 
 ## Corrected protocol differences
 

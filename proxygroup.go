@@ -82,7 +82,7 @@ func (s *ProxyGroupService) Create(ctx context.Context, groups ...ProxyGroupCrea
 // Update updates proxy groups and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/proxygroup/update
 func (s *ProxyGroupService) Update(ctx context.Context, groups ...ProxyGroupUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "proxygroup.update", "proxy_groupids", groups)
+	return updateIDs(ctx, s.client, "proxygroup.update", "proxy_groupids", groups)
 }
 
 // Delete deletes proxy groups by id and returns the deleted ids.

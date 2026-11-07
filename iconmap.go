@@ -86,7 +86,7 @@ func (s *IconMapService) Create(ctx context.Context, iconmaps ...IconMapCreatePa
 // Update updates icon maps and returns the affected icon map ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/iconmap/update
 func (s *IconMapService) Update(ctx context.Context, iconmaps ...IconMapUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "iconmap.update", "iconmapids", iconmaps)
+	return updateIDs(ctx, s.client, "iconmap.update", "iconmapids", iconmaps)
 }
 
 // Delete deletes icon maps by id and returns the deleted icon map ids.

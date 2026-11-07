@@ -99,7 +99,7 @@ func (s *ConnectorService) Create(ctx context.Context, connectors ...ConnectorCr
 // Update updates connectors and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/connector/update
 func (s *ConnectorService) Update(ctx context.Context, connectors ...ConnectorUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "connector.update", "connectorids", connectors)
+	return updateIDs(ctx, s.client, "connector.update", "connectorids", connectors)
 }
 
 // Delete deletes connectors by id and returns the deleted ids.

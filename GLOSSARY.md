@@ -28,6 +28,21 @@ _Avoid_: Network discovery rule for low-level discovery.
 **Tag filter**: A tag name, value and comparison operator used to select entities.
 _Avoid_: Entity tag for a filtering condition.
 
+**Service access tag**: A role permission condition selecting services by tag.
+An empty tag clears the condition; unlike an entity tag, it is not attached to
+the service itself.
+
+**HTTP agent item**: An item whose value is collected by an HTTP request. Its
+ordered header and query-field lists retain repeated names and empty values.
+
+**Preprocessing step**: A typed transformation or validation of a collected item
+value, with optional failure handling. A replacement step supplies its complete
+configuration.
+
+**Mutation receipt**: The server's affected IDs, updated field names or boolean
+success result. Correspondence to the request is a protocol check; persisted
+state requires a separate read-back.
+
 **History**: Individual values collected for a monitored item.
 
 **Trend**: An hourly aggregate of a numeric item's values, including the count,

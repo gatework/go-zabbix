@@ -30,7 +30,7 @@ Ports bind to loopback and are selected independently for each stack.
 
 The live suite exercises the exposed collection/singleton reads, all 51 Count
 and 50 GetMap capabilities and both global macro variants. HTTP fixtures cover
-all 119 exposed selector mappings, including populated relation objects, counts,
+all 120 exposed selector mappings, including populated relation objects, counts,
 empty selections, malformed shapes and atomic decoding. Separate live probes
 also queried every exposed selector against the server. Empty live reads alone
 do not prove every populated field or every server state.
@@ -45,11 +45,27 @@ lookups with macro expansion. The script lookup tests do not execute scripts.
 Additional CRUD smoke checks cover a representative set of writable namespaces.
 All fixture-created objects are registered for bounded cleanup.
 
+The second-round regressions additionally verify user-data login with default
+GUI access and debug-enabled groups; role service-access tag clearing while
+preserving lists, modes and API rules; all HTTP item fields and preprocessing,
+partial updates and empty-list clearing; the autoregistration boolean receipt;
+and populated numeric-ID MFA deletion and interface mass removal. The HTTP item
+is disabled: this proves configuration persistence, not an external HTTP poll.
+Autoregistration submits its existing TLS mode to exercise the receipt without
+creating or erasing a write-only PSK.
+
 HTTP tests separately cover malformed token-generation/script-execution results,
 large numeric IDs, bounded bodies, TLS/client ownership, cancellation and
 concurrent credential replacement. The integration suite does not claim live
 coverage of every mutation, enum combination, inherited/provisioned restriction,
 or external Zabbix deployment.
+
+Mutation HTTP fixtures also reject count, identity, multiplicity and
+singleton-field mismatches while preserving the server's Task, acknowledgement
+and bulk-interface semantics. Login cleanup regressions prove bounded
+compensation after user-data decode failure. CI compiles integration-tag tests
+under both minimum and stable Go versions as well as running the live fixture
+on stable Go.
 
 See [query contracts](api-7.4-contracts.md),
 [mutation contracts](api-7.4-mutations.md) and [migration](../MIGRATION.md).

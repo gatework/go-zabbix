@@ -116,6 +116,16 @@ Nested inputs and ID references have their own types. The server still enforces
 permissions and state-dependent restrictions; client validation checks required
 identity fields and operation shape.
 
+Ordinary items support HTTP agent configuration and preprocessing. Ordered
+`QueryFields` and `Headers` preserve repeated names; `SelectPreprocessing` reads
+the configured steps. See the [migration guide](MIGRATION.md#role-service-access-and-http-items)
+for partial updates, clearing lists and role service-access tags.
+
+Typed mutations check the result against the request, including ID multiplicity
+and operation-specific batch behavior. `Autoregistration.Update` returns only an
+error because its server receipt is boolean. A successful receipt does not replace
+a read-back when the application needs to verify persisted state.
+
 ## Errors and raw calls
 
 `RequestError` records the method and failure category while preserving its cause

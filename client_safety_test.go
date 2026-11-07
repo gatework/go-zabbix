@@ -38,6 +38,17 @@ func responseServer(t *testing.T, response func(rpcRequest) string, opts ...Opti
 	return client
 }
 
+func awaitRequestStart(t *testing.T, started <-chan struct{}, done <-chan error) {
+	t.Helper()
+	select {
+	case <-started:
+	case err := <-done:
+		t.Fatalf("operation completed before the handler was ready: %v", err)
+	case <-time.After(2 * time.Second):
+		t.Fatal("request handler did not become ready")
+	}
+}
+
 func TestResponseLimitRejectsTruncatedValidJSON(t *testing.T) {
 	for _, extra := range []string{"", " ", "x"} {
 		t.Run(fmt.Sprintf("extra=%q", extra), func(t *testing.T) {
@@ -274,7 +285,7 @@ func TestCancellationDuringResponseRead(t *testing.T) {
 	defer cancel()
 	done := make(chan error, 1)
 	go func() { done <- client.Call(ctx, "host.get", nil, nil) }()
-	<-started
+	awaitRequestStart(t, started, done)
 	cancel()
 	select {
 	case err := <-done:

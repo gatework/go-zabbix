@@ -403,6 +403,39 @@ type ItemPreprocessingInput struct {
 }
 
 func (p ItemPreprocessingInput) validate() error {
+	if p.Type < 1 || p.Type > 30 {
+		return errors.New("zabbix: ItemPreprocessingInput.Type must be a Zabbix 7.4 preprocessing type")
+	}
+	// A supplied preprocessing list replaces complete steps. These required
+	// properties therefore cannot be inherited from a previously stored step.
+	switch p.Type {
+	case 1, 2, 3, 4, 5, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 25, 26, 28, 29, 30:
+		if p.Params == nil {
+			return errors.New("zabbix: ItemPreprocessingInput.Params is required for this type")
+		}
+	}
+	switch p.Type {
+	case 1, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 22, 23, 24, 26, 27, 28, 29, 30:
+		if p.ErrorHandler == nil {
+			return errors.New("zabbix: ItemPreprocessingInput.ErrorHandler is required for this type")
+		}
+	}
+	if p.ErrorHandler == nil {
+		return nil
+	}
+	if *p.ErrorHandler < 0 || *p.ErrorHandler > 3 || (p.Type == 26 && *p.ErrorHandler == 0) {
+		return errors.New("zabbix: ItemPreprocessingInput.ErrorHandler is invalid for this type")
+	}
+	switch *p.ErrorHandler {
+	case 2:
+		if p.ErrorHandlerParams == nil {
+			return errors.New("zabbix: ItemPreprocessingInput.ErrorHandlerParams is required when setting a value")
+		}
+	case 3:
+		if p.ErrorHandlerParams == nil || *p.ErrorHandlerParams == "" {
+			return errors.New("zabbix: ItemPreprocessingInput.ErrorHandlerParams must contain an error message")
+		}
+	}
 	return nil
 }
 
@@ -1516,24 +1549,39 @@ func (p MapElementRef) validate() error {
 	return nil
 }
 
+// ServiceAccessTagInput sets a role's service access tag condition.
+// An empty Tag with an omitted or empty Value clears the condition.
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/role/object
+type ServiceAccessTagInput struct {
+	Tag   string  `json:"tag"`
+	Value *string `json:"value,omitempty"`
+}
+
+func (p ServiceAccessTagInput) validate() error {
+	if p.Tag == "" && p.Value != nil && *p.Value != "" {
+		return errors.New("zabbix: ServiceAccessTagInput.Value must be empty when Tag is empty")
+	}
+	return nil
+}
+
 // RoleRulesInput contains writable Zabbix 7.4 fields.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/role/object
 type RoleRulesInput struct {
-	UI                   []RoleUIInput     `json:"ui,omitzero"`
-	UIDefaultAccess      *int              `json:"ui.default_access,omitempty"`
-	ServicesReadMode     *int              `json:"services.read.mode,omitempty"`
-	ServicesReadList     []ServiceRef      `json:"services.read.list,omitzero"`
-	ServicesReadTag      *TagInput         `json:"services.read.tag,omitempty"`
-	ServicesWriteMode    *int              `json:"services.write.mode,omitempty"`
-	ServicesWriteList    []ServiceRef      `json:"services.write.list,omitzero"`
-	ServicesWriteTag     *TagInput         `json:"services.write.tag,omitempty"`
-	Modules              []RoleModuleInput `json:"modules,omitzero"`
-	ModulesDefaultAccess *int              `json:"modules.default_access,omitempty"`
-	APIAccess            *int              `json:"api.access,omitempty"`
-	APIMode              *int              `json:"api.mode,omitempty"`
-	API                  []string          `json:"api,omitzero"`
-	Actions              []RoleActionInput `json:"actions,omitzero"`
-	ActionsDefaultAccess *int              `json:"actions.default_access,omitempty"`
+	UI                   []RoleUIInput          `json:"ui,omitzero"`
+	UIDefaultAccess      *int                   `json:"ui.default_access,omitempty"`
+	ServicesReadMode     *int                   `json:"services.read.mode,omitempty"`
+	ServicesReadList     []ServiceRef           `json:"services.read.list,omitzero"`
+	ServicesReadTag      *ServiceAccessTagInput `json:"services.read.tag,omitempty"`
+	ServicesWriteMode    *int                   `json:"services.write.mode,omitempty"`
+	ServicesWriteList    []ServiceRef           `json:"services.write.list,omitzero"`
+	ServicesWriteTag     *ServiceAccessTagInput `json:"services.write.tag,omitempty"`
+	Modules              []RoleModuleInput      `json:"modules,omitzero"`
+	ModulesDefaultAccess *int                   `json:"modules.default_access,omitempty"`
+	APIAccess            *int                   `json:"api.access,omitempty"`
+	APIMode              *int                   `json:"api.mode,omitempty"`
+	API                  []string               `json:"api,omitzero"`
+	Actions              []RoleActionInput      `json:"actions,omitzero"`
+	ActionsDefaultAccess *int                   `json:"actions.default_access,omitempty"`
 }
 
 func (p RoleRulesInput) validate() error {

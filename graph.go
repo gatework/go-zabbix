@@ -119,7 +119,7 @@ func (s *GraphService) Create(ctx context.Context, graphs ...GraphCreateParams) 
 // Update updates graphs and returns the affected graph ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/graph/update
 func (s *GraphService) Update(ctx context.Context, graphs ...GraphUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "graph.update", "graphids", graphs)
+	return updateIDs(ctx, s.client, "graph.update", "graphids", graphs)
 }
 
 // Delete deletes graphs by id and returns the deleted graph ids.

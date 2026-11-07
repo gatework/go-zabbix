@@ -120,7 +120,7 @@ func (s *MediaTypeService) Create(ctx context.Context, items ...MediaTypeCreateP
 // Update updates media types and returns the affected media type ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/mediatype/update
 func (s *MediaTypeService) Update(ctx context.Context, items ...MediaTypeUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "mediatype.update", "mediatypeids", items)
+	return updateIDs(ctx, s.client, "mediatype.update", "mediatypeids", items)
 }
 
 // Delete deletes media types by id and returns the deleted media type ids.

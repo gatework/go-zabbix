@@ -92,7 +92,7 @@ func (s *APITokenService) Create(ctx context.Context, items ...TokenCreateParams
 // Update updates tokens and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/token/update
 func (s *APITokenService) Update(ctx context.Context, items ...TokenUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "token.update", "tokenids", items)
+	return updateIDs(ctx, s.client, "token.update", "tokenids", items)
 }
 
 // Delete deletes tokens by id and returns the deleted ids.

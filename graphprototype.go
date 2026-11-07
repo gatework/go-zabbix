@@ -120,7 +120,7 @@ func (s *GraphPrototypeService) Create(ctx context.Context, graphs ...GraphProto
 // Update updates graph prototypes and returns the affected ids.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/graphprototype/update
 func (s *GraphPrototypeService) Update(ctx context.Context, graphs ...GraphPrototypeUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "graphprototype.update", "graphids", graphs)
+	return updateIDs(ctx, s.client, "graphprototype.update", "graphids", graphs)
 }
 
 // Delete deletes graph prototypes by id and returns the deleted ids.

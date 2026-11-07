@@ -71,3 +71,63 @@ func ExampleHostService_Update() {
 		fmt.Println(err)
 	}
 }
+
+func ExampleRoleService_Update() {
+	client, err := zabbix.New("https://zabbix.example.com/api_jsonrpc.php",
+		zabbix.WithAPIToken("configured-api-token"))
+	if err != nil {
+		panic(err)
+	}
+	defer client.CloseIdleConnections()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	_, err = client.Role().Update(ctx, zabbix.RoleUpdateParams{
+		RoleID: "4",
+		Rules: &zabbix.RoleRulesInput{
+			ServicesReadTag: &zabbix.ServiceAccessTagInput{Tag: ""},
+		},
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func ExampleItemService_Create() {
+	client, err := zabbix.New("https://zabbix.example.com/api_jsonrpc.php",
+		zabbix.WithAPIToken("configured-api-token"))
+	if err != nil {
+		panic(err)
+	}
+	defer client.CloseIdleConnections()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	url, interval, path, handler := "https://example.com/metrics", "1m", "$.value", 0
+	ids, err := client.Item().Create(ctx, zabbix.ItemCreateParams{
+		HostID: "10084", Name: "HTTP value", Key: "http.value", Type: 19, ValueType: 0,
+		URL: &url, Delay: &interval,
+		Headers: []zabbix.ItemHTTPFieldInput{{Name: "Accept", Value: "application/json"}},
+		Preprocessing: []zabbix.ItemPreprocessingInput{{
+			Type: 12, Params: &path, ErrorHandler: &handler,
+		}},
+	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(ids)
+}
+
+func ExampleAutoregistrationService_Update() {
+	client, err := zabbix.New("https://zabbix.example.com/api_jsonrpc.php",
+		zabbix.WithAPIToken("configured-api-token"))
+	if err != nil {
+		panic(err)
+	}
+	defer client.CloseIdleConnections()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	tlsAccept := 1
+	if err := client.Autoregistration().Update(ctx, zabbix.AutoregistrationUpdateParams{TLSAccept: &tlsAccept}); err != nil {
+		fmt.Println(err)
+	}
+}

@@ -69,7 +69,7 @@ func (s *ModuleService) Create(ctx context.Context, items ...ModuleCreateParams)
 
 // Update updates modules and returns the affected module ids.
 func (s *ModuleService) Update(ctx context.Context, items ...ModuleUpdateParams) ([]string, error) {
-	return mutateIDs(ctx, s.client, "module.update", "moduleids", items)
+	return updateIDs(ctx, s.client, "module.update", "moduleids", items)
 }
 
 // Delete deletes modules by id and returns the deleted module ids.

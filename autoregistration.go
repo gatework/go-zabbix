@@ -24,9 +24,8 @@ func (s *AutoregistrationService) Get(ctx context.Context) (*Autoregistration, e
 	return getSingleton[Autoregistration](ctx, s.client, "autoregistration.get")
 }
 
-// Update updates the global autoregistration settings and returns the updated
-// parameter names.
+// Update updates global autoregistration settings and requires a true result.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/autoregistration/update
-func (s *AutoregistrationService) Update(ctx context.Context, params AutoregistrationUpdateParams) ([]string, error) {
-	return mutateFields(ctx, s.client, "autoregistration.update", params)
+func (s *AutoregistrationService) Update(ctx context.Context, params AutoregistrationUpdateParams) error {
+	return mutateSetting(ctx, s.client, "autoregistration.update", params)
 }
