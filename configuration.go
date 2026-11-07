@@ -1,6 +1,11 @@
 package zabbix
 
-import "context"
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+)
 
 // ConfigurationService wraps the "configuration" API namespace.
 type ConfigurationService struct{ client *Client }
@@ -23,13 +28,34 @@ type ConfigurationImportParams struct {
 	Rules  any    `json:"rules"`
 }
 
-// Export exports configuration in the requested format and returns the serialized
-// configuration as a string.
+// Export returns serialized configuration in json, xml, or yaml format.
+// Use ExportRaw to receive the dynamic configuration object in raw format.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/configuration/export
 func (s *ConfigurationService) Export(ctx context.Context, params ConfigurationExportParams) (string, error) {
+	switch params.Format {
+	case "json", "xml", "yaml":
+	default:
+		return "", requestError("configuration.export", ErrorInvalidParams, errors.New("format must be json, xml, or yaml; use ExportRaw for raw"))
+	}
 	var out string
 	err := s.client.Call(ctx, "configuration.export", params, &out)
 	return out, err
+}
+
+// ExportRaw returns the dynamic configuration object as JSON without decoding its
+// format-dependent fields. options has the same shape as Export's Options field.
+// Zabbix 7.4 CConfiguration::validateExport accepts raw, and CRawExportWriter::write
+// returns the configuration object rather than a serialized string.
+func (s *ConfigurationService) ExportRaw(ctx context.Context, options any) (json.RawMessage, error) {
+	params := ConfigurationExportParams{Format: "raw", Options: options}
+	var raw json.RawMessage
+	if err := s.client.Call(ctx, "configuration.export", params, &raw); err != nil {
+		return nil, err
+	}
+	if result := bytes.TrimSpace(raw); len(result) == 0 || result[0] != '{' {
+		return nil, requestError("configuration.export", ErrorProtocol, errors.New("raw export result must be an object"))
+	}
+	return raw, nil
 }
 
 // Import imports the given configuration and reports whether it succeeded.

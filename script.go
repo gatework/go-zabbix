@@ -127,10 +127,10 @@ func (s *ScriptService) Delete(ctx context.Context, ids ...string) ([]string, er
 
 // ScriptExecuteParams are the parameters for script.execute.
 type ScriptExecuteParams struct {
-	ScriptID    string `json:"scriptid"`
-	HostID      string `json:"hostid,omitempty"`
-	EventID     string `json:"eventid,omitempty"`
-	ManualInput string `json:"manualinput,omitempty"`
+	ScriptID    string  `json:"scriptid"`
+	HostID      string  `json:"hostid,omitempty"`
+	EventID     string  `json:"eventid,omitempty"`
+	ManualInput *string `json:"manualinput,omitempty"`
 }
 
 // ScriptExecuteResult is the result of script.execute.
@@ -143,9 +143,20 @@ type ScriptExecuteResult struct {
 // Execute runs a script on a host or event and returns its result.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/script/execute
 func (s *ScriptService) Execute(ctx context.Context, params ScriptExecuteParams) (*ScriptExecuteResult, error) {
-	var out ScriptExecuteResult
-	err := s.client.Call(ctx, "script.execute", params, &out)
-	return &out, err
+	// CScript::execute always returns response=success and a string value. An
+	// empty output is valid, so pointers distinguish it from a missing field.
+	var out struct {
+		Response *string `json:"response"`
+		Value    *string `json:"value"`
+		Debug    any     `json:"debug"`
+	}
+	if err := s.client.Call(ctx, "script.execute", params, &out); err != nil {
+		return nil, err
+	}
+	if out.Response == nil || *out.Response != "success" || out.Value == nil {
+		return nil, requestError("script.execute", ErrorProtocol, errors.New("script result requires success response and string value"))
+	}
+	return &ScriptExecuteResult{Response: *out.Response, Value: *out.Value, Debug: out.Debug}, nil
 }
 
 // ScriptHostParams identifies a host and optional script/manual input to resolve.

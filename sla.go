@@ -111,12 +111,15 @@ func (s *SLAService) Delete(ctx context.Context, ids ...string) ([]string, error
 }
 
 // SLAGetSLIParams are the parameters for sla.getsli.
+// Nil ServiceIDs selects all matching services; an empty slice selects none.
+// Nil period bounds use server defaults; pointers preserve Unix timestamp zero.
+// Zabbix 7.4 CSla::getSli defaults these fields to null and forwards serviceids.
 type SLAGetSLIParams struct {
 	SLAID      string   `json:"slaid"`
-	ServiceIDs []string `json:"serviceids,omitempty"`
+	ServiceIDs []string `json:"serviceids,omitzero"`
 	Periods    int      `json:"periods,omitempty"`
-	PeriodFrom int64    `json:"period_from,omitempty"`
-	PeriodTo   int64    `json:"period_to,omitempty"`
+	PeriodFrom *int64   `json:"period_from,omitempty"`
+	PeriodTo   *int64   `json:"period_to,omitempty"`
 }
 
 // GetSLI returns SLI (service level indicator) data for an SLA.
