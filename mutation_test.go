@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"testing"
 )
 
@@ -141,6 +142,53 @@ func TestEventAcknowledgePreservesZeroSeverityAndIndefiniteSuppression(t *testin
 	})
 	if err != nil || len(ids) != 1 || ids[0] != "42" {
 		t.Fatalf("acknowledged IDs = %v, error = %v", ids, err)
+	}
+}
+
+func TestEventAcknowledgeNormalizesNumericIDsWithoutLosingPrecision(t *testing.T) {
+	for _, tc := range []struct {
+		result string
+		want   []string
+	}{
+		{`[42]`, []string{"42"}},
+		{`["42"]`, []string{"42"}},
+		{`[9007199254740993,"18446744073709551615"]`, []string{"9007199254740993", "18446744073709551615"}},
+	} {
+		t.Run(tc.result, func(t *testing.T) {
+			c := responseServer(t, func(req rpcRequest) string {
+				return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":{"eventids":%s}}`, req.ID, tc.result)
+			})
+			ids, err := c.Event().Acknowledge(context.Background(), EventAcknowledgeParams{EventIDs: tc.want, Action: AckActionAcknowledge})
+			if err != nil || !slices.Equal(ids, tc.want) {
+				t.Fatalf("acknowledged IDs = %v, want %v, error = %v", ids, tc.want, err)
+			}
+		})
+	}
+}
+
+func TestEventAcknowledgeRejectsMalformedNumericIDs(t *testing.T) {
+	for _, result := range []string{`null`, `[]`, `[null]`, `[0]`, `[-1]`, `[1.5]`, `[1.0]`, `[1e3]`, `["1.5"]`, `["1e3"]`, `[true]`, `[{}]`} {
+		t.Run(result, func(t *testing.T) {
+			c := responseServer(t, func(req rpcRequest) string {
+				return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":{"eventids":%s}}`, req.ID, result)
+			})
+			ids, err := c.Event().Acknowledge(context.Background(), EventAcknowledgeParams{EventIDs: []string{"42"}, Action: AckActionAcknowledge})
+			var requestErr *RequestError
+			if err == nil || ids != nil || !errors.As(err, &requestErr) || requestErr.Method != "event.acknowledge" {
+				t.Fatalf("malformed acknowledged IDs = %v, error = %v", ids, err)
+			}
+		})
+	}
+}
+
+func TestNumericMutationIDsRemainInvalidOutsideEventAcknowledge(t *testing.T) {
+	c := responseServer(t, func(req rpcRequest) string {
+		return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":{"groupids":[9007199254740993]}}`, req.ID)
+	})
+	ids, err := c.HostGroup().Delete(context.Background(), "9007199254740993")
+	var requestErr *RequestError
+	if err == nil || ids != nil || !errors.As(err, &requestErr) || requestErr.Kind != ErrorDecode {
+		t.Fatalf("numeric IDs accepted outside acknowledgement: %v, error = %v", ids, err)
 	}
 }
 

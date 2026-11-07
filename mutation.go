@@ -81,7 +81,15 @@ func mutationIDs(
 		}
 	}
 	var ids []string
-	if err := json.Unmarshal(raw, &ids); err != nil {
+	var err error
+	if method == "event.acknowledge" {
+		// PHP's array_keys(array_flip(eventids)) converts decimal keys to
+		// integers. Preserve those JSON number tokens without float conversion.
+		ids, err = acknowledgedEventIDs(raw)
+	} else {
+		err = json.Unmarshal(raw, &ids)
+	}
+	if err != nil {
 		return nil, requestError(method, ErrorDecode, err)
 	}
 	if len(ids) == 0 && allowEmpty {
@@ -89,6 +97,27 @@ func mutationIDs(
 	}
 	if err := checkIDs(ids); err != nil {
 		return nil, requestError(method, ErrorProtocol, err)
+	}
+	return ids, nil
+}
+
+func acknowledgedEventIDs(raw json.RawMessage) ([]string, error) {
+	var values []json.RawMessage
+	if err := json.Unmarshal(raw, &values); err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(values))
+	for i, value := range values {
+		value = bytes.TrimSpace(value)
+		if len(value) != 0 && value[0] == '"' {
+			if err := json.Unmarshal(value, &ids[i]); err != nil {
+				return nil, err
+			}
+		} else {
+			// The caller's positive-decimal check rejects null, fractions,
+			// exponent notation, and all other non-ID tokens.
+			ids[i] = string(value)
+		}
 	}
 	return ids, nil
 }
