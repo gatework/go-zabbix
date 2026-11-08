@@ -3,7 +3,7 @@
 This is a grouped, source-breaking revision of the pre-v1 library. The module
 remains `github.com/gatework/go-zabbix`; the package identifier is now `zabbix`.
 Callers of `github.com/Deepreo/gozabbix` must change their import and dependency.
-Pin the published commit's Go pseudo-version.
+Pin `github.com/gatework/go-zabbix@v0.1.0` when adopting this API.
 
 ## Authentication and connection ownership
 

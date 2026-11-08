@@ -4,8 +4,9 @@ A standard-library-only Go client for the [Zabbix 7.4 JSON-RPC API](https://www.
 Requires **Go 1.24 or later**. The module is `github.com/gatework/go-zabbix` and
 the imported package is `zabbix`.
 
-This pre-v1 revision changes public contracts. Existing callers should read
-[MIGRATION.md](MIGRATION.md) before updating. The [namespace matrix](docs/api-7.4-contracts.md)
+Version `v0.1.0` changes public contracts from earlier untagged snapshots.
+Existing callers should read [MIGRATION.md](MIGRATION.md) before updating.
+The [namespace matrix](docs/api-7.4-contracts.md)
 records the supported parameters, selectors and result shapes; the
 [mutation matrix](docs/api-7.4-mutations.md) records write contracts. Coverage concerns
 the typed methods exposed by this library; it does not imply every Zabbix method
@@ -14,11 +15,11 @@ or field is wrapped. `Client.Call` handles additional protocol operations.
 ## Install
 
 ```sh
-go get github.com/gatework/go-zabbix@main
+go get github.com/gatework/go-zabbix@v0.1.0
 ```
 
-Go records a commit pseudo-version in `go.mod`. Keep that version pinned in
-applications; this revision does not introduce a release tag.
+Keep the tagged version pinned in application `go.mod` files. Read
+[MIGRATION.md](MIGRATION.md) when upgrading from an earlier snapshot.
 
 ## Read hosts with an API token
 
