@@ -197,21 +197,9 @@ func (p HostInterfaceUpdateInput) validate() error {
 		return errors.New("zabbix: new host interfaces require type, main, useip, ip, dns and port")
 	}
 	if p.InterfaceID == nil {
-		if *p.UseIP != 0 && *p.UseIP != 1 {
-			return errors.New("zabbix: interface useip must be 0 or 1")
-		}
-		if *p.UseIP == 1 && *p.IP == "" || *p.UseIP == 0 && *p.DNS == "" {
-			return errors.New("zabbix: the selected interface address must not be empty")
-		}
-		if *p.Type == 2 {
-			if p.Details == nil || p.Details.Version == nil {
-				return errors.New("zabbix: new SNMP interfaces require details and version")
-			}
-			if *p.Details.Version < 3 && (p.Details.Community == nil || *p.Details.Community == "") {
-				return errors.New("zabbix: SNMP versions 1 and 2 require community")
-			}
-		}
+		return p.validateNewInterface()
 	}
+
 	return nil
 }
 
@@ -1179,20 +1167,8 @@ func (p ActionOperationInput) validate() error {
 			return err
 		}
 	}
-	if p.OpMessage != nil {
-		if err := p.OpMessage.validate(); err != nil {
-			return err
-		}
-	}
-	for _, value := range p.OpMessageGrp {
-		if err := value.validate(); err != nil {
-			return err
-		}
-	}
-	for _, value := range p.OpMessageUsr {
-		if err := value.validate(); err != nil {
-			return err
-		}
+	if err := p.validateMessageTargets(); err != nil {
+		return err
 	}
 	for _, value := range p.OpTemplate {
 		if err := value.validate(); err != nil {
@@ -1209,25 +1185,7 @@ func (p ActionOperationInput) validate() error {
 			return err
 		}
 	}
-	if p.OperationType == 0 && (p.OpMessage == nil || len(p.OpMessageGrp)+len(p.OpMessageUsr) == 0) {
-		return errors.New("zabbix: message operations require message settings and recipients")
-	}
-	if p.OperationType == 1 && p.OpCommand == nil {
-		return errors.New("zabbix: script operations require a script")
-	}
-	if (p.OperationType == 4 || p.OperationType == 5) && len(p.OpGroup) == 0 {
-		return errors.New("zabbix: host group operations require groups")
-	}
-	if (p.OperationType == 6 || p.OperationType == 7) && len(p.OpTemplate) == 0 {
-		return errors.New("zabbix: template operations require templates")
-	}
-	if p.OperationType == 10 && p.OpInventory == nil {
-		return errors.New("zabbix: inventory operations require inventory mode")
-	}
-	if p.OperationType < 0 || p.OperationType == 11 || p.OperationType == 12 || p.OperationType > 14 {
-		return errors.New("zabbix: unsupported action operation type")
-	}
-	return nil
+	return p.validateOperationType()
 }
 
 // ActionRecoveryOperationInput contains writable Zabbix 7.4 fields.
@@ -1739,4 +1697,63 @@ func validMediaRecipient(value any) bool {
 	default:
 		return false
 	}
+}
+
+func (p HostInterfaceUpdateInput) validateNewInterface() error {
+	if *p.UseIP != 0 && *p.UseIP != 1 {
+		return errors.New("zabbix: interface useip must be 0 or 1")
+	}
+	if *p.UseIP == 1 && *p.IP == "" || *p.UseIP == 0 && *p.DNS == "" {
+		return errors.New("zabbix: the selected interface address must not be empty")
+	}
+	if *p.Type == 2 {
+		if p.Details == nil || p.Details.Version == nil {
+			return errors.New("zabbix: new SNMP interfaces require details and version")
+		}
+		if *p.Details.Version < 3 && (p.Details.Community == nil || *p.Details.Community == "") {
+			return errors.New("zabbix: SNMP versions 1 and 2 require community")
+		}
+	}
+	return nil
+}
+
+func (p ActionOperationInput) validateOperationType() error {
+	if p.OperationType == 0 && (p.OpMessage == nil || len(p.OpMessageGrp)+len(p.OpMessageUsr) == 0) {
+		return errors.New("zabbix: message operations require message settings and recipients")
+	}
+	if p.OperationType == 1 && p.OpCommand == nil {
+		return errors.New("zabbix: script operations require a script")
+	}
+	if (p.OperationType == 4 || p.OperationType == 5) && len(p.OpGroup) == 0 {
+		return errors.New("zabbix: host group operations require groups")
+	}
+	if (p.OperationType == 6 || p.OperationType == 7) && len(p.OpTemplate) == 0 {
+		return errors.New("zabbix: template operations require templates")
+	}
+	if p.OperationType == 10 && p.OpInventory == nil {
+		return errors.New("zabbix: inventory operations require inventory mode")
+	}
+	if p.OperationType < 0 || p.OperationType == 11 || p.OperationType == 12 || p.OperationType > 14 {
+		return errors.New("zabbix: unsupported action operation type")
+	}
+	return nil
+}
+
+func (p ActionOperationInput) validateMessageTargets() error {
+	if p.OpMessage != nil {
+		if err := p.OpMessage.validate(); err != nil {
+			return err
+		}
+	}
+	for _, value := range p.OpMessageGrp {
+		if err := value.validate(); err != nil {
+			return err
+		}
+	}
+	for _, value := range p.OpMessageUsr {
+		if err := value.validate(); err != nil {
+			return err
+		}
+	}
+	return nil
 }

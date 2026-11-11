@@ -4,70 +4,32 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        go: ['1.24.x', 'stable']
+        include:
+          - go: '1.26.x'
+            extra: build integration-compile
+          - go: '1.27.x'
+            extra: build integration-compile integration
     steps:
-      - uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version: ${{ matrix.go }}
-          # No third-party dependencies (no go.sum), so module caching is a no-op.
+          check-latest: true
+          # Runtime dependencies remain standard-library-only.
           cache: false
-
-      - name: Check formatting
-        run: |
-          unformatted=$(gofmt -l .)
-          if [ -n "$unformatted" ]; then
-            echo "These files are not gofmt-formatted:"
-            echo "$unformatted"
-            exit 1
-          fi
-
-      - name: Vet
-        run: go vet ./...
-
-      - name: Build
-        run: go build ./...
-
-      - name: Test
-        run: go test -race -shuffle=on -count=1 ./...
-
-      - name: Compile integration tests
-        run: go test -tags=integration -run '^$' ./...
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          cache: false
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.12.2
-          skip-cache: true
-
-  integration:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
-          cache: false
-      - name: Zabbix 7.4 round trips
-        run: bash scripts/integration.sh -v
+      - name: Check shared standard and project contracts
+        run: make check CHECK_EXTRA='${{ matrix.extra }}'

@@ -121,7 +121,7 @@ func TestSingletonResponseCorrespondsToSubmittedFields(t *testing.T) {
 			c := responseServer(t, func(req rpcRequest) string {
 				return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":%s}`, req.ID, result)
 			})
-			fields, err := c.Authentication().Update(t.Context(), AuthenticationUpdateParams{HTTPAuthEnabled: writeTestPointer(0)})
+			fields, err := c.Authentication().Update(t.Context(), AuthenticationUpdateParams{HTTPAuthEnabled: new(0)})
 			if err == nil || fields != nil {
 				t.Fatalf("incorrect updated fields accepted: %v, %v", fields, err)
 			}
@@ -147,7 +147,7 @@ func TestAutoregistrationUpdateAcceptsBooleanSuccess(t *testing.T) {
 	c := responseServer(t, func(req rpcRequest) string {
 		return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":true}`, req.ID)
 	})
-	err := c.Autoregistration().Update(context.Background(), AutoregistrationUpdateParams{TLSAccept: writeTestPointer(1)})
+	err := c.Autoregistration().Update(context.Background(), AutoregistrationUpdateParams{TLSAccept: new(1)})
 	if err != nil {
 		t.Fatalf("valid boolean response rejected: %v", err)
 	}
@@ -159,7 +159,7 @@ func TestAutoregistrationUpdateRejectsInvalidReceipt(t *testing.T) {
 			c := responseServer(t, func(req rpcRequest) string {
 				return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":%s}`, req.ID, result)
 			})
-			if err := c.Autoregistration().Update(t.Context(), AutoregistrationUpdateParams{TLSAccept: writeTestPointer(1)}); err == nil {
+			if err := c.Autoregistration().Update(t.Context(), AutoregistrationUpdateParams{TLSAccept: new(1)}); err == nil {
 				t.Fatal("invalid registration receipt accepted")
 			}
 		})
@@ -222,10 +222,10 @@ func removeFixtureInterfaces(c *Client) ([]string, error) {
 func replaceFixtureInterfaces(c *Client) ([]string, error) {
 	return c.HostInterface().ReplaceHostInterfaces(context.Background(), HostInterfaceReplaceParams{
 		HostID: "1", Interfaces: []HostInterfaceUpdateInput{
-			{InterfaceID: writeTestPointer("41")},
-			{Type: writeTestPointer(1), Main: writeTestPointer(0), UseIP: writeTestPointer(1), IP: writeTestPointer("192.0.2.1"), DNS: writeTestPointer(""), Port: writeTestPointer("10050")},
-			{InterfaceID: writeTestPointer("41")},
-			{Type: writeTestPointer(1), Main: writeTestPointer(0), UseIP: writeTestPointer(1), IP: writeTestPointer("192.0.2.2"), DNS: writeTestPointer(""), Port: writeTestPointer("10050")},
+			{InterfaceID: new("41")},
+			{Type: new(1), Main: new(0), UseIP: new(1), IP: new("192.0.2.1"), DNS: new(""), Port: new("10050")},
+			{InterfaceID: new("41")},
+			{Type: new(1), Main: new(0), UseIP: new(1), IP: new("192.0.2.2"), DNS: new(""), Port: new("10050")},
 		},
 	})
 }

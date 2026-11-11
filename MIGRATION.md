@@ -1,9 +1,15 @@
+# v0.2.0 standard adoption
+
+- Go 1.26 or later is required.
+- Rename reads of `User.TsProvisioned` to `User.TSProvisioned`. The JSON field remains `ts_provisioned`; no compatibility alias is retained.
+- Request/response shapes, mutation omission rules and transport ownership remain unchanged.
+
 # Migrating to the 7.4 contract API
 
 This is a grouped, source-breaking revision of the pre-v1 library. The module
 remains `github.com/gatework/go-zabbix`; the package identifier is now `zabbix`.
 Callers of `github.com/Deepreo/gozabbix` must change their import and dependency.
-Pin `github.com/gatework/go-zabbix@v0.1.0` when adopting this API.
+Pin `github.com/gatework/go-zabbix@v0.2.0` when adopting the current API.
 
 ## Authentication and connection ownership
 

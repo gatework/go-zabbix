@@ -61,20 +61,20 @@ func TestItemHTTPWriteWire(t *testing.T) {
 		c := queryFixtureClient(t, "item.create", want, `{"itemids":["42"]}`)
 		ids, err := c.Item().Create(context.Background(), ItemCreateParams{
 			HostID: "1", Name: "HTTP fixture", Key: "http.fixture", Type: 19, ValueType: 4,
-			Delay: writeTestPointer("{$INTERVAL}"), URL: writeTestPointer("https://{HOST.CONN}/metrics"),
+			Delay: new("{$INTERVAL}"), URL: new("https://{HOST.CONN}/metrics"),
 			QueryFields:   []ItemHTTPFieldInput{{Name: "tag", Value: "first"}, {Name: "tag", Value: ""}},
 			Headers:       []ItemHTTPFieldInput{{Name: "X-Tag", Value: "first"}, {Name: "X-Tag", Value: ""}},
-			RequestMethod: writeTestPointer(1), PostType: writeTestPointer(2), Posts: writeTestPointer(`{"value":{$BODY}}`),
-			Timeout: writeTestPointer("{$TIMEOUT}"), StatusCodes: writeTestPointer("200,{$STATUS}"),
-			FollowRedirects: writeTestPointer(0), RetrieveMode: writeTestPointer(2), OutputFormat: writeTestPointer(1),
-			HTTPProxy: writeTestPointer("http://proxy.test:3128"), AuthType: writeTestPointer(1),
-			Username: writeTestPointer("fixture-user"), Password: writeTestPointer("fixture-password"),
-			VerifyPeer: writeTestPointer(1), VerifyHost: writeTestPointer(1),
-			SSLCertFile: writeTestPointer("fixture.crt"), SSLKeyFile: writeTestPointer("fixture.key"),
-			SSLKeyPassword: writeTestPointer("fixture-key-password"), AllowTraps: writeTestPointer(1),
-			TrapperHosts: writeTestPointer("192.0.2.1"),
+			RequestMethod: new(1), PostType: new(2), Posts: new(`{"value":{$BODY}}`),
+			Timeout: new("{$TIMEOUT}"), StatusCodes: new("200,{$STATUS}"),
+			FollowRedirects: new(0), RetrieveMode: new(2), OutputFormat: new(1),
+			HTTPProxy: new("http://proxy.test:3128"), AuthType: new(1),
+			Username: new("fixture-user"), Password: new("fixture-password"),
+			VerifyPeer: new(1), VerifyHost: new(1),
+			SSLCertFile: new("fixture.crt"), SSLKeyFile: new("fixture.key"),
+			SSLKeyPassword: new("fixture-key-password"), AllowTraps: new(1),
+			TrapperHosts: new("192.0.2.1"),
 			Preprocessing: []ItemPreprocessingInput{{
-				Type: 12, Params: writeTestPointer("$.value"), ErrorHandler: writeTestPointer(2), ErrorHandlerParams: writeTestPointer(""),
+				Type: 12, Params: new("$.value"), ErrorHandler: new(2), ErrorHandlerParams: new(""),
 			}},
 		})
 		if err != nil || !reflect.DeepEqual(ids, []string{"42"}) {
@@ -85,16 +85,16 @@ func TestItemHTTPWriteWire(t *testing.T) {
 		const want = `[{"itemid":"42","url":"https://example.test/metrics","query_fields":[],"headers":[],"request_method":0,"post_type":0,"posts":"","timeout":"","status_codes":"","follow_redirects":0,"retrieve_mode":0,"output_format":0,"http_proxy":"","authtype":0,"username":"","password":"","verify_peer":0,"verify_host":0,"ssl_cert_file":"","ssl_key_file":"","ssl_key_password":"","allow_traps":0,"trapper_hosts":"","preprocessing":[]}]`
 		c := queryFixtureClient(t, "item.update", want, `{"itemids":["42"]}`)
 		ids, err := c.Item().Update(context.Background(), ItemUpdateParams{
-			ItemID: "42", URL: writeTestPointer("https://example.test/metrics"),
+			ItemID: "42", URL: new("https://example.test/metrics"),
 			QueryFields: []ItemHTTPFieldInput{}, Headers: []ItemHTTPFieldInput{},
-			RequestMethod: writeTestPointer(0), PostType: writeTestPointer(0), Posts: writeTestPointer(""),
-			Timeout: writeTestPointer(""), StatusCodes: writeTestPointer(""),
-			FollowRedirects: writeTestPointer(0), RetrieveMode: writeTestPointer(0), OutputFormat: writeTestPointer(0),
-			HTTPProxy: writeTestPointer(""), AuthType: writeTestPointer(0),
-			Username: writeTestPointer(""), Password: writeTestPointer(""),
-			VerifyPeer: writeTestPointer(0), VerifyHost: writeTestPointer(0),
-			SSLCertFile: writeTestPointer(""), SSLKeyFile: writeTestPointer(""), SSLKeyPassword: writeTestPointer(""),
-			AllowTraps: writeTestPointer(0), TrapperHosts: writeTestPointer(""), Preprocessing: []ItemPreprocessingInput{},
+			RequestMethod: new(0), PostType: new(0), Posts: new(""),
+			Timeout: new(""), StatusCodes: new(""),
+			FollowRedirects: new(0), RetrieveMode: new(0), OutputFormat: new(0),
+			HTTPProxy: new(""), AuthType: new(0),
+			Username: new(""), Password: new(""),
+			VerifyPeer: new(0), VerifyHost: new(0),
+			SSLCertFile: new(""), SSLKeyFile: new(""), SSLKeyPassword: new(""),
+			AllowTraps: new(0), TrapperHosts: new(""), Preprocessing: []ItemPreprocessingInput{},
 		})
 		if err != nil || !reflect.DeepEqual(ids, []string{"42"}) {
 			t.Fatalf("update ids = %v, error = %v", ids, err)
@@ -108,12 +108,12 @@ func TestItemHTTPPartialUpdates(t *testing.T) {
 		params ItemUpdateParams
 		want   string
 	}{
-		{"unrelated field omits HTTP configuration", ItemUpdateParams{ItemID: "42", Name: writeTestPointer("renamed")}, `[{"itemid":"42","name":"renamed"}]`},
-		{"type may retain stored URL and interval", ItemUpdateParams{ItemID: "42", Type: writeTestPointer(19)}, `[{"itemid":"42","type":19}]`},
-		{"post type may retain stored body", ItemUpdateParams{ItemID: "42", PostType: writeTestPointer(2)}, `[{"itemid":"42","post_type":2}]`},
-		{"body may retain stored post type", ItemUpdateParams{ItemID: "42", Posts: writeTestPointer(`{"value":{$BODY}}`)}, `[{"itemid":"42","posts":"{\"value\":{$BODY}}"}]`},
-		{"retrieve mode may retain stored request method", ItemUpdateParams{ItemID: "42", RetrieveMode: writeTestPointer(2)}, `[{"itemid":"42","retrieve_mode":2}]`},
-		{"allowed hosts may retain stored allow traps", ItemUpdateParams{ItemID: "42", TrapperHosts: writeTestPointer("{$ALLOWED_HOSTS}")}, `[{"itemid":"42","trapper_hosts":"{$ALLOWED_HOSTS}"}]`},
+		{"unrelated field omits HTTP configuration", ItemUpdateParams{ItemID: "42", Name: new("renamed")}, `[{"itemid":"42","name":"renamed"}]`},
+		{"type may retain stored URL and interval", ItemUpdateParams{ItemID: "42", Type: new(19)}, `[{"itemid":"42","type":19}]`},
+		{"post type may retain stored body", ItemUpdateParams{ItemID: "42", PostType: new(2)}, `[{"itemid":"42","post_type":2}]`},
+		{"body may retain stored post type", ItemUpdateParams{ItemID: "42", Posts: new(`{"value":{$BODY}}`)}, `[{"itemid":"42","posts":"{\"value\":{$BODY}}"}]`},
+		{"retrieve mode may retain stored request method", ItemUpdateParams{ItemID: "42", RetrieveMode: new(2)}, `[{"itemid":"42","retrieve_mode":2}]`},
+		{"allowed hosts may retain stored allow traps", ItemUpdateParams{ItemID: "42", TrapperHosts: new("{$ALLOWED_HOSTS}")}, `[{"itemid":"42","trapper_hosts":"{$ALLOWED_HOSTS}"}]`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := queryFixtureClient(t, "item.update", tc.want, `{"itemids":["42"]}`)
@@ -132,7 +132,7 @@ func TestItemHTTPCreateRequiresURL(t *testing.T) {
 	})
 	_, err := c.Item().Create(context.Background(), ItemCreateParams{
 		HostID: "1", Name: "HTTP fixture", Key: "http.fixture", Type: 19,
-		ValueType: 4, Delay: writeTestPointer("1m"),
+		ValueType: 4, Delay: new("1m"),
 	})
 	assertQueryError(t, err, "item.create", ErrorInvalidParams)
 }
@@ -142,11 +142,11 @@ func TestItemHTTPCreateRejectsInvalidShape(t *testing.T) {
 		name   string
 		change func(*ItemCreateParams)
 	}{
-		{"empty URL", func(p *ItemCreateParams) { p.URL = writeTestPointer("") }},
+		{"empty URL", func(p *ItemCreateParams) { p.URL = new("") }},
 		{"missing interval", func(p *ItemCreateParams) { p.Delay = nil }},
-		{"empty interval", func(p *ItemCreateParams) { p.Delay = writeTestPointer("") }},
-		{"JSON without body", func(p *ItemCreateParams) { p.PostType = writeTestPointer(2) }},
-		{"XML with empty body", func(p *ItemCreateParams) { p.PostType, p.Posts = writeTestPointer(3), writeTestPointer("") }},
+		{"empty interval", func(p *ItemCreateParams) { p.Delay = new("") }},
+		{"JSON without body", func(p *ItemCreateParams) { p.PostType = new(2) }},
+		{"XML with empty body", func(p *ItemCreateParams) { p.PostType, p.Posts = new(3), new("") }},
 		{"query field without name", func(p *ItemCreateParams) { p.QueryFields = []ItemHTTPFieldInput{{Value: "value"}} }},
 		{"header without name", func(p *ItemCreateParams) { p.Headers = []ItemHTTPFieldInput{{Value: "value"}} }},
 	} {
@@ -157,7 +157,7 @@ func TestItemHTTPCreateRejectsInvalidShape(t *testing.T) {
 			})
 			params := ItemCreateParams{
 				HostID: "1", Name: "HTTP fixture", Key: "http.fixture", Type: 19, ValueType: 4,
-				URL: writeTestPointer("https://example.test/metrics"), Delay: writeTestPointer("1m"),
+				URL: new("https://example.test/metrics"), Delay: new("1m"),
 			}
 			tc.change(&params)
 			_, err := c.Item().Create(context.Background(), params)

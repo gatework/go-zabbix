@@ -37,7 +37,7 @@ The `current` documentation may describe a different Zabbix release.
 
 ## Verification
 
-Run the build, vet, lint and race checks in `.github/workflows/ci.yml`.
+Run `make check` for the shared standard gates, build and integration compilation.
 Tests must also compile and pass on the minimum Go version. HTTP tests use
 `httptest`; blocking handlers need cleanup that releases the handler before
 closing the test server.

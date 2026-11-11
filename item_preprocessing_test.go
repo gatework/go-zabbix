@@ -12,13 +12,13 @@ func TestItemPreprocessingRejectsIncompleteSteps(t *testing.T) {
 	}{
 		{"unknown type", ItemPreprocessingInput{Type: 31}},
 		{"missing type", ItemPreprocessingInput{}},
-		{"JSONPath without params", ItemPreprocessingInput{Type: 12, ErrorHandler: writeTestPointer(0)}},
-		{"JSONPath without error handler", ItemPreprocessingInput{Type: 12, Params: writeTestPointer("$.value")}},
-		{"invalid handler", ItemPreprocessingInput{Type: 6, ErrorHandler: writeTestPointer(4)}},
-		{"unsupported check with default handler", ItemPreprocessingInput{Type: 26, Params: writeTestPointer("-1"), ErrorHandler: writeTestPointer(0)}},
-		{"set value without value", ItemPreprocessingInput{Type: 6, ErrorHandler: writeTestPointer(2)}},
-		{"set error without message", ItemPreprocessingInput{Type: 6, ErrorHandler: writeTestPointer(3)}},
-		{"set empty error", ItemPreprocessingInput{Type: 6, ErrorHandler: writeTestPointer(3), ErrorHandlerParams: writeTestPointer("")}},
+		{"JSONPath without params", ItemPreprocessingInput{Type: 12, ErrorHandler: new(0)}},
+		{"JSONPath without error handler", ItemPreprocessingInput{Type: 12, Params: new("$.value")}},
+		{"invalid handler", ItemPreprocessingInput{Type: 6, ErrorHandler: new(4)}},
+		{"unsupported check with default handler", ItemPreprocessingInput{Type: 26, Params: new("-1"), ErrorHandler: new(0)}},
+		{"set value without value", ItemPreprocessingInput{Type: 6, ErrorHandler: new(2)}},
+		{"set error without message", ItemPreprocessingInput{Type: 6, ErrorHandler: new(3)}},
+		{"set empty error", ItemPreprocessingInput{Type: 6, ErrorHandler: new(3), ErrorHandlerParams: new("")}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := responseServer(t, func(req rpcRequest) string {
@@ -37,8 +37,8 @@ func TestItemPreprocessingPreservesEmptyFallbackAndMacros(t *testing.T) {
 		`{"itemids":["42"]}`)
 	_, err := c.Item().Update(t.Context(), ItemUpdateParams{
 		ItemID: "42", Preprocessing: []ItemPreprocessingInput{
-			{Type: 12, Params: writeTestPointer("{$JSONPATH}"), ErrorHandler: writeTestPointer(2), ErrorHandlerParams: writeTestPointer("")},
-			{Type: 21, Params: writeTestPointer("return value;")},
+			{Type: 12, Params: new("{$JSONPATH}"), ErrorHandler: new(2), ErrorHandlerParams: new("")},
+			{Type: 21, Params: new("return value;")},
 			{Type: 19},
 		},
 	})

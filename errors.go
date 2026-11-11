@@ -8,6 +8,7 @@ import (
 // ErrorKind identifies the stage or class of a failed request.
 type ErrorKind string
 
+// Request failure categories.
 const (
 	ErrorInvalidParams ErrorKind = "invalid parameters"
 	ErrorTransport     ErrorKind = "transport error"
@@ -40,8 +41,7 @@ func (e *RequestError) Error() string {
 	detail := string(e.Kind)
 	switch e.Kind {
 	case ErrorHTTP:
-		var httpErr *HTTPError
-		if errors.As(e.Err, &httpErr) {
+		if httpErr, ok := errors.AsType[*HTTPError](e.Err); ok {
 			detail = fmt.Sprintf("unexpected HTTP status %d", httpErr.StatusCode)
 		}
 	case ErrorAPI:
@@ -52,6 +52,8 @@ func (e *RequestError) Error() string {
 		if errors.Is(e.Err, ErrAuthStateChanged) {
 			detail = "authentication state changed"
 		}
+	default:
+		// Other categories use their safe metadata label.
 	}
 	if e.Method == "" {
 		return "zabbix: " + detail
@@ -86,8 +88,7 @@ func (e *APIError) Error() string { return fmt.Sprintf("zabbix API error %d", e.
 
 // AsAPIError extracts a Zabbix rejection through any wrapping error.
 func AsAPIError(err error) (*APIError, bool) {
-	var apiErr *APIError
-	if errors.As(err, &apiErr) {
+	if apiErr, ok := errors.AsType[*APIError](err); ok {
 		return apiErr, true
 	}
 	return nil, false

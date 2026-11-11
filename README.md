@@ -1,10 +1,10 @@
 # go-zabbix
 
 A standard-library-only Go client for the [Zabbix 7.4 JSON-RPC API](https://www.zabbix.com/documentation/7.4/en/manual/api).
-Requires **Go 1.24 or later**. The module is `github.com/gatework/go-zabbix` and
+Requires **Go 1.26 or later**. The module is `github.com/gatework/go-zabbix` and
 the imported package is `zabbix`.
 
-Version `v0.1.0` changes public contracts from earlier untagged snapshots.
+Version `v0.2.0` requires Go 1.26 and renames `User.TsProvisioned` to `User.TSProvisioned`. Version `v0.1.0` changed public contracts from earlier untagged snapshots.
 Existing callers should read [MIGRATION.md](MIGRATION.md) before updating.
 The [namespace matrix](docs/api-7.4-contracts.md)
 records the supported parameters, selectors and result shapes; the
@@ -15,7 +15,7 @@ or field is wrapped. `Client.Call` handles additional protocol operations.
 ## Install
 
 ```sh
-go get github.com/gatework/go-zabbix@v0.1.0
+go get github.com/gatework/go-zabbix@v0.2.0
 ```
 
 Keep the tagged version pinned in application `go.mod` files. Read
@@ -151,9 +151,7 @@ output decoding. It does not apply typed namespace validation.
 ## Verification
 
 ```sh
-go test -race -shuffle=on ./...
-go vet ./...
-go build ./...
+make check
 bash scripts/integration.sh -v
 ```
 

@@ -21,7 +21,7 @@ func queryFixtureClient(t *testing.T, method, wantParams, result string) *Client
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Error(err)
-			http.Error(w, "bad JSON", 400)
+			http.Error(w, "bad JSON", http.StatusBadRequest)
 			return
 		}
 		if req.Method != method {

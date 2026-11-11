@@ -141,7 +141,7 @@ func TestEveryExposedSelectorHasAResultField(t *testing.T) {
 		t.Run(tt.method+"/"+tt.selector, func(t *testing.T) {
 			params := reflect.New(reflect.TypeOf(tt.params)).Elem()
 			var selector reflect.Value
-			for i := 0; i < params.NumField(); i++ {
+			for i := range params.NumField() {
 				if strings.Split(params.Type().Field(i).Tag.Get("json"), ",")[0] == tt.selector {
 					selector = params.Field(i)
 					break

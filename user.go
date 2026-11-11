@@ -29,7 +29,7 @@ type User struct {
 	RowsPerPage     string               `json:"rows_per_page,omitempty"`
 	Surname         string               `json:"surname,omitempty"`
 	Theme           string               `json:"theme,omitempty"`
-	TsProvisioned   string               `json:"ts_provisioned,omitempty"`
+	TSProvisioned   string               `json:"ts_provisioned,omitempty"`
 	URL             string               `json:"url,omitempty"`
 	UserDirectoryID string               `json:"userdirectoryid,omitempty"`
 	Timezone        string               `json:"timezone,omitempty"`

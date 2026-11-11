@@ -40,12 +40,12 @@ func TestRoleCreateServiceAccessTags(t *testing.T) {
 		},
 		{
 			name:  "empty values",
-			value: writeTestPointer(""),
+			value: new(""),
 			want:  `[{"name":"operators","type":1,"rules":{"services.read.mode":0,"services.read.tag":{"tag":"read","value":""},"services.write.mode":0,"services.write.tag":{"tag":"write","value":""}}}]`,
 		},
 		{
 			name:  "nonempty values",
-			value: writeTestPointer("prod"),
+			value: new("prod"),
 			want:  `[{"name":"operators","type":1,"rules":{"services.read.mode":0,"services.read.tag":{"tag":"read","value":"prod"},"services.write.mode":0,"services.write.tag":{"tag":"write","value":"prod"}}}]`,
 		},
 	} {
@@ -54,9 +54,9 @@ func TestRoleCreateServiceAccessTags(t *testing.T) {
 			ids, err := c.Role().Create(context.Background(), RoleCreateParams{
 				Name: "operators", Type: 1,
 				Rules: &RoleRulesInput{
-					ServicesReadMode:  writeTestPointer(0),
+					ServicesReadMode:  new(0),
 					ServicesReadTag:   &ServiceAccessTagInput{Tag: "read", Value: tc.value},
-					ServicesWriteMode: writeTestPointer(0),
+					ServicesWriteMode: new(0),
 					ServicesWriteTag:  &ServiceAccessTagInput{Tag: "write", Value: tc.value},
 				},
 			})
@@ -80,7 +80,7 @@ func TestRoleUpdateClearsServiceAccessTags(t *testing.T) {
 		},
 		{
 			name:  "read tag with empty value",
-			rules: RoleRulesInput{ServicesReadTag: &ServiceAccessTagInput{Tag: "", Value: writeTestPointer("")}},
+			rules: RoleRulesInput{ServicesReadTag: &ServiceAccessTagInput{Tag: "", Value: new("")}},
 			want:  `[{"roleid":"42","rules":{"services.read.tag":{"tag":"","value":""}}}]`,
 		},
 		{
@@ -90,7 +90,7 @@ func TestRoleUpdateClearsServiceAccessTags(t *testing.T) {
 		},
 		{
 			name:  "write tag with empty value",
-			rules: RoleRulesInput{ServicesWriteTag: &ServiceAccessTagInput{Tag: "", Value: writeTestPointer("")}},
+			rules: RoleRulesInput{ServicesWriteTag: &ServiceAccessTagInput{Tag: "", Value: new("")}},
 			want:  `[{"roleid":"42","rules":{"services.write.tag":{"tag":"","value":""}}}]`,
 		},
 	} {
@@ -115,19 +115,19 @@ func TestRoleUpdateOmitsServiceAccessTags(t *testing.T) {
 	}{
 		{
 			name:   "omitted rules",
-			params: RoleUpdateParams{RoleID: "42", Name: writeTestPointer("operators")},
+			params: RoleUpdateParams{RoleID: "42", Name: new("operators")},
 			want:   `[{"roleid":"42","name":"operators"}]`,
 		},
 		{
 			name:   "unrelated rule",
-			params: RoleUpdateParams{RoleID: "42", Rules: &RoleRulesInput{APIAccess: writeTestPointer(0)}},
+			params: RoleUpdateParams{RoleID: "42", Rules: &RoleRulesInput{APIAccess: new(0)}},
 			want:   `[{"roleid":"42","rules":{"api.access":0}}]`,
 		},
 		{
 			name: "explicit modes and empty lists",
 			params: RoleUpdateParams{RoleID: "42", Rules: &RoleRulesInput{
-				ServicesReadMode: writeTestPointer(0), ServicesReadList: []ServiceRef{},
-				ServicesWriteMode: writeTestPointer(0), ServicesWriteList: []ServiceRef{},
+				ServicesReadMode: new(0), ServicesReadList: []ServiceRef{},
+				ServicesWriteMode: new(0), ServicesWriteList: []ServiceRef{},
 			}},
 			want: `[{"roleid":"42","rules":{"services.read.mode":0,"services.read.list":[],"services.write.mode":0,"services.write.list":[]}}]`,
 		},
@@ -147,8 +147,8 @@ func TestRoleServiceAccessTagValidation(t *testing.T) {
 		name  string
 		rules RoleRulesInput
 	}{
-		{"read tag", RoleRulesInput{ServicesReadTag: &ServiceAccessTagInput{Tag: "", Value: writeTestPointer("prod")}}},
-		{"write tag", RoleRulesInput{ServicesWriteTag: &ServiceAccessTagInput{Tag: "", Value: writeTestPointer("prod")}}},
+		{"read tag", RoleRulesInput{ServicesReadTag: &ServiceAccessTagInput{Tag: "", Value: new("prod")}}},
+		{"write tag", RoleRulesInput{ServicesWriteTag: &ServiceAccessTagInput{Tag: "", Value: new("prod")}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := responseServer(t, func(req rpcRequest) string {
