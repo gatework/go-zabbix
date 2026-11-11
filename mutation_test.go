@@ -103,7 +103,7 @@ func TestSingletonUpdateRequiresFieldsAndPreservesExplicitZero(t *testing.T) {
 			}
 		})
 	}
-	fields, err := c.Authentication().Update(context.Background(), AuthenticationUpdateParams{HTTPAuthEnabled: writeTestPointer(0)})
+	fields, err := c.Authentication().Update(context.Background(), AuthenticationUpdateParams{HTTPAuthEnabled: new(0)})
 	if err != nil || len(fields) != 1 || fields[0] != "http_auth_enabled" {
 		t.Fatalf("singleton updated fields = %v, error = %v", fields, err)
 	}
@@ -115,7 +115,7 @@ func TestSingletonUpdateRejectsMalformedFields(t *testing.T) {
 			c := responseServer(t, func(req rpcRequest) string {
 				return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":%s}`, req.ID, result)
 			})
-			fields, err := c.Authentication().Update(context.Background(), AuthenticationUpdateParams{HTTPAuthEnabled: writeTestPointer(0)})
+			fields, err := c.Authentication().Update(context.Background(), AuthenticationUpdateParams{HTTPAuthEnabled: new(0)})
 			var requestErr *RequestError
 			if err == nil || fields != nil || !errors.As(err, &requestErr) {
 				t.Fatalf("malformed updated fields = %v, error = %v", fields, err)
@@ -137,7 +137,7 @@ func TestEventAcknowledgePreservesZeroSeverityAndIndefiniteSuppression(t *testin
 	})
 	ids, err := c.Event().Acknowledge(context.Background(), EventAcknowledgeParams{
 		EventIDs: []string{"42"}, Action: AckActionChangeSeverity | AckActionSuppress,
-		Severity: writeTestPointer(0), SuppressUntil: writeTestPointer(int64(0)),
+		Severity: new(0), SuppressUntil: new(int64(0)),
 	})
 	if err != nil || len(ids) != 1 || ids[0] != "42" {
 		t.Fatalf("acknowledged IDs = %v, error = %v", ids, err)
@@ -201,10 +201,10 @@ func TestEventAcknowledgeRejectsIncompleteOrConflictingActions(t *testing.T) {
 		"missing suppression":         {Action: AckActionSuppress},
 		"missing cause":               {Action: AckActionChangeToSymptom},
 		"missing message":             {Action: AckActionAddMessage},
-		"empty message":               {Action: AckActionAddMessage, Message: writeTestPointer("")},
-		"invalid severity":            {Action: AckActionChangeSeverity, Severity: writeTestPointer(6)},
-		"invalid cause":               {Action: AckActionChangeToSymptom, CauseEventID: writeTestPointer("0")},
-		"unexpected cause":            {Action: AckActionAcknowledge, CauseEventID: writeTestPointer("43")},
+		"empty message":               {Action: AckActionAddMessage, Message: new("")},
+		"invalid severity":            {Action: AckActionChangeSeverity, Severity: new(6)},
+		"invalid cause":               {Action: AckActionChangeToSymptom, CauseEventID: new("0")},
+		"unexpected cause":            {Action: AckActionAcknowledge, CauseEventID: new("43")},
 		"conflicting acknowledgement": {Action: AckActionAcknowledge | AckActionUnacknowledge},
 		"conflicting suppression":     {Action: AckActionSuppress | AckActionUnsuppress},
 		"closing while suppressing":   {Action: AckActionClose | AckActionSuppress},
@@ -286,7 +286,7 @@ func TestHostUpdateSendsOnlyRequestedChanges(t *testing.T) {
 		}
 		return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":{"hostids":["42"]}}`, req.ID)
 	})
-	ids, err := c.Host().Update(context.Background(), HostUpdateParams{HostID: "42", Description: writeTestPointer(""), Status: writeTestPointer(0), Tags: []TagInput{}})
+	ids, err := c.Host().Update(context.Background(), HostUpdateParams{HostID: "42", Description: new(""), Status: new(0), Tags: []TagInput{}})
 	if err != nil || len(ids) != 1 || ids[0] != "42" {
 		t.Fatalf("updated host IDs = %v, error = %v", ids, err)
 	}

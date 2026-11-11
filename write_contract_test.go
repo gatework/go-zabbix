@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-func writeTestPointer[T any](value T) *T { return &value }
-
 func writeJSON(t *testing.T, value any) map[string]json.RawMessage {
 	t.Helper()
 	body, err := json.Marshal(value)
@@ -40,27 +38,27 @@ func TestWriteJSONFixtures(t *testing.T) {
 		},
 		{
 			name:   "host update clears text tags and templates while preserving absent fields",
-			params: HostUpdateParams{HostID: "42", Description: writeTestPointer(""), Status: writeTestPointer(0), Tags: []TagInput{}, Templates: []TemplateRef{}},
+			params: HostUpdateParams{HostID: "42", Description: new(""), Status: new(0), Tags: []TagInput{}, Templates: []TemplateRef{}},
 			want:   `{"hostid":"42","description":"","status":0,"tags":[],"templates":[]}`,
 		},
 		{
 			name:   "host update retains an existing proxy assignment",
-			params: HostUpdateParams{HostID: "42", MonitoredBy: writeTestPointer(1), Name: writeTestPointer("router")},
+			params: HostUpdateParams{HostID: "42", MonitoredBy: new(1), Name: new("router")},
 			want:   `{"hostid":"42","monitored_by":1,"name":"router"}`,
 		},
 		{
 			name:   "host update retains an existing proxy group assignment",
-			params: HostUpdateParams{HostID: "42", MonitoredBy: writeTestPointer(2), Name: writeTestPointer("router")},
+			params: HostUpdateParams{HostID: "42", MonitoredBy: new(2), Name: new("router")},
 			want:   `{"hostid":"42","monitored_by":2,"name":"router"}`,
 		},
 		{
 			name:   "service create allows a value with the default propagation rule",
-			params: ServiceCreateParams{Name: "router", Algorithm: 1, PropagationValue: writeTestPointer(0)},
+			params: ServiceCreateParams{Name: "router", Algorithm: 1, PropagationValue: new(0)},
 			want:   `{"name":"router","algorithm":1,"sortorder":0,"propagation_value":0}`,
 		},
 		{
 			name:   "service update retains its existing propagation rule",
-			params: ServiceUpdateParams{ServiceID: "42", PropagationValue: writeTestPointer(2)},
+			params: ServiceUpdateParams{ServiceID: "42", PropagationValue: new(2)},
 			want:   `{"serviceid":"42","propagation_value":2}`,
 		},
 		{
@@ -75,22 +73,22 @@ func TestWriteJSONFixtures(t *testing.T) {
 		},
 		{
 			name:   "user media clearing omits password and role",
-			params: UserUpdateParams{UserID: "9", Medias: []UserMediaInput{}, URL: writeTestPointer("")},
+			params: UserUpdateParams{UserID: "9", Medias: []UserMediaInput{}, URL: new("")},
 			want:   `{"userid":"9","medias":[],"url":""}`,
 		},
 		{
 			name:   "item create sends required zero numeric enums",
-			params: ItemCreateParams{HostID: "42", Name: "temperature", Key: "sensor.temp", Type: 0, ValueType: 0, InterfaceID: writeTestPointer("7"), Delay: writeTestPointer("1m")},
+			params: ItemCreateParams{HostID: "42", Name: "temperature", Key: "sensor.temp", Type: 0, ValueType: 0, InterfaceID: new("7"), Delay: new("1m")},
 			want:   `{"hostid":"42","name":"temperature","key_":"sensor.temp","type":0,"value_type":0,"interfaceid":"7","delay":"1m"}`,
 		},
 		{
 			name:   "sla empty schedule explicitly requests continuous coverage",
-			params: SLAUpdateParams{SLAID: "1", Schedule: []SLAScheduleInput{}, ExcludedDowntimes: []SLAExcludedDowntimeInput{}, SLO: writeTestPointer(0.0)},
+			params: SLAUpdateParams{SLAID: "1", Schedule: []SLAScheduleInput{}, ExcludedDowntimes: []SLAExcludedDowntimeInput{}, SLO: new(0.0)},
 			want:   `{"slaid":"1","schedule":[],"excluded_downtimes":[],"slo":0}`,
 		},
 		{
 			name:   "interface update sends partial snmp details with zero bulk",
-			params: HostInterfaceUpdateParams{InterfaceID: "5", Details: &SNMPInterfaceUpdateInput{Bulk: writeTestPointer(0)}},
+			params: HostInterfaceUpdateParams{InterfaceID: "5", Details: &SNMPInterfaceUpdateInput{Bulk: new(0)}},
 			want:   `{"interfaceid":"5","details":{"bulk":0}}`,
 		},
 		{
@@ -115,7 +113,7 @@ func TestWriteJSONFixtures(t *testing.T) {
 		},
 		{
 			name:   "action keeps enum zero and restricts nested message references",
-			params: ActionCreateParams{Name: "Notify", EventSource: 0, Operations: []ActionOperationInput{{OperationType: 0, OpMessage: &ActionMessageInput{DefaultMsg: writeTestPointer(0), Message: writeTestPointer("")}, OpMessageUsr: []UserRef{{UserID: "4"}}}}},
+			params: ActionCreateParams{Name: "Notify", EventSource: 0, Operations: []ActionOperationInput{{OperationType: 0, OpMessage: &ActionMessageInput{DefaultMsg: new(0), Message: new("")}, OpMessageUsr: []UserRef{{UserID: "4"}}}}},
 			want:   `{"name":"Notify","eventsource":0,"operations":[{"operationtype":0,"opmessage":{"default_msg":0,"message":""},"opmessage_usr":[{"userid":"4"}]}]}`,
 		},
 	}
@@ -161,7 +159,7 @@ func TestEveryWriteFieldPreservesPresence(t *testing.T) {
 		}
 		seen[typ] = true
 		base := writeJSON(t, reflect.New(typ).Elem().Interface())
-		for i := 0; i < typ.NumField(); i++ {
+		for i := range typ.NumField() {
 			field := typ.Field(i)
 			key, _, _ := strings.Cut(field.Tag.Get("json"), ",")
 			if key == "" || key == "-" {
@@ -221,8 +219,8 @@ func TestWriteModelsDoNotContainResponseObjects(t *testing.T) {
 		if !strings.HasSuffix(typ.Name(), "Params") && !strings.HasSuffix(typ.Name(), "Input") && !strings.HasSuffix(typ.Name(), "Ref") {
 			t.Errorf("response model %s leaked into a write contract", typ)
 		}
-		for i := 0; i < typ.NumField(); i++ {
-			check(typ.Field(i).Type)
+		for field := range typ.Fields() {
+			check(field.Type)
 		}
 	}
 	for _, params := range allMutationParams() {
@@ -230,7 +228,7 @@ func TestWriteModelsDoNotContainResponseObjects(t *testing.T) {
 	}
 	for _, params := range allMutationParams() {
 		typ := reflect.TypeOf(params)
-		for _, forbidden := range []string{"Flags", "LastAccess", "LastClock", "LastNs", "LastValue", "PrevValue", "CreatedAt", "CreatorUserID", "AttemptClock", "AttemptFailed", "AttemptIP", "TsProvisioned", "Error", "Readonly", "ActiveAvailable", "MaintenanceID", "MaintenanceStatus", "MaintenanceType", "MaintenanceFrom"} {
+		for _, forbidden := range []string{"Flags", "LastAccess", "LastClock", "LastNs", "LastValue", "PrevValue", "CreatedAt", "CreatorUserID", "AttemptClock", "AttemptFailed", "AttemptIP", "TSProvisioned", "Error", "Readonly", "ActiveAvailable", "MaintenanceID", "MaintenanceStatus", "MaintenanceType", "MaintenanceFrom"} {
 			if (forbidden == "MaintenanceType" || forbidden == "MaintenanceID") && strings.HasPrefix(typ.Name(), "Maintenance") {
 				continue
 			}
@@ -252,12 +250,12 @@ func TestWriteValidationRejectsMissingIdentityAndConditionalPayloads(t *testing.
 	cases := []interface{ validate() error }{
 		HostUpdateParams{}, ItemUpdateParams{ItemID: "-1"}, UserUpdateParams{UserID: "1.5"},
 		HostCreateParams{Host: "r"}, HostCreateParams{Host: "r", Groups: []HostGroupRef{{}}},
-		HostCreateParams{Host: "r", Groups: []HostGroupRef{{GroupID: "1"}}, MonitoredBy: writeTestPointer(1)},
-		HostCreateParams{Host: "r", Groups: []HostGroupRef{{GroupID: "1"}}, MonitoredBy: writeTestPointer(2)},
+		HostCreateParams{Host: "r", Groups: []HostGroupRef{{GroupID: "1"}}, MonitoredBy: new(1)},
+		HostCreateParams{Host: "r", Groups: []HostGroupRef{{GroupID: "1"}}, MonitoredBy: new(2)},
 		HostMacroCreateParams{Macro: "{$X}", Value: "x"},
 		HostInterfaceCreateParams{HostID: "1", Type: 2, Main: 1, UseIP: 1, IP: "192.0.2.1", Port: "161"},
 		HostInterfaceUpdateInput{}, SNMPInterfaceInput{Version: 2},
-		HostInterfaceUpdateInput{InterfaceID: writeTestPointer("")},
+		HostInterfaceUpdateInput{InterfaceID: new("")},
 		HostInterfaceReplaceParams{HostID: "1"}, HostInterfaceMatchInput{},
 		ActionCreateParams{Name: "x", EventSource: 0},
 		ActionOperationInput{OperationType: 0}, ActionOperationInput{OperationType: 1},
@@ -265,9 +263,9 @@ func TestWriteValidationRejectsMissingIdentityAndConditionalPayloads(t *testing.
 		ActionOperationInput{OperationType: 10},
 		UserMediaInput{MediaTypeID: "1", SendTo: 42},
 		GraphItemUpdateInput{}, DashboardWidgetUpdateInput{},
-		HostMacroUpdateInput{Macro: writeTestPointer("{$X}")},
-		ServiceCreateParams{Name: "x", PropagationRule: writeTestPointer(0)},
-		ServiceUpdateParams{ServiceID: "1", PropagationRule: writeTestPointer(0)},
+		HostMacroUpdateInput{Macro: new("{$X}")},
+		ServiceCreateParams{Name: "x", PropagationRule: new(0)},
+		ServiceUpdateParams{ServiceID: "1", PropagationRule: new(0)},
 		MaintenanceCreateParams{Name: "x", Timeperiods: []MaintenancePeriodInput{{}}},
 		TaskCreateParams{Type: 7, Request: map[string]any{}},
 	}
@@ -281,7 +279,7 @@ func TestWriteValidationRejectsMissingIdentityAndConditionalPayloads(t *testing.
 		ActionHostInput{HostID: "0"},
 		MapLinkInput{SelementID1: "new-a", SelementID2: "new-b"},
 		UserMediaInput{MediaTypeID: "1", SendTo: []string{"test@example.invalid"}},
-		SNMPInterfaceUpdateInput{Bulk: writeTestPointer(0)},
+		SNMPInterfaceUpdateInput{Bulk: new(0)},
 	} {
 		if err := params.validate(); err != nil {
 			t.Errorf("%T rejected valid input: %v", params, err)
@@ -303,8 +301,7 @@ func TestEveryUpdateRequiresItsWireID(t *testing.T) {
 			t.Errorf("%s accepted an update without its identity", typ)
 		}
 		identities := 0
-		for i := 0; i < typ.NumField(); i++ {
-			field := typ.Field(i)
+		for field := range typ.Fields() {
 			if field.Type.Kind() == reflect.String && !strings.Contains(field.Tag.Get("json"), ",") {
 				identities++
 			}

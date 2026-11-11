@@ -166,27 +166,33 @@ func (s *SLAService) GetSLI(ctx context.Context, params SLAGetSLIParams) (*SLIRe
 	// CSla::getSli derives serviceids from PHP array keys, which can encode IDs
 	// as JSON integers. RawMessage avoids converting those IDs through float64.
 	// Pointer scalars and non-nil arrays distinguish missing fields from zero.
-	var wire struct {
-		Periods []struct {
-			PeriodFrom *int64 `json:"period_from"`
-			PeriodTo   *int64 `json:"period_to"`
-		} `json:"periods"`
-		ServiceIDs []json.RawMessage `json:"serviceids"`
-		SLI        [][]struct {
-			Uptime            *int64   `json:"uptime"`
-			Downtime          *int64   `json:"downtime"`
-			SLI               *float64 `json:"sli"`
-			ErrorBudget       *int64   `json:"error_budget"`
-			ExcludedDowntimes []struct {
-				Name       *string `json:"name"`
-				PeriodFrom *int64  `json:"period_from"`
-				PeriodTo   *int64  `json:"period_to"`
-			} `json:"excluded_downtimes"`
-		} `json:"sli"`
-	}
+	var wire sliResponse
 	if err := s.client.Call(ctx, "sla.getsli", params, &wire); err != nil {
 		return nil, err
 	}
+	return wire.result()
+}
+
+type sliResponse struct {
+	Periods []struct {
+		PeriodFrom *int64 `json:"period_from"`
+		PeriodTo   *int64 `json:"period_to"`
+	} `json:"periods"`
+	ServiceIDs []json.RawMessage `json:"serviceids"`
+	SLI        [][]struct {
+		Uptime            *int64   `json:"uptime"`
+		Downtime          *int64   `json:"downtime"`
+		SLI               *float64 `json:"sli"`
+		ErrorBudget       *int64   `json:"error_budget"`
+		ExcludedDowntimes []struct {
+			Name       *string `json:"name"`
+			PeriodFrom *int64  `json:"period_from"`
+			PeriodTo   *int64  `json:"period_to"`
+		} `json:"excluded_downtimes"`
+	} `json:"sli"`
+}
+
+func (wire sliResponse) result() (*SLIResult, error) {
 	if wire.Periods == nil || wire.ServiceIDs == nil || wire.SLI == nil {
 		return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI result requires periods, serviceids, and sli arrays"))
 	}
@@ -210,18 +216,8 @@ func (s *SLAService) GetSLI(ctx context.Context, params SLAGetSLIParams) (*SLIRe
 		}
 		out.Periods[i] = SLIPeriod{PeriodFrom: *period.PeriodFrom, PeriodTo: *period.PeriodTo}
 	}
-	for i, raw := range wire.ServiceIDs {
-		raw = bytes.TrimSpace(raw)
-		id := string(raw)
-		if len(raw) != 0 && raw[0] == '"' {
-			if err := json.Unmarshal(raw, &id); err != nil {
-				return nil, requestError("sla.getsli", ErrorDecode, err)
-			}
-		}
-		if err := requireWriteID(id, "serviceid"); err != nil {
-			return nil, requestError("sla.getsli", ErrorProtocol, err)
-		}
-		out.ServiceIDs[i] = id
+	if err := decodeSLIServiceIDs(out.ServiceIDs, wire.ServiceIDs); err != nil {
+		return nil, err
 	}
 	for i, row := range wire.SLI {
 		if len(row) != len(wire.ServiceIDs) {
@@ -251,4 +247,21 @@ func (s *SLAService) GetSLI(ctx context.Context, params SLAGetSLIParams) (*SLIRe
 		}
 	}
 	return out, nil
+}
+
+func decodeSLIServiceIDs(target []string, messages []json.RawMessage) error {
+	for i, raw := range messages {
+		raw = bytes.TrimSpace(raw)
+		id := string(raw)
+		if len(raw) != 0 && raw[0] == '"' {
+			if err := json.Unmarshal(raw, &id); err != nil {
+				return requestError("sla.getsli", ErrorDecode, err)
+			}
+		}
+		if err := requireWriteID(id, "serviceid"); err != nil {
+			return requestError("sla.getsli", ErrorProtocol, err)
+		}
+		target[i] = id
+	}
+	return nil
 }

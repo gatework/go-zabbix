@@ -180,7 +180,7 @@ func newTransport() *http.Transport {
 }
 
 func validHeaderValue(value string) bool {
-	for i := 0; i < len(value); i++ {
+	for i := range len(value) {
 		if value[i] == 0x7f || value[i] < 0x20 && value[i] != '\t' {
 			return false
 		}

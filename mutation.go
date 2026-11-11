@@ -20,7 +20,7 @@ type identifiedWriteParams interface {
 
 type objectWriteParams interface {
 	writeParams
-	validateResult([]string) error
+	validateResult(ids []string) error
 }
 
 func mutateIDs[T writeParams](

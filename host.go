@@ -77,8 +77,8 @@ func (h *HostInterface) UnmarshalJSON(data []byte) error {
 	type alias HostInterface
 	var next alias
 	aux := struct {
-		Details json.RawMessage `json:"details"`
 		*alias
+		Details json.RawMessage `json:"details"`
 	}{alias: &next}
 	if raw := bytes.TrimSpace(data); len(raw) == 0 || raw[0] != '{' {
 		return errors.New("host interface must be an object")
@@ -106,6 +106,7 @@ func (h *HostInterface) UnmarshalJSON(data []byte) error {
 // means inventory was not selected; an empty non-nil map is an empty result.
 type HostInventory map[string]string
 
+// UnmarshalJSON accepts the inventory object or the empty array used by disabled inventory.
 func (h *HostInventory) UnmarshalJSON(data []byte) error {
 	raw := bytes.TrimSpace(data)
 	next := make(HostInventory)

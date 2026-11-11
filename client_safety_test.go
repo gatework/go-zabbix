@@ -306,15 +306,13 @@ func TestConcurrentCallsKeepDistinctResponseIDs(t *testing.T) {
 		return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":[]}`, req.ID)
 	}, WithAPIToken("token"))
 	var wg sync.WaitGroup
-	for i := 0; i < 24; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 24 {
+		wg.Go(func() {
 			var out []Host
 			if err := client.Call(context.Background(), "host.get", nil, &out); err != nil || out == nil {
 				t.Errorf("concurrent call = %#v, %v", out, err)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }

@@ -64,8 +64,7 @@ func ExampleHostService_Update() {
 	_, err = client.Host().Update(ctx, zabbix.HostUpdateParams{
 		HostID: "10084", Description: &description, Tags: []zabbix.TagInput{},
 	})
-	var apiErr *zabbix.APIError
-	if errors.As(err, &apiErr) {
+	if apiErr, ok := errors.AsType[*zabbix.APIError](err); ok {
 		fmt.Println("Zabbix rejected the update:", apiErr.Code)
 	} else if err != nil {
 		fmt.Println(err)

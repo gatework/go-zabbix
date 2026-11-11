@@ -180,6 +180,17 @@ func (p EventAcknowledgeParams) validate() error {
 	if p.Action&AckActionChangeToCause != 0 && p.Action&AckActionChangeToSymptom != 0 {
 		return errors.New("zabbix: cannot change the same event to both cause and symptom")
 	}
+	return p.validateEffects()
+}
+
+// Acknowledge updates problem events (acknowledge, close, add message, change
+// severity, suppress, ...) and returns the affected event ids.
+// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/event/acknowledge
+func (s *EventService) Acknowledge(ctx context.Context, params EventAcknowledgeParams) ([]string, error) {
+	return mutateObjectIDs(ctx, s.client, "event.acknowledge", "eventids", params, false)
+}
+
+func (p EventAcknowledgeParams) validateEffects() error {
 	if p.Action&AckActionAddMessage != 0 && (p.Message == nil || *p.Message == "") {
 		return errors.New("zabbix: adding an event message requires a nonempty message")
 	}
@@ -206,11 +217,4 @@ func (p EventAcknowledgeParams) validate() error {
 		return errors.New("zabbix: cause_eventid is only accepted when changing an event to a symptom")
 	}
 	return nil
-}
-
-// Acknowledge updates problem events (acknowledge, close, add message, change
-// severity, suppress, ...) and returns the affected event ids.
-// https://www.zabbix.com/documentation/7.4/en/manual/api/reference/event/acknowledge
-func (s *EventService) Acknowledge(ctx context.Context, params EventAcknowledgeParams) ([]string, error) {
-	return mutateObjectIDs(ctx, s.client, "event.acknowledge", "eventids", params, false)
 }

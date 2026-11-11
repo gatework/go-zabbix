@@ -71,7 +71,7 @@ func validateToken(token string) error {
 	if strings.TrimSpace(token) == "" {
 		return errors.New("zabbix: credential token must not be blank")
 	}
-	for i := 0; i < len(token); i++ {
+	for i := range len(token) {
 		if token[i] <= 0x20 || token[i] == 0x7f {
 			return errors.New("zabbix: credential token contains whitespace or control characters")
 		}

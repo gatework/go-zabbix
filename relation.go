@@ -34,6 +34,7 @@ func (o *SelectedObject[T]) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON preserves whether the association was selected, empty or populated.
 func (o SelectedObject[T]) MarshalJSON() ([]byte, error) {
 	if o.Value != nil {
 		return json.Marshal(o.Value)

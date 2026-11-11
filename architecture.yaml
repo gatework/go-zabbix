@@ -1,0 +1,6 @@
+# Zabbix namespace navigation intentionally lives in one root package.
+declared: [.]
+rules:
+  - name: SDK remains a single standard-library-only package
+    packages: [.]
+    deny: [./..., github.com/..., golang.org/..., go.yaml.in/...]

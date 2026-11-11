@@ -77,7 +77,7 @@ func New(apiURL string, opts ...Option) (*Client, error) {
 	}
 	logger := cfg.logger
 	if logger == nil {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+		logger = slog.New(slog.DiscardHandler)
 	}
 	return &Client{
 		url: endpoint.String(), userAgent: cfg.userAgent, httpClient: hc,
@@ -164,22 +164,9 @@ func (c *Client) doWithToken(ctx context.Context, method string, params, out any
 	if httpResp.StatusCode != http.StatusOK {
 		return requestError(method, ErrorHTTP, &HTTPError{StatusCode: httpResp.StatusCode})
 	}
-	limited := &io.LimitedReader{R: httpResp.Body, N: c.maxBytes}
-	raw, err := io.ReadAll(limited)
+	raw, err := readResponseBody(method, httpResp.Body, c.maxBytes)
 	if err != nil {
-		return requestError(method, ErrorTransport, err)
-	}
-	if limited.N == 0 {
-		// Probe separately so a valid truncated prefix is rejected without overflowing
-		// maxBytes + 1 when the configured limit is the largest int64.
-		var extra [1]byte
-		n, err := io.ReadFull(httpResp.Body, extra[:])
-		if n != 0 {
-			return requestError(method, ErrorResponseLimit, fmt.Errorf("response exceeds %d byte limit", c.maxBytes))
-		}
-		if err != nil && !errors.Is(err, io.EOF) {
-			return requestError(method, ErrorTransport, err)
-		}
+		return err
 	}
 	var resp rpcResponse
 	if err := json.Unmarshal(raw, &resp); err != nil {
@@ -227,4 +214,25 @@ func (resp rpcResponse) validate(requestID int64) error {
 		return errors.New("zabbix: null JSON-RPC result")
 	}
 	return nil
+}
+
+func readResponseBody(method string, body io.Reader, limit int64) ([]byte, error) {
+	limited := &io.LimitedReader{R: body, N: limit}
+	raw, err := io.ReadAll(limited)
+	if err != nil {
+		return nil, requestError(method, ErrorTransport, err)
+	}
+	if limited.N == 0 {
+		// Probe separately so a valid truncated prefix is rejected without overflowing
+		// maxBytes + 1 when the configured limit is the largest int64.
+		var extra [1]byte
+		n, err := io.ReadFull(body, extra[:])
+		if n != 0 {
+			return nil, requestError(method, ErrorResponseLimit, fmt.Errorf("response exceeds %d byte limit", limit))
+		}
+		if err != nil && !errors.Is(err, io.EOF) {
+			return nil, requestError(method, ErrorTransport, err)
+		}
+	}
+	return raw, nil
 }
