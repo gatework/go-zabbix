@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.0 - 2026-11-12
+
+- Move bounded host/item queries and traffic processing from go-admin into `Client.Monitoring` and `ReadTraffic`, preserving units, gaps, peaks and partial-data signals.
+- Add a separate Zabbix 7.4 frontend client for real cookie login, fixed-period item/graph PNGs and session logout, with bounded image validation.
+- Bound long trend plots, return errors for zero-client requests, and add migration fixtures, executable examples and frontend fuzz/lifecycle regressions.
+
 ## v0.2.0 - 2026-11-11
 
 - Adopt the published go-standards v1.0.2 lint, formatting, architecture and make gates without adding runtime dependencies.

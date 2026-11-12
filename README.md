@@ -15,7 +15,7 @@ or field is wrapped. `Client.Call` handles additional protocol operations.
 ## Install
 
 ```sh
-go get github.com/gatework/go-zabbix@v0.2.0
+go get github.com/gatework/go-zabbix@v0.3.0
 ```
 
 Keep the tagged version pinned in application `go.mod` files. Read
@@ -66,6 +66,50 @@ Use `Host().Count(ctx, HostCountParams{...})` for a count, or
 `Host().GetMap(ctx, HostGetParams{...})` for an ID-keyed map. `Get` always returns
 a slice. A count-capable association such as `Interfaces` uses `Relation[T]`:
 `Items` contains records and `Count` contains a selected count, including zero.
+
+## Device traffic and alert images
+
+Device/item selection and rate processing are reusable SDK capabilities:
+
+```go
+series, err := client.Monitoring().Traffic(ctx, zabbix.TrafficQuery{
+    HostID: "10084", ItemID: "42001",
+    From: from.Unix(), Till: till.Unix(), UseTrends: false,
+})
+```
+
+Results preserve missing samples, observed peaks, staleness and truncation.
+Bind a physical port using its host and inbound/outbound item IDs; Zabbix
+`hostinterfaceid` describes an agent/SNMP connection endpoint.
+
+Native chart PNGs use a separate frontend session:
+
+```go
+frontend, err := zabbix.NewFrontend("https://monitor.example/zabbix/",
+    zabbix.FrontendOptions{Timezone: time.UTC})
+if err != nil { return err }
+defer frontend.CloseIdleConnections()
+if err := frontend.Login(ctx, username, password); err != nil { return err }
+defer func() {
+    cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    if err := frontend.Logout(cleanup); err != nil { reportError(err) }
+}()
+pngBytes, err := frontend.Chart(ctx, zabbix.ChartRequest{
+    ItemIDs: []string{"42001", "42002"}, From: from, To: till,
+})
+```
+
+`from` and `till` are fixed `time.Time` values; `reportError` is the application's
+error handler. The timezone must match the frontend user. API tokens cannot
+replace the signed frontend cookie. SSO/MFA sessions may be supplied in a real
+CookieJar through `FrontendOptions.HTTPClient`. `GraphID` selects an existing
+configured graph instead of item IDs.
+
+See [monitoring and alert assembly](docs/monitoring.md), the
+[versioned frontend contract](docs/frontend-7.4-contracts.md), and
+[compile-checked examples](example_monitoring_test.go). Alert routing, circuit
+permissions and sending attachments belong to the consuming application.
 
 ## Sessions and connection ownership
 

@@ -1,3 +1,40 @@
+# v0.3.0 monitoring extraction
+
+`Client.Monitoring()` now owns the reusable operations previously implemented
+in go-admin: host/item lookup, history/trend query limits and traffic processing.
+No go-admin model, database or authorization dependency is introduced.
+
+| Previous go-admin responsibility/type | SDK replacement |
+| --- | --- |
+| Provider host/item search and lookup | `Monitoring().Hosts`, `Items`, `Host`, `Item` |
+| `ZabbixHost`, `ZabbixHostList` | `MonitoredHost`, `MonitoredHostList` |
+| `ZabbixItem`, `ZabbixItemList` | `MonitoredItem`, `MonitoredItemList` |
+| `ZabbixSample`, `ZabbixTrend` | `MetricSample`, `MetricTrend` |
+| Provider history/trends | `Monitoring().History`, `Trends` |
+| Service rate/peak/gap helpers | `Monitoring().Traffic` or `ReadTraffic` |
+
+Use SDK types directly; retain application DTO conversion at the HTTP boundary.
+SDK timestamps are seconds and rates are nullable bits/second. go-admin keeps
+its existing millisecond tuples, A/Z endpoint model and permissions. Source
+errors keep their error chains; the provider maps them to safe application
+errors. `ErrMonitoringInput`, `ErrMonitoringBinding` and `ErrMonitoringData`
+separate invalid requests, unavailable bindings and malformed observations.
+
+The 1h/6h/24h/7d algorithms retain their frozen go-admin behavior. Longer trend
+windows now remain bounded to 720 plot points; partial results never prove the
+whole-period peak. Query limits and completeness are documented in
+[monitoring.md](docs/monitoring.md).
+
+`NewFrontend` is independent of `New`: supply a frontend directory URL and a
+genuine web login/cookie session. `Chart` accepts item IDs or one graph ID and
+an explicit period. See [the 7.4 frontend contract](docs/frontend-7.4-contracts.md).
+Existing API authentication and namespace wire contracts are unchanged.
+Requests made on a zero `Client` now return `ErrorInvalidParams` instead of
+panicking. Construct clients with `New` as before.
+
+Pin `github.com/gatework/go-zabbix@v0.3.0` to adopt these additions. Verify downstream
+consumers with `GOWORK=off` and no local `replace`.
+
 # v0.2.0 standard adoption
 
 - Go 1.26 or later is required.

@@ -47,3 +47,18 @@ state requires a separate read-back.
 
 **Trend**: An hourly aggregate of a numeric item's values, including the count,
 average, minimum and maximum.
+
+**Monitored host**: A validated host identity returned by the bounded monitoring queries.
+
+**Monitored item**: A validated item identity and latest observation. A network
+interface is identified by its host and traffic item IDs, not `hostinterfaceid`,
+which identifies an SNMP/agent connection endpoint.
+
+**Traffic series**: Rate observations normalized to bits per second, preserving
+missing samples, observed peaks and whether the requested window is incomplete.
+
+**Frontend session**: The signed cookie issued by the Zabbix web login. It is
+separate from a JSON-RPC API token or login-session bearer credential.
+
+**Chart image**: The PNG rendered by the Zabbix frontend for item IDs or a graph
+ID and an explicit time range. A graph API object describes configuration only.

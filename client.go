@@ -1,10 +1,3 @@
-// Package zabbix is a client library for the Zabbix JSON-RPC API.
-//
-// It targets Zabbix 7.4 and authenticates using the HTTP `Authorization: Bearer`
-// header, which works both for session tokens obtained via user.login and for
-// pre-created API tokens.
-//
-// Author: Resul Çelik 2024
 package zabbix
 
 import (
@@ -32,8 +25,8 @@ const (
 	defaultMaxResponseBytes = 64 << 20 // 64 MiB
 )
 
-// Client is a Zabbix API client. A zero Client is not usable; construct one with
-// New. Its methods are safe for concurrent use. Each request snapshots its
+// Client is a Zabbix API client. Construct one with New; requests on a zero
+// Client return an error. Its methods are safe for concurrent use. Each request snapshots its
 // credentials; changing credentials does not alter requests already in flight.
 type Client struct {
 	url            string
@@ -91,7 +84,7 @@ func New(apiURL string, opts ...Option) (*Client, error) {
 // and the client remains usable. The owner of a borrowed transport handles its
 // cleanup. Default and TLS-adjusted transports have a finite idle timeout.
 func (c *Client) CloseIdleConnections() {
-	if c.ownedTransport != nil {
+	if c != nil && c.ownedTransport != nil {
 		c.ownedTransport.CloseIdleConnections()
 	}
 }
@@ -120,7 +113,7 @@ func (c *Client) Call(ctx context.Context, method string, params, out any) error
 
 func (c *Client) do(ctx context.Context, method string, params, out any, authenticate bool) error {
 	token := ""
-	if authenticate {
+	if authenticate && c != nil {
 		state, _ := c.authSnapshot()
 		token = state.token
 	}
@@ -130,6 +123,9 @@ func (c *Client) do(ctx context.Context, method string, params, out any, authent
 // doWithToken binds a request to an explicit credential snapshot. Login uses an
 // empty token; Logout and compensating cleanup use the exact session they own.
 func (c *Client) doWithToken(ctx context.Context, method string, params, out any, token string) error {
+	if c == nil || c.httpClient == nil {
+		return requestError(method, ErrorInvalidParams, errors.New("client must be constructed with New"))
+	}
 	if ctx == nil {
 		return requestError(method, ErrorInvalidParams, errors.New("context must not be nil"))
 	}
