@@ -14,7 +14,7 @@ import (
 
 // Uses only the disposable host/items created by this suite. Sampling and
 // rendering are checked independently so a valid empty plot cannot pass both.
-func TestIntegrationFrontendCharts(t *testing.T) {
+func TestIntegrationWebCharts(t *testing.T) {
 	c, ctx := loginClient(t)
 	hostID, _, _ := integrationHost(t, c, ctx)
 	itemIDs, err := c.Item().Create(ctx, ItemCreateParams{
@@ -36,10 +36,10 @@ func TestIntegrationFrontendCharts(t *testing.T) {
 	integrationTrafficSample(t, c, ctx, hostID, itemID, till)
 	endpoint, err := url.Parse(*zbxURL)
 	integrationCheck(t, err)
-	frontend, err := NewFrontend(endpoint.ResolveReference(&url.URL{Path: "./"}).String(), FrontendOptions{Timezone: time.UTC})
+	webClient, err := NewWebClient(endpoint.ResolveReference(&url.URL{Path: "./"}).String(), WebOptions{Timezone: time.UTC})
 	integrationCheck(t, err)
-	t.Cleanup(frontend.CloseIdleConnections)
-	integrationCheck(t, frontend.Login(ctx, *zbxUser, *zbxPass))
+	t.Cleanup(webClient.CloseIdleConnections)
+	integrationCheck(t, webClient.Login(ctx, *zbxUser, *zbxPass))
 	loggedOut := false
 	t.Cleanup(func() {
 		if loggedOut {
@@ -47,7 +47,7 @@ func TestIntegrationFrontendCharts(t *testing.T) {
 		}
 		cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
 		defer stop()
-		if err := frontend.Logout(cleanup); err != nil {
+		if err := webClient.Logout(cleanup); err != nil {
 			t.Errorf("frontend cleanup: %v", err)
 		}
 	})
@@ -55,7 +55,7 @@ func TestIntegrationFrontendCharts(t *testing.T) {
 		{ItemIDs: []string{itemID}, From: till.Add(-time.Hour), To: till},
 		{GraphID: graphID, From: till.Add(-time.Hour), To: till},
 	} {
-		data, err := frontend.Chart(ctx, request)
+		data, err := webClient.Chart(ctx, request)
 		integrationCheck(t, err)
 		config, err := png.DecodeConfig(bytes.NewReader(data))
 		integrationCheck(t, err)
@@ -63,10 +63,10 @@ func TestIntegrationFrontendCharts(t *testing.T) {
 			t.Fatalf("unexpected plot dimensions: %+v", config)
 		}
 	}
-	integrationCheck(t, frontend.Logout(ctx))
+	integrationCheck(t, webClient.Logout(ctx))
 	loggedOut = true
-	_, err = frontend.Chart(ctx, ChartRequest{ItemIDs: []string{itemID}, From: till.Add(-time.Hour), To: till})
-	if !errors.Is(err, ErrFrontendAuthentication) {
+	_, err = webClient.Chart(ctx, ChartRequest{ItemIDs: []string{itemID}, From: till.Add(-time.Hour), To: till})
+	if !errors.Is(err, ErrWebAuthentication) {
 		t.Fatalf("logged-out chart = %v", err)
 	}
 }

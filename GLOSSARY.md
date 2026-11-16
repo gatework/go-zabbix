@@ -57,7 +57,7 @@ which identifies an SNMP/agent connection endpoint.
 **Traffic series**: Rate observations normalized to bits per second, preserving
 missing samples, observed peaks and whether the requested window is incomplete.
 
-**Frontend session**: The signed cookie issued by the Zabbix web login. It is
+**Web session**: The signed cookie issued by the Zabbix web login. It is
 separate from a JSON-RPC API token or login-session bearer credential.
 
 **Chart image**: The PNG rendered by the Zabbix frontend for item IDs or a graph

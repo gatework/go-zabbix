@@ -15,7 +15,7 @@ import (
 	"github.com/gatework/go-zabbix"
 )
 
-func TestFrontend_ClearSessionSupersedesLogin(t *testing.T) {
+func TestWebClient_ClearSessionSupersedesLogin(t *testing.T) {
 	t.Parallel()
 	started, release := make(chan struct{}), make(chan struct{})
 	var revoked atomic.Int32
@@ -23,7 +23,7 @@ func TestFrontend_ClearSessionSupersedesLogin(t *testing.T) {
 		if r.URL.Path == "/zabbix/index.php" {
 			close(started)
 			<-release
-			http.SetCookie(w, &http.Cookie{Name: "zbx_session", Value: frontendCookie(), Path: "/zabbix/"})
+			http.SetCookie(w, &http.Cookie{Name: "zbx_session", Value: webSessionCookie(), Path: "/zabbix/"})
 			http.Redirect(w, r, "/zabbix/zabbix.php", http.StatusSeeOther)
 			return
 		}
@@ -46,7 +46,7 @@ func TestFrontend_ClearSessionSupersedesLogin(t *testing.T) {
 			close(release)
 		}
 	})
-	client, err := zabbix.NewFrontend(server.URL+"/zabbix/", zabbix.FrontendOptions{HTTPClient: server.Client()})
+	client, err := zabbix.NewWebClient(server.URL+"/zabbix/", zabbix.WebOptions{HTTPClient: server.Client()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestFrontend_ClearSessionSupersedesLogin(t *testing.T) {
 	close(release)
 	select {
 	case err := <-done:
-		if !errors.Is(err, zabbix.ErrFrontendAuthentication) {
+		if !errors.Is(err, zabbix.ErrWebAuthentication) {
 			t.Fatalf("superseded login: %v", err)
 		}
 	case <-ctx.Done():
@@ -74,12 +74,12 @@ func TestFrontend_ClearSessionSupersedesLogin(t *testing.T) {
 	if revoked.Load() != 1 {
 		t.Fatalf("cleanup requests = %d", revoked.Load())
 	}
-	if _, err := client.Chart(ctx, chartRequest()); !errors.Is(err, zabbix.ErrFrontendAuthentication) {
+	if _, err := client.Chart(ctx, chartRequest()); !errors.Is(err, zabbix.ErrWebAuthentication) {
 		t.Fatalf("late login restored cleared cookies: %v", err)
 	}
 }
 
-func TestFrontend_CookiesArePrivateAndFailedLogoutRetainsSession(t *testing.T) {
+func TestWebClient_CookiesArePrivateAndFailedLogoutRetainsSession(t *testing.T) {
 	t.Parallel()
 	picture := chartPNG(t, 940, 280)
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -97,8 +97,8 @@ func TestFrontend_CookiesArePrivateAndFailedLogoutRetainsSession(t *testing.T) {
 	hc := server.Client()
 	hc.Jar, _ = cookiejar.New(nil)
 	base, _ := url.Parse(server.URL + "/zabbix/")
-	hc.Jar.SetCookies(base, []*http.Cookie{{Name: "zbx_session", Value: frontendCookie()}})
-	client, err := zabbix.NewFrontend(base.String(), zabbix.FrontendOptions{HTTPClient: hc})
+	hc.Jar.SetCookies(base, []*http.Cookie{{Name: "zbx_session", Value: webSessionCookie()}})
+	client, err := zabbix.NewWebClient(base.String(), zabbix.WebOptions{HTTPClient: hc})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestFrontend_CookiesArePrivateAndFailedLogoutRetainsSession(t *testing.T) {
 	if err := client.ClearSession(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := client.Chart(t.Context(), chartRequest()); !errors.Is(err, zabbix.ErrFrontendAuthentication) {
+	if _, err := client.Chart(t.Context(), chartRequest()); !errors.Is(err, zabbix.ErrWebAuthentication) {
 		t.Fatal(err)
 	}
 }

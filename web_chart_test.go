@@ -12,12 +12,12 @@ import (
 	"github.com/gatework/go-zabbix"
 )
 
-func TestFrontend_InvalidRequestsDoNotReachServer(t *testing.T) {
+func TestWebClient_InvalidRequestsDoNotReachServer(t *testing.T) {
 	t.Parallel()
 	var calls atomic.Int32
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls.Add(1) }))
 	t.Cleanup(server.Close)
-	client := frontendClient(t, server, zabbix.FrontendOptions{})
+	client := newTestWebClient(t, server, zabbix.WebOptions{})
 	for _, invalid := range []func(*zabbix.ChartRequest){
 		func(r *zabbix.ChartRequest) { r.ItemIDs = nil },
 		func(r *zabbix.ChartRequest) { r.GraphID = "200" },
@@ -28,7 +28,7 @@ func TestFrontend_InvalidRequestsDoNotReachServer(t *testing.T) {
 	} {
 		request := chartRequest()
 		invalid(&request)
-		if _, err := client.Chart(t.Context(), request); !errors.Is(err, zabbix.ErrFrontendInput) {
+		if _, err := client.Chart(t.Context(), request); !errors.Is(err, zabbix.ErrWebInput) {
 			t.Fatalf("invalid request = %v", err)
 		}
 	}
@@ -37,7 +37,7 @@ func TestFrontend_InvalidRequestsDoNotReachServer(t *testing.T) {
 	}
 }
 
-func TestFrontend_ChartCancellation(t *testing.T) {
+func TestWebClient_ChartCancellation(t *testing.T) {
 	t.Parallel()
 	started, release := make(chan struct{}), make(chan struct{})
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +49,7 @@ func TestFrontend_ChartCancellation(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	t.Cleanup(func() { close(release) })
-	client := frontendClient(t, server, zabbix.FrontendOptions{})
+	client := newTestWebClient(t, server, zabbix.WebOptions{})
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	done := make(chan error, 1)

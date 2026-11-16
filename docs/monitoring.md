@@ -1,7 +1,7 @@
 # Device, circuit and alert monitoring
 
 `Client.Monitoring()` owns device/item lookup, bounded history and trends, and
-traffic normalization. `Frontend` owns signed web sessions and PNG retrieval.
+traffic normalization. `WebClient` owns signed web sessions and PNG retrieval.
 Both live in go-zabbix and depend only on the standard library. Applications own
 their database records, permissions, circuit endpoints and notification delivery.
 
@@ -73,21 +73,21 @@ may retain validated identity/latest-sample metadata; always handle the error.
    selected item belongs to the expected host. Fix the image window around the
    event timestamp, for example the preceding hour. A future post-event window
    requires the application to delay the attachment job until data exists.
-3. Use `Frontend.Login` with a GUI-enabled account, or supply a genuine signed
+3. Use `WebClient.Login` with a GUI-enabled account, or supply a genuine signed
    CookieJar obtained by an external SSO/MFA flow. API tokens cannot substitute
    for web-session cookies.
-4. Call `Frontend.Chart` with both item IDs and the fixed `From`/`To` window,
+4. Call `WebClient.Chart` with both item IDs and the fixed `From`/`To` window,
    or use `GraphID` for an existing configured graph. Send the returned PNG bytes
    as an attachment through the application's notification adapter.
 5. Keep event deduplication, retries, delivery records and failed-image policy
    in the application. Never report an image-fetch failure as an observed zero
    rate. The SDK neither sends messages nor marks alerts delivered.
 
-Reuse a `Frontend` across a notification worker's requests. It does not store
+Reuse a `WebClient` across a notification worker's requests. It does not store
 passwords or retry login automatically. On authentication failure, the worker
 can explicitly renew the session and retry the **same** fixed window. On
 shutdown, call `Logout` with a fresh bounded context; `ClearSession` only forgets
-local cookies. See [the frontend contract](frontend-7.4-contracts.md) for timezone,
+local cookies. See [the frontend contract](web-7.4-contracts.md) for timezone,
 SSO/MFA and image-validation limits.
 
 ## go-admin ownership

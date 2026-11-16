@@ -26,40 +26,40 @@ type ChartRequest struct {
 // Chart downloads a bounded PNG using the frontend session. It never sends an
 // API token. A 200 status alone is not success: HTML, small error images and
 // invalid or oversized PNGs are rejected. It does not retry expired sessions.
-func (f *Frontend) Chart(ctx context.Context, request ChartRequest) ([]byte, error) {
-	hc, _, err := f.snapshot(ctx)
+func (w *WebClient) Chart(ctx context.Context, request ChartRequest) ([]byte, error) {
+	hc, _, err := w.snapshot(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := f.sessionID(hc); err != nil {
+	if _, err := w.sessionID(hc); err != nil {
 		return nil, err
 	}
-	endpoint, err := f.chartURL(&request)
+	endpoint, err := w.chartURL(&request)
 	if err != nil {
 		return nil, err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return nil, requestError("frontend.chart", ErrorInvalidParams, err)
+		return nil, requestError("web.chart", ErrorInvalidParams, err)
 	}
 	req.Header.Set("Accept", "image/png")
 	resp, err := hc.Do(req)
 	if err != nil {
-		return nil, requestError("frontend.chart", ErrorTransport, err)
+		return nil, requestError("web.chart", ErrorTransport, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden ||
 		resp.StatusCode >= 300 && resp.StatusCode < 400 {
-		return nil, ErrFrontendAuthentication
+		return nil, ErrWebAuthentication
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, requestError("frontend.chart", ErrorHTTP, &HTTPError{StatusCode: resp.StatusCode})
+		return nil, requestError("web.chart", ErrorHTTP, &HTTPError{StatusCode: resp.StatusCode})
 	}
 	mediaType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 	if err != nil || mediaType != "image/png" {
-		return nil, ErrFrontendImage
+		return nil, ErrWebImage
 	}
-	data, err := readResponseBody("frontend.chart", resp.Body, f.maxBytes)
+	data, err := readResponseBody("web.chart", resp.Body, w.maxBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -69,12 +69,12 @@ func (f *Frontend) Chart(ctx context.Context, request ChartRequest) ([]byte, err
 	return data, nil
 }
 
-func (f *Frontend) chartURL(request *ChartRequest) (string, error) {
-	from, till := request.From.In(f.location), request.To.In(f.location)
+func (w *WebClient) chartURL(request *ChartRequest) (string, error) {
+	from, till := request.From.In(w.location), request.To.In(w.location)
 	if (len(request.ItemIDs) == 0) == (request.GraphID == "") || len(request.ItemIDs) > 64 ||
 		!validMetricWindow(from.Unix(), till.Unix()) || till.Sub(from) < time.Minute ||
 		from.Year() < 1000 || till.Year() > 2999 {
-		return "", ErrFrontendInput
+		return "", ErrWebInput
 	}
 	if request.Width == 0 {
 		request.Width = 900
@@ -83,7 +83,7 @@ func (f *Frontend) chartURL(request *ChartRequest) (string, error) {
 		request.Height = 240
 	}
 	if request.Width < 64 || request.Width > 4096 || request.Height < 64 || request.Height > 2048 {
-		return "", ErrFrontendInput
+		return "", ErrWebInput
 	}
 	values := url.Values{
 		"from":  {from.Format("2006-01-02 15:04:05")},
@@ -94,7 +94,7 @@ func (f *Frontend) chartURL(request *ChartRequest) (string, error) {
 	name := "chart.php"
 	if request.GraphID != "" {
 		if !monitoringIdentifier.MatchString(request.GraphID) {
-			return "", ErrFrontendInput
+			return "", ErrWebInput
 		}
 		name = "chart2.php"
 		values.Set("graphid", request.GraphID)
@@ -102,7 +102,7 @@ func (f *Frontend) chartURL(request *ChartRequest) (string, error) {
 	} else {
 		for _, id := range request.ItemIDs {
 			if !monitoringIdentifier.MatchString(id) {
-				return "", ErrFrontendInput
+				return "", ErrWebInput
 			}
 			values.Add("itemids[]", id)
 		}
@@ -110,7 +110,7 @@ func (f *Frontend) chartURL(request *ChartRequest) (string, error) {
 		values.Set("profileIdx", "web.item.graph.filter")
 	}
 	// Zabbix 7.4 getTimeSelectorPeriod ignores from/to when profileIdx is absent.
-	endpoint := f.endpoint(name)
+	endpoint := w.endpoint(name)
 	endpoint.RawQuery = values.Encode()
 	return endpoint.String(), nil
 }
@@ -119,11 +119,11 @@ func validateChartImage(data []byte, width, height int) error {
 	config, err := png.DecodeConfig(bytes.NewReader(data))
 	if err != nil || config.Width < width || config.Height < height ||
 		config.Width > 8192 || config.Height > 4096 || int64(config.Width)*int64(config.Height) > 16<<20 {
-		return ErrFrontendImage
+		return ErrWebImage
 	}
 	reader := bytes.NewReader(data)
 	if _, err := png.Decode(reader); err != nil || reader.Len() != 0 {
-		return ErrFrontendImage
+		return ErrWebImage
 	}
 	return nil
 }

@@ -20,7 +20,7 @@ import (
 	"github.com/gatework/go-zabbix"
 )
 
-func frontendCookie() string {
+func webSessionCookie() string {
 	// A fixture envelope, not a real signature. The server owns signature checking.
 	return url.PathEscape(base64.StdEncoding.EncodeToString([]byte(`{"sessionid":"0123456789abcdef0123456789abcdef","sign":"fixture-signature"}`)))
 }
@@ -34,7 +34,7 @@ func chartPNG(t *testing.T, width, height int) []byte {
 	return data.Bytes()
 }
 
-func frontendClient(t *testing.T, server *httptest.Server, options zabbix.FrontendOptions) *zabbix.Frontend {
+func newTestWebClient(t *testing.T, server *httptest.Server, options zabbix.WebOptions) *zabbix.WebClient {
 	t.Helper()
 	hc := server.Client()
 	jar, err := cookiejar.New(nil)
@@ -45,10 +45,10 @@ func frontendClient(t *testing.T, server *httptest.Server, options zabbix.Fronte
 	if err != nil {
 		t.Fatal(err)
 	}
-	jar.SetCookies(base, []*http.Cookie{{Name: "zbx_session", Value: frontendCookie(), Path: "/zabbix/"}})
+	jar.SetCookies(base, []*http.Cookie{{Name: "zbx_session", Value: webSessionCookie(), Path: "/zabbix/"}})
 	hc.Jar = jar
 	options.HTTPClient = hc
-	client, err := zabbix.NewFrontend(base.String(), options)
+	client, err := zabbix.NewWebClient(base.String(), options)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func chartRequest() zabbix.ChartRequest {
 	return zabbix.ChartRequest{ItemIDs: []string{"101", "102"}, From: from, To: from.Add(time.Hour)}
 }
 
-func TestFrontend_LoginChartLogout(t *testing.T) {
+func TestWebClient_LoginChartLogout(t *testing.T) {
 	t.Parallel()
 	picture := chartPNG(t, 940, 280)
 	var charts atomic.Int32
@@ -73,7 +73,7 @@ func TestFrontend_LoginChartLogout(t *testing.T) {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			http.SetCookie(w, &http.Cookie{Name: "zbx_session", Value: frontendCookie(), Path: "/zabbix/", Secure: true, HttpOnly: true})
+			http.SetCookie(w, &http.Cookie{Name: "zbx_session", Value: webSessionCookie(), Path: "/zabbix/", Secure: true, HttpOnly: true})
 			http.Redirect(w, r, "/zabbix/zabbix.php?action=dashboard.view", http.StatusSeeOther)
 		case "/zabbix/chart.php", "/zabbix/chart2.php":
 			assertChartRequest(t, r)
@@ -99,7 +99,7 @@ func TestFrontend_LoginChartLogout(t *testing.T) {
 		}
 	}))
 	t.Cleanup(server.Close)
-	client, err := zabbix.NewFrontend(server.URL+"/zabbix", zabbix.FrontendOptions{HTTPClient: server.Client(), Timezone: time.FixedZone("UTC+8", 8*3600)})
+	client, err := zabbix.NewWebClient(server.URL+"/zabbix", zabbix.WebOptions{HTTPClient: server.Client(), Timezone: time.FixedZone("UTC+8", 8*3600)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func TestFrontend_LoginChartLogout(t *testing.T) {
 	if err := client.Logout(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := client.Chart(t.Context(), request); !errors.Is(err, zabbix.ErrFrontendAuthentication) || charts.Load() != 2 {
+	if _, err := client.Chart(t.Context(), request); !errors.Is(err, zabbix.ErrWebAuthentication) || charts.Load() != 2 {
 		t.Fatalf("logged-out chart = %v; requests=%d", err, charts.Load())
 	}
 }
@@ -128,7 +128,7 @@ func TestFrontend_LoginChartLogout(t *testing.T) {
 func assertChartRequest(t *testing.T, r *http.Request) {
 	t.Helper()
 	cookie, err := r.Cookie("zbx_session")
-	if err != nil || cookie.Value != frontendCookie() || r.Header.Get("Authorization") != "" {
+	if err != nil || cookie.Value != webSessionCookie() || r.Header.Get("Authorization") != "" {
 		t.Error("chart must use its cookie without an API bearer token")
 	}
 	q := r.URL.Query()
@@ -144,27 +144,27 @@ func assertChartRequest(t *testing.T, r *http.Request) {
 	}
 }
 
-func TestFrontend_LoginRejectsRedirectsAndForms(t *testing.T) {
+func TestWebClient_LoginRejectsRedirectsAndForms(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name, location string
 		status         int
 		want           error
 	}{
-		{"login form", "", 200, zabbix.ErrFrontendAuthentication},
-		{"external redirect", "https://outside.invalid/steal", 302, zabbix.ErrFrontendAuthentication},
-		{"MFA", "/zabbix/index_mfa.php", 302, zabbix.ErrFrontendInteractiveLogin},
-		{"wrong directory", "/another/dashboard", 302, zabbix.ErrFrontendAuthentication},
+		{"login form", "", 200, zabbix.ErrWebAuthentication},
+		{"external redirect", "https://outside.invalid/steal", 302, zabbix.ErrWebAuthentication},
+		{"MFA", "/zabbix/index_mfa.php", 302, zabbix.ErrWebInteractiveLogin},
+		{"wrong directory", "/another/dashboard", 302, zabbix.ErrWebAuthentication},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				http.SetCookie(w, &http.Cookie{Name: "zbx_session", Value: frontendCookie(), Path: "/zabbix/"})
+				http.SetCookie(w, &http.Cookie{Name: "zbx_session", Value: webSessionCookie(), Path: "/zabbix/"})
 				w.Header().Set("Location", tc.location)
 				w.WriteHeader(tc.status)
 			}))
 			t.Cleanup(server.Close)
-			client, err := zabbix.NewFrontend(server.URL+"/zabbix/", zabbix.FrontendOptions{HTTPClient: server.Client()})
+			client, err := zabbix.NewWebClient(server.URL+"/zabbix/", zabbix.WebOptions{HTTPClient: server.Client()})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -175,7 +175,7 @@ func TestFrontend_LoginRejectsRedirectsAndForms(t *testing.T) {
 	}
 }
 
-func TestFrontend_RejectsNonCharts(t *testing.T) {
+func TestWebClient_RejectsNonCharts(t *testing.T) {
 	t.Parallel()
 	valid := chartPNG(t, 940, 280)
 	for _, tc := range []struct {
@@ -198,7 +198,7 @@ func TestFrontend_RejectsNonCharts(t *testing.T) {
 				}
 			}))
 			t.Cleanup(server.Close)
-			client := frontendClient(t, server, zabbix.FrontendOptions{MaxImageBytes: tc.limit})
+			client := newTestWebClient(t, server, zabbix.WebOptions{MaxImageBytes: tc.limit})
 			data, err := client.Chart(t.Context(), chartRequest())
 			if err == nil || data != nil {
 				t.Fatalf("invalid image accepted: %d bytes, %v", len(data), err)
@@ -207,15 +207,15 @@ func TestFrontend_RejectsNonCharts(t *testing.T) {
 	}
 }
 
-func TestFrontend_ZeroValueAndCancellation(t *testing.T) {
+func TestWebClient_ZeroValueAndCancellation(t *testing.T) {
 	t.Parallel()
-	var zero zabbix.Frontend
-	if _, err := zero.Chart(t.Context(), chartRequest()); !errors.Is(err, zabbix.ErrFrontendInput) {
+	var zero zabbix.WebClient
+	if _, err := zero.Chart(t.Context(), chartRequest()); !errors.Is(err, zabbix.ErrWebInput) {
 		t.Fatalf("zero frontend = %v", err)
 	}
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { t.Error("cancelled request sent") }))
 	t.Cleanup(server.Close)
-	client := frontendClient(t, server, zabbix.FrontendOptions{})
+	client := newTestWebClient(t, server, zabbix.WebOptions{})
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	if _, err := client.Chart(ctx, chartRequest()); !errors.Is(err, context.Canceled) {

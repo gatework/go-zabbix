@@ -1,3 +1,25 @@
+# v0.4.0 web client naming
+
+The web chart client now uses explicit web-client names. No compatibility
+aliases are retained; update callers and error checks together.
+
+| Previous name | Replacement |
+| --- | --- |
+| `Frontend` | `WebClient` |
+| `FrontendOptions` | `WebOptions` |
+| `NewFrontend` | `NewWebClient` |
+| `ErrFrontendInput` | `ErrWebInput` |
+| `ErrFrontendAuthentication` | `ErrWebAuthentication` |
+| `ErrFrontendInteractiveLogin` | `ErrWebInteractiveLogin` |
+| `ErrFrontendImage` | `ErrWebImage` |
+
+Source files use the `web_` prefix. Login, cookies, chart requests and transport
+ownership retain their behavior. Request error method names now use `web.login`
+and `web.chart`. See [the web contract](docs/web-7.4-contracts.md).
+
+Install with `go get github.com/gatework/go-zabbix@v0.4.0`. Go 1.26 or later
+is required.
+
 # v0.3.0 monitoring extraction
 
 `Client.Monitoring()` now owns the reusable operations previously implemented
@@ -27,7 +49,7 @@ whole-period peak. Query limits and completeness are documented in
 
 `NewFrontend` is independent of `New`: supply a frontend directory URL and a
 genuine web login/cookie session. `Chart` accepts item IDs or one graph ID and
-an explicit period. See [the 7.4 frontend contract](docs/frontend-7.4-contracts.md).
+an explicit period. See [the 7.4 web contract](docs/web-7.4-contracts.md).
 Existing API authentication and namespace wire contracts are unchanged.
 Requests made on a zero `Client` now return `ErrorInvalidParams` instead of
 panicking. Construct clients with `New` as before.

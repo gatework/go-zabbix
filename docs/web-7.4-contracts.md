@@ -14,9 +14,9 @@ It is not a JSON-RPC image API. `graph.get` returns graph configuration;
 | Logout | `user.logout` with the underlying session ID from the actual cookie | [CUser](https://github.com/zabbix/zabbix/blob/7.4.16/ui/include/classes/api/services/CUser.php) |
 
 Without `profileIdx`, 7.4's `getTimeSelectorPeriod` replaces supplied `from/to`
-with the default period. `Frontend.Chart` supplies the correct index automatically.
+with the default period. `WebClient.Chart` supplies the correct index automatically.
 It uses second precision and an explicit time window of at least one minute;
-it does not use legacy `stime`/`period` parameters. `FrontendOptions.Timezone`
+it does not use legacy `stime`/`period` parameters. `WebOptions.Timezone`
 must match the frontend user's timezone. UTC on both sides avoids ambiguity
 during daylight-saving clock changes. Nil options timezone means UTC.
 
@@ -27,7 +27,7 @@ redirects outside this directory are rejected. A login form returned with HTTP
 200 is an authentication failure; an MFA/SSO redirect requires an external flow.
 Reverse-proxy authentication and custom login pages are outside the form contract.
 
-`NewFrontend` copies cookies from a supplied `http.Client.Jar` for the base URL
+`NewWebClient` copies cookies from a supplied `http.Client.Jar` for the base URL
 into a private jar and borrows the transport. Later changes do not affect the
 caller's jar. No cookie or password is exposed through a credential getter.
 The server verifies the cookie signature; the client only reads the envelope

@@ -8,7 +8,7 @@ Evidence is the official 7.4 API manual and Zabbix server source pinned to [`0de
 
 Higher-level bounded device/rate queries compose these namespace contracts; see
 [monitoring.md](monitoring.md). Native PNG rendering is a separate web-session
-protocol described in [frontend-7.4-contracts.md](frontend-7.4-contracts.md), not
+protocol described in [web-7.4-contracts.md](web-7.4-contracts.md), not
 an extension to `graph.get` or `image.get`.
 
 | API | Public contract |

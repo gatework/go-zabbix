@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.0 - 2026-11-16
+
+- Rename the web chart API to `WebClient`, `WebOptions` and `NewWebClient`, with `ErrWeb*` errors and matching source/test names. Remove the former `Frontend*` names without compatibility aliases; see MIGRATION.md.
+
 ## v0.3.0 - 2026-11-12
 
 - Move bounded host/item queries and traffic processing from go-admin into `Client.Monitoring` and `ReadTraffic`, preserving units, gaps, peaks and partial-data signals.

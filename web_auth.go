@@ -16,73 +16,73 @@ import (
 // callers must authenticate externally and supply cookies through HTTPClient.
 // A failed login leaves the previous session intact. Login does not retry.
 // Log out first if a previously installed session must be revoked.
-func (f *Frontend) Login(ctx context.Context, username, password string) error {
-	_, initialGeneration, err := f.snapshot(ctx)
+func (w *WebClient) Login(ctx context.Context, username, password string) error {
+	_, initialGeneration, err := w.snapshot(ctx)
 	if err != nil || strings.TrimSpace(username) == "" || password == "" {
 		if err != nil {
 			return err
 		}
-		return ErrFrontendInput
+		return ErrWebInput
 	}
 	select {
-	case f.loginGate <- struct{}{}:
-		defer func() { <-f.loginGate }()
+	case w.loginGate <- struct{}{}:
+		defer func() { <-w.loginGate }()
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-	hc, generation, err := f.snapshot(ctx)
+	hc, generation, err := w.snapshot(ctx)
 	if err != nil {
 		return err
 	}
 	if generation != initialGeneration {
-		return ErrFrontendAuthentication
+		return ErrWebAuthentication
 	}
-	candidate, err := freshFrontendClient(hc)
+	candidate, err := freshWebClient(hc)
 	if err != nil {
 		return err
 	}
-	if err := f.submitLogin(ctx, candidate, username, password); err != nil {
+	if err := w.submitLogin(ctx, candidate, username, password); err != nil {
 		return err
 	}
-	f.mu.Lock()
-	if generation != f.generation {
-		f.mu.Unlock()
+	w.mu.Lock()
+	if generation != w.generation {
+		w.mu.Unlock()
 		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), authCleanupTimeout)
 		defer cancel()
-		return errors.Join(ErrFrontendAuthentication, f.logoutSession(cleanup, candidate))
+		return errors.Join(ErrWebAuthentication, w.logoutSession(cleanup, candidate))
 	}
-	f.client = candidate
-	f.generation++
-	f.mu.Unlock()
+	w.client = candidate
+	w.generation++
+	w.mu.Unlock()
 	return nil
 }
 
-func (f *Frontend) submitLogin(ctx context.Context, hc *http.Client, username, password string) error {
+func (w *WebClient) submitLogin(ctx context.Context, hc *http.Client, username, password string) error {
 	values := url.Values{"name": {username}, "password": {password}, "enter": {"Sign in"}, "form": {"1"}, "autologin": {"0"}}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, f.endpoint("index.php").String(), strings.NewReader(values.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, w.endpoint("index.php").String(), strings.NewReader(values.Encode()))
 	if err != nil {
-		return requestError("frontend.login", ErrorInvalidParams, err)
+		return requestError("web.login", ErrorInvalidParams, err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := hc.Do(req)
 	if err != nil {
-		return requestError("frontend.login", ErrorTransport, err)
+		return requestError("web.login", ErrorTransport, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusFound && resp.StatusCode != http.StatusSeeOther {
-		return ErrFrontendAuthentication
+		return ErrWebAuthentication
 	}
 	location, err := resp.Location()
-	if err != nil || !f.sameOrigin(location) {
-		return ErrFrontendAuthentication
+	if err != nil || !w.sameOrigin(location) {
+		return ErrWebAuthentication
 	}
 	switch path.Base(location.Path) {
 	case "index_mfa.php", "index_sso.php", "index_http.php":
-		return ErrFrontendInteractiveLogin
+		return ErrWebInteractiveLogin
 	case "index.php", "setup.php":
-		return ErrFrontendAuthentication
+		return ErrWebAuthentication
 	}
-	if _, err := f.sessionID(hc); err != nil {
+	if _, err := w.sessionID(hc); err != nil {
 		return err
 	}
 	return nil
@@ -90,74 +90,74 @@ func (f *Frontend) submitLogin(ctx context.Context, hc *http.Client, username, p
 
 // Logout revokes the current frontend session through user.logout, then forgets
 // its cookie. A failed revoke preserves the cookie so the caller may retry.
-func (f *Frontend) Logout(ctx context.Context) error {
-	hc, generation, err := f.snapshot(ctx)
+func (w *WebClient) Logout(ctx context.Context) error {
+	hc, generation, err := w.snapshot(ctx)
 	if err != nil {
 		return err
 	}
-	if err := f.logoutSession(ctx, hc); err != nil {
+	if err := w.logoutSession(ctx, hc); err != nil {
 		return err
 	}
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if generation == f.generation {
-		next, err := freshFrontendClient(hc)
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if generation == w.generation {
+		next, err := freshWebClient(hc)
 		if err != nil {
 			return err
 		}
-		f.client = next
-		f.generation++
+		w.client = next
+		w.generation++
 	}
 	return nil
 }
 
-func (f *Frontend) logoutSession(ctx context.Context, hc *http.Client) error {
-	sessionID, err := f.sessionID(hc)
+func (w *WebClient) logoutSession(ctx context.Context, hc *http.Client) error {
+	sessionID, err := w.sessionID(hc)
 	if err != nil {
 		return err
 	}
-	client, err := New(f.endpoint("api_jsonrpc.php").String(), WithHTTPClient(hc), WithSessionToken(sessionID))
+	client, err := New(w.endpoint("api_jsonrpc.php").String(), WithHTTPClient(hc), WithSessionToken(sessionID))
 	if err != nil {
-		return ErrFrontendInput
+		return ErrWebInput
 	}
 	return client.Logout(ctx)
 }
 
 // Only read the ID from a server-issued signed cookie; do not construct or sign
 // a cookie from an API token. Zabbix itself authenticates it on every request.
-func (f *Frontend) sessionID(hc *http.Client) (string, error) {
-	for _, cookie := range hc.Jar.Cookies(f.endpoint("chart.php")) {
+func (w *WebClient) sessionID(hc *http.Client) (string, error) {
+	for _, cookie := range hc.Jar.Cookies(w.endpoint("chart.php")) {
 		if cookie.Name != "zbx_session" {
 			continue
 		}
 		value := cookie.Value
 		if len(value) > 16<<10 {
-			return "", ErrFrontendAuthentication
+			return "", ErrWebAuthentication
 		}
 		if strings.Contains(value, "%") {
 			decoded, err := url.PathUnescape(value)
 			if err != nil {
-				return "", ErrFrontendAuthentication
+				return "", ErrWebAuthentication
 			}
 			value = decoded
 		}
 		data, err := base64.StdEncoding.DecodeString(value)
 		if err != nil {
-			return "", ErrFrontendAuthentication
+			return "", ErrWebAuthentication
 		}
 		var session struct {
 			ID   string `json:"sessionid"`
 			Sign string `json:"sign"`
 		}
 		if json.Unmarshal(data, &session) != nil || session.Sign == "" || validateToken(session.ID) != nil {
-			return "", ErrFrontendAuthentication
+			return "", ErrWebAuthentication
 		}
 		return session.ID, nil
 	}
-	return "", ErrFrontendAuthentication
+	return "", ErrWebAuthentication
 }
 
-func (f *Frontend) sameOrigin(target *url.URL) bool {
-	return target.User == nil && strings.EqualFold(target.Scheme, f.base.Scheme) &&
-		strings.EqualFold(target.Host, f.base.Host) && strings.HasPrefix(target.Path, f.base.Path)
+func (w *WebClient) sameOrigin(target *url.URL) bool {
+	return target.User == nil && strings.EqualFold(target.Scheme, w.base.Scheme) &&
+		strings.EqualFold(target.Host, w.base.Host) && strings.HasPrefix(target.Path, w.base.Path)
 }

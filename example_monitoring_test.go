@@ -26,28 +26,28 @@ func ExampleMonitoringService_Traffic() {
 	fmt.Println(series.SampleCount, series.Partial)
 }
 
-func ExampleFrontend_Chart() {
+func ExampleWebClient_Chart() {
 	// The configured frontend account uses UTC. SSO/MFA users can instead
-	// supply a real CookieJar through FrontendOptions.HTTPClient.
-	frontend, err := zabbix.NewFrontend("https://monitor.example/zabbix/", zabbix.FrontendOptions{Timezone: time.UTC})
+	// supply a real CookieJar through WebOptions.HTTPClient.
+	webClient, err := zabbix.NewWebClient("https://monitor.example/zabbix/", zabbix.WebOptions{Timezone: time.UTC})
 	if err != nil {
 		panic(err)
 	}
-	defer frontend.CloseIdleConnections()
+	defer webClient.CloseIdleConnections()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	if err := frontend.Login(ctx, "configured-user", "configured-password"); err != nil {
+	if err := webClient.Login(ctx, "configured-user", "configured-password"); err != nil {
 		panic(err)
 	}
 	defer func() {
 		cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
 		defer stop()
-		if err := frontend.Logout(cleanup); err != nil {
+		if err := webClient.Logout(cleanup); err != nil {
 			fmt.Println(err)
 		}
 	}()
 	till := time.Now().UTC().Truncate(time.Second)
-	data, err := frontend.Chart(ctx, zabbix.ChartRequest{
+	data, err := webClient.Chart(ctx, zabbix.ChartRequest{
 		ItemIDs: []string{"42001", "42002"}, From: till.Add(-time.Hour), To: till,
 	})
 	if err != nil {
