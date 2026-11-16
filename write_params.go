@@ -1,7 +1,5 @@
 package zabbix
 
-import "errors"
-
 // Write parameters are independent of returned objects. Optional scalar pointers
 // distinguish an omitted property from an explicit zero or empty value. Optional
 // collections use omitzero: nil leaves a relation unchanged; an allocated empty
@@ -30,10 +28,10 @@ type HostPrototypeCreateParams struct {
 
 func (p HostPrototypeCreateParams) validate() error {
 	if p.Host == "" {
-		return errors.New("zabbix: HostPrototypeCreateParams.Host is required")
+		return ValidationError("hostprototypecreateparams.host is required")
 	}
 	if len(p.GroupLinks) == 0 {
-		return errors.New("zabbix: HostPrototypeCreateParams.GroupLinks must not be empty")
+		return ValidationError("hostprototypecreateparams.grouplinks must not be empty")
 	}
 	for _, value := range p.GroupLinks {
 		if err := value.validate(); err != nil {
@@ -145,7 +143,7 @@ type UserGroupCreateParams struct {
 
 func (p UserGroupCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: UserGroupCreateParams.Name is required")
+		return ValidationError("usergroupcreateparams.name is required")
 	}
 	for _, value := range p.TagFilters {
 		if err := value.validate(); err != nil {
@@ -226,7 +224,7 @@ type TokenCreateParams struct {
 
 func (p TokenCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: TokenCreateParams.Name is required")
+		return ValidationError("tokencreateparams.name is required")
 	}
 	return nil
 }
@@ -264,10 +262,10 @@ func (p TemplateDashboardCreateParams) validate() error {
 		return err
 	}
 	if p.Name == "" {
-		return errors.New("zabbix: TemplateDashboardCreateParams.Name is required")
+		return ValidationError("templatedashboardcreateparams.name is required")
 	}
 	if len(p.Pages) == 0 {
-		return errors.New("zabbix: TemplateDashboardCreateParams.Pages must not be empty")
+		return ValidationError("templatedashboardcreateparams.pages must not be empty")
 	}
 	for _, value := range p.Pages {
 		if err := value.validate(); err != nil {
@@ -320,7 +318,7 @@ type ServiceCreateParams struct {
 
 func (p ServiceCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: ServiceCreateParams.Name is required")
+		return ValidationError("servicecreateparams.name is required")
 	}
 	for _, value := range p.StatusRules {
 		if err := value.validate(); err != nil {
@@ -348,7 +346,7 @@ func (p ServiceCreateParams) validate() error {
 		}
 	}
 	if p.PropagationRule != nil && p.PropagationValue == nil {
-		return errors.New("zabbix: propagation_value is required when propagation_rule is supplied")
+		return ValidationError("propagation_value is required when propagation_rule is supplied")
 	}
 	return nil
 }
@@ -402,7 +400,7 @@ func (p ServiceUpdateParams) validate() error {
 		}
 	}
 	if p.PropagationRule != nil && p.PropagationValue == nil {
-		return errors.New("zabbix: propagation_value is required when propagation_rule is supplied")
+		return ValidationError("propagation_value is required when propagation_rule is supplied")
 	}
 	return nil
 }
@@ -429,7 +427,7 @@ type UserCreateParams struct {
 
 func (p UserCreateParams) validate() error {
 	if p.Username == "" {
-		return errors.New("zabbix: UserCreateParams.Username is required")
+		return ValidationError("usercreateparams.username is required")
 	}
 	for _, value := range p.UserGroups {
 		if err := value.validate(); err != nil {
@@ -492,10 +490,10 @@ type TaskCreateParams struct {
 
 func (p TaskCreateParams) validate() error {
 	if p.Request == nil {
-		return errors.New("zabbix: TaskCreateParams.Request is required")
+		return ValidationError("taskcreateparams.request is required")
 	}
 	if p.Type != 1 && p.Type != 2 && p.Type != 6 {
-		return errors.New("zabbix: task type must be 1, 2, or 6")
+		return ValidationError("task type must be 1, 2, or 6")
 	}
 	return nil
 }
@@ -514,10 +512,10 @@ func (p ValueMapCreateParams) validate() error {
 		return err
 	}
 	if p.Name == "" {
-		return errors.New("zabbix: ValueMapCreateParams.Name is required")
+		return ValidationError("valuemapcreateparams.name is required")
 	}
 	if len(p.Mappings) == 0 {
-		return errors.New("zabbix: ValueMapCreateParams.Mappings must not be empty")
+		return ValidationError("valuemapcreateparams.mappings must not be empty")
 	}
 	for _, value := range p.Mappings {
 		if err := value.validate(); err != nil {
@@ -562,7 +560,7 @@ type MFACreateParams struct {
 
 func (p MFACreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: MFACreateParams.Name is required")
+		return ValidationError("mfacreateparams.name is required")
 	}
 	return nil
 }
@@ -617,7 +615,7 @@ type ActionCreateParams struct {
 
 func (p ActionCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: ActionCreateParams.Name is required")
+		return ValidationError("actioncreateparams.name is required")
 	}
 	for _, value := range p.Operations {
 		if err := value.validate(); err != nil {
@@ -640,7 +638,7 @@ func (p ActionCreateParams) validate() error {
 		}
 	}
 	if len(p.Operations) == 0 && len(p.RecoveryOperations) == 0 && len(p.UpdateOperations) == 0 {
-		return errors.New("zabbix: action requires at least one operation")
+		return ValidationError("action requires at least one operation")
 	}
 	return nil
 }
@@ -696,7 +694,7 @@ type TemplateGroupCreateParams struct {
 
 func (p TemplateGroupCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: TemplateGroupCreateParams.Name is required")
+		return ValidationError("templategroupcreateparams.name is required")
 	}
 	return nil
 }
@@ -751,10 +749,10 @@ func (p DiscoveryRuleCreateParams) validate() error {
 		return err
 	}
 	if p.Name == "" {
-		return errors.New("zabbix: DiscoveryRuleCreateParams.Name is required")
+		return ValidationError("discoveryrulecreateparams.name is required")
 	}
 	if p.Key == "" {
-		return errors.New("zabbix: DiscoveryRuleCreateParams.Key is required")
+		return ValidationError("discoveryrulecreateparams.key is required")
 	}
 	if p.Filter != nil {
 		if err := p.Filter.validate(); err != nil {
@@ -853,10 +851,10 @@ type GraphPrototypeCreateParams struct {
 
 func (p GraphPrototypeCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: GraphPrototypeCreateParams.Name is required")
+		return ValidationError("graphprototypecreateparams.name is required")
 	}
 	if len(p.GItems) == 0 {
-		return errors.New("zabbix: GraphPrototypeCreateParams.GItems must not be empty")
+		return ValidationError("graphprototypecreateparams.gitems must not be empty")
 	}
 	for _, value := range p.GItems {
 		if err := value.validate(); err != nil {
@@ -913,7 +911,7 @@ type RoleCreateParams struct {
 
 func (p RoleCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: RoleCreateParams.Name is required")
+		return ValidationError("rolecreateparams.name is required")
 	}
 	if p.Rules != nil {
 		if err := p.Rules.validate(); err != nil {
@@ -956,7 +954,7 @@ type HostMacroCreateParams struct {
 
 func (p HostMacroCreateParams) validate() error {
 	if p.Macro == "" {
-		return errors.New("zabbix: HostMacroCreateParams.Macro is required")
+		return ValidationError("hostmacrocreateparams.macro is required")
 	}
 	if err := requireWriteID(p.HostID, "HostMacroCreateParams.HostID"); err != nil {
 		return err
@@ -992,7 +990,7 @@ type GlobalMacroCreateParams struct {
 
 func (p GlobalMacroCreateParams) validate() error {
 	if p.Macro == "" {
-		return errors.New("zabbix: GlobalMacroCreateParams.Macro is required")
+		return ValidationError("globalmacrocreateparams.macro is required")
 	}
 	return nil
 }
@@ -1023,7 +1021,7 @@ type HostGroupCreateParams struct {
 
 func (p HostGroupCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: HostGroupCreateParams.Name is required")
+		return ValidationError("hostgroupcreateparams.name is required")
 	}
 	return nil
 }
@@ -1068,10 +1066,10 @@ type TriggerPrototypeCreateParams struct {
 
 func (p TriggerPrototypeCreateParams) validate() error {
 	if p.Description == "" {
-		return errors.New("zabbix: TriggerPrototypeCreateParams.Description is required")
+		return ValidationError("triggerprototypecreateparams.description is required")
 	}
 	if p.Expression == "" {
-		return errors.New("zabbix: TriggerPrototypeCreateParams.Expression is required")
+		return ValidationError("triggerprototypecreateparams.expression is required")
 	}
 	for _, value := range p.Tags {
 		if err := value.validate(); err != nil {
@@ -1142,10 +1140,10 @@ type GraphCreateParams struct {
 
 func (p GraphCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: GraphCreateParams.Name is required")
+		return ValidationError("graphcreateparams.name is required")
 	}
 	if len(p.GItems) == 0 {
-		return errors.New("zabbix: GraphCreateParams.GItems must not be empty")
+		return ValidationError("graphcreateparams.gitems must not be empty")
 	}
 	for _, value := range p.GItems {
 		if err := value.validate(); err != nil {
@@ -1225,7 +1223,7 @@ type ProxyCreateParams struct {
 
 func (p ProxyCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: ProxyCreateParams.Name is required")
+		return ValidationError("proxycreateparams.name is required")
 	}
 	for _, value := range p.Hosts {
 		if err := value.validate(); err != nil {
@@ -1297,10 +1295,10 @@ type MaintenanceCreateParams struct {
 
 func (p MaintenanceCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: MaintenanceCreateParams.Name is required")
+		return ValidationError("maintenancecreateparams.name is required")
 	}
 	if len(p.Timeperiods) == 0 {
-		return errors.New("zabbix: MaintenanceCreateParams.Timeperiods must not be empty")
+		return ValidationError("maintenancecreateparams.timeperiods must not be empty")
 	}
 	for _, value := range p.Timeperiods {
 		if err := value.validate(); err != nil {
@@ -1323,7 +1321,7 @@ func (p MaintenanceCreateParams) validate() error {
 		}
 	}
 	if len(p.Groups) == 0 && len(p.Hosts) == 0 {
-		return errors.New("zabbix: maintenance requires a host or host group")
+		return ValidationError("maintenance requires a host or host group")
 	}
 	return nil
 }
@@ -1489,7 +1487,7 @@ type HostCreateParams struct {
 
 func (p HostCreateParams) validate() error {
 	if p.Host == "" {
-		return errors.New("zabbix: HostCreateParams.Host is required")
+		return ValidationError("hostcreateparams.host is required")
 	}
 	for _, value := range p.Interfaces {
 		if err := value.validate(); err != nil {
@@ -1507,7 +1505,7 @@ func (p HostCreateParams) validate() error {
 		}
 	}
 	if len(p.Groups) == 0 {
-		return errors.New("zabbix: HostCreateParams.Groups must not be empty")
+		return ValidationError("hostcreateparams.groups must not be empty")
 	}
 	for _, value := range p.Groups {
 		if err := value.validate(); err != nil {
@@ -1520,10 +1518,10 @@ func (p HostCreateParams) validate() error {
 		}
 	}
 	if p.MonitoredBy != nil && *p.MonitoredBy == 1 && (p.ProxyID == nil || *p.ProxyID == "") {
-		return errors.New("zabbix: proxyid is required when monitored_by is proxy")
+		return ValidationError("proxyid is required when monitored_by is proxy")
 	}
 	if p.MonitoredBy != nil && *p.MonitoredBy == 2 && (p.ProxyGroupID == nil || *p.ProxyGroupID == "") {
-		return errors.New("zabbix: proxy_groupid is required when monitored_by is proxy group")
+		return ValidationError("proxy_groupid is required when monitored_by is proxy group")
 	}
 	return nil
 }
@@ -1612,10 +1610,10 @@ type TemplateCreateParams struct {
 
 func (p TemplateCreateParams) validate() error {
 	if p.Host == "" {
-		return errors.New("zabbix: TemplateCreateParams.Host is required")
+		return ValidationError("templatecreateparams.host is required")
 	}
 	if len(p.Groups) == 0 {
-		return errors.New("zabbix: TemplateCreateParams.Groups must not be empty")
+		return ValidationError("templatecreateparams.groups must not be empty")
 	}
 	for _, value := range p.Groups {
 		if err := value.validate(); err != nil {
@@ -1720,10 +1718,10 @@ type ConnectorCreateParams struct {
 
 func (p ConnectorCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: ConnectorCreateParams.Name is required")
+		return ValidationError("connectorcreateparams.name is required")
 	}
 	if p.URL == "" {
-		return errors.New("zabbix: ConnectorCreateParams.URL is required")
+		return ValidationError("connectorcreateparams.url is required")
 	}
 	for _, value := range p.Tags {
 		if err := value.validate(); err != nil {
@@ -1821,7 +1819,7 @@ func (p HostInterfaceCreateParams) validate() error {
 		return err
 	}
 	if p.Port == "" {
-		return errors.New("zabbix: HostInterfaceCreateParams.Port is required")
+		return ValidationError("hostinterfacecreateparams.port is required")
 	}
 	if p.Details != nil {
 		if err := p.Details.validate(); err != nil {
@@ -1829,16 +1827,16 @@ func (p HostInterfaceCreateParams) validate() error {
 		}
 	}
 	if p.Type < 1 || p.Type > 4 {
-		return errors.New("zabbix: interface type must be between 1 and 4")
+		return ValidationError("interface type must be between 1 and 4")
 	}
 	if p.Type == 2 && p.Details == nil {
-		return errors.New("zabbix: SNMP interfaces require details")
+		return ValidationError("snmp interfaces require details")
 	}
 	if p.UseIP != 0 && p.UseIP != 1 {
-		return errors.New("zabbix: interface useip must be 0 or 1")
+		return ValidationError("interface useip must be 0 or 1")
 	}
 	if p.UseIP == 1 && p.IP == "" || p.UseIP == 0 && p.DNS == "" {
-		return errors.New("zabbix: the selected interface address must not be empty")
+		return ValidationError("the selected interface address must not be empty")
 	}
 	return nil
 }
@@ -1866,7 +1864,7 @@ func (p HostInterfaceUpdateParams) validate() error {
 		}
 	}
 	if p.Type != nil && (*p.Type < 1 || *p.Type > 4) {
-		return errors.New("zabbix: interface type must be between 1 and 4")
+		return ValidationError("interface type must be between 1 and 4")
 	}
 	return nil
 }
@@ -1930,7 +1928,7 @@ type MediaTypeCreateParams struct {
 
 func (p MediaTypeCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: MediaTypeCreateParams.Name is required")
+		return ValidationError("mediatypecreateparams.name is required")
 	}
 	for _, value := range p.Parameters {
 		if err := value.validate(); err != nil {
@@ -2007,7 +2005,7 @@ type ProxyGroupCreateParams struct {
 
 func (p ProxyGroupCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: ProxyGroupCreateParams.Name is required")
+		return ValidationError("proxygroupcreateparams.name is required")
 	}
 	return nil
 }
@@ -2043,13 +2041,13 @@ type DRuleCreateParams struct {
 
 func (p DRuleCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: DRuleCreateParams.Name is required")
+		return ValidationError("drulecreateparams.name is required")
 	}
 	if p.IPRange == "" {
-		return errors.New("zabbix: DRuleCreateParams.IPRange is required")
+		return ValidationError("drulecreateparams.iprange is required")
 	}
 	if len(p.DChecks) == 0 {
-		return errors.New("zabbix: DRuleCreateParams.DChecks must not be empty")
+		return ValidationError("drulecreateparams.dchecks must not be empty")
 	}
 	for _, value := range p.DChecks {
 		if err := value.validate(); err != nil {
@@ -2101,13 +2099,13 @@ type SLACreateParams struct {
 
 func (p SLACreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: SLACreateParams.Name is required")
+		return ValidationError("slacreateparams.name is required")
 	}
 	if p.Timezone == "" {
-		return errors.New("zabbix: SLACreateParams.Timezone is required")
+		return ValidationError("slacreateparams.timezone is required")
 	}
 	if len(p.ServiceTags) == 0 {
-		return errors.New("zabbix: SLACreateParams.ServiceTags must not be empty")
+		return ValidationError("slacreateparams.servicetags must not be empty")
 	}
 	for _, value := range p.ServiceTags {
 		if err := value.validate(); err != nil {
@@ -2175,10 +2173,10 @@ type RegexpCreateParams struct {
 
 func (p RegexpCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: RegexpCreateParams.Name is required")
+		return ValidationError("regexpcreateparams.name is required")
 	}
 	if len(p.Expressions) == 0 {
-		return errors.New("zabbix: RegexpCreateParams.Expressions must not be empty")
+		return ValidationError("regexpcreateparams.expressions must not be empty")
 	}
 	for _, value := range p.Expressions {
 		if err := value.validate(); err != nil {
@@ -2252,10 +2250,10 @@ type DashboardCreateParams struct {
 
 func (p DashboardCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: DashboardCreateParams.Name is required")
+		return ValidationError("dashboardcreateparams.name is required")
 	}
 	if len(p.Pages) == 0 {
-		return errors.New("zabbix: DashboardCreateParams.Pages must not be empty")
+		return ValidationError("dashboardcreateparams.pages must not be empty")
 	}
 	for _, value := range p.Pages {
 		if err := value.validate(); err != nil {
@@ -2341,10 +2339,10 @@ func (p ItemPrototypeCreateParams) validate() error {
 		return err
 	}
 	if p.Name == "" {
-		return errors.New("zabbix: ItemPrototypeCreateParams.Name is required")
+		return ValidationError("itemprototypecreateparams.name is required")
 	}
 	if p.Key == "" {
-		return errors.New("zabbix: ItemPrototypeCreateParams.Key is required")
+		return ValidationError("itemprototypecreateparams.key is required")
 	}
 	if err := requireWriteID(p.RuleID, "ItemPrototypeCreateParams.RuleID"); err != nil {
 		return err
@@ -2443,7 +2441,7 @@ type MapCreateParams struct {
 
 func (p MapCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: MapCreateParams.Name is required")
+		return ValidationError("mapcreateparams.name is required")
 	}
 	for _, value := range p.Selements {
 		if err := value.validate(); err != nil {
@@ -2588,10 +2586,10 @@ type TriggerCreateParams struct {
 
 func (p TriggerCreateParams) validate() error {
 	if p.Description == "" {
-		return errors.New("zabbix: TriggerCreateParams.Description is required")
+		return ValidationError("triggercreateparams.description is required")
 	}
 	if p.Expression == "" {
-		return errors.New("zabbix: TriggerCreateParams.Expression is required")
+		return ValidationError("triggercreateparams.expression is required")
 	}
 	for _, value := range p.Tags {
 		if err := value.validate(); err != nil {
@@ -2686,20 +2684,20 @@ func (p ItemCreateParams) validate() error {
 		return err
 	}
 	if p.Name == "" {
-		return errors.New("zabbix: ItemCreateParams.Name is required")
+		return ValidationError("itemcreateparams.name is required")
 	}
 	if p.Key == "" {
-		return errors.New("zabbix: ItemCreateParams.Key is required")
+		return ValidationError("itemcreateparams.key is required")
 	}
 	if p.Type == 19 {
 		if p.URL == nil || *p.URL == "" {
-			return errors.New("zabbix: ItemCreateParams.URL is required for HTTP agent items")
+			return ValidationError("itemcreateparams.url is required for http agent items")
 		}
 		if p.Delay == nil || *p.Delay == "" {
-			return errors.New("zabbix: ItemCreateParams.Delay is required for HTTP agent items")
+			return ValidationError("itemcreateparams.delay is required for http agent items")
 		}
 		if p.PostType != nil && (*p.PostType == 2 || *p.PostType == 3) && (p.Posts == nil || *p.Posts == "") {
-			return errors.New("zabbix: ItemCreateParams.Posts is required for JSON or XML data")
+			return ValidationError("itemcreateparams.posts is required for json or xml data")
 		}
 	}
 	for _, value := range p.QueryFields {
@@ -2807,10 +2805,10 @@ type ImageCreateParams struct {
 
 func (p ImageCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: ImageCreateParams.Name is required")
+		return ValidationError("imagecreateparams.name is required")
 	}
 	if p.Image == "" {
-		return errors.New("zabbix: ImageCreateParams.Image is required")
+		return ValidationError("imagecreateparams.image is required")
 	}
 	return nil
 }
@@ -2854,7 +2852,7 @@ func (p ReportCreateParams) validate() error {
 		return err
 	}
 	if p.Name == "" {
-		return errors.New("zabbix: ReportCreateParams.Name is required")
+		return ValidationError("reportcreateparams.name is required")
 	}
 	if err := requireWriteID(p.DashboardID, "ReportCreateParams.DashboardID"); err != nil {
 		return err
@@ -2870,7 +2868,7 @@ func (p ReportCreateParams) validate() error {
 		}
 	}
 	if len(p.Users) == 0 && len(p.UserGroups) == 0 {
-		return errors.New("zabbix: report requires a user or user group")
+		return ValidationError("report requires a user or user group")
 	}
 	return nil
 }
@@ -2924,10 +2922,10 @@ type CorrelationCreateParams struct {
 
 func (p CorrelationCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: CorrelationCreateParams.Name is required")
+		return ValidationError("correlationcreateparams.name is required")
 	}
 	if p.Filter == nil {
-		return errors.New("zabbix: CorrelationCreateParams.Filter is required")
+		return ValidationError("correlationcreateparams.filter is required")
 	}
 	if p.Filter != nil {
 		if err := p.Filter.validate(); err != nil {
@@ -2935,7 +2933,7 @@ func (p CorrelationCreateParams) validate() error {
 		}
 	}
 	if len(p.Operations) == 0 {
-		return errors.New("zabbix: CorrelationCreateParams.Operations must not be empty")
+		return ValidationError("correlationcreateparams.operations must not be empty")
 	}
 	for _, value := range p.Operations {
 		if err := value.validate(); err != nil {
@@ -2983,13 +2981,13 @@ type IconMapCreateParams struct {
 
 func (p IconMapCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: IconMapCreateParams.Name is required")
+		return ValidationError("iconmapcreateparams.name is required")
 	}
 	if err := requireWriteID(p.DefaultIconID, "IconMapCreateParams.DefaultIconID"); err != nil {
 		return err
 	}
 	if len(p.Mappings) == 0 {
-		return errors.New("zabbix: IconMapCreateParams.Mappings must not be empty")
+		return ValidationError("iconmapcreateparams.mappings must not be empty")
 	}
 	for _, value := range p.Mappings {
 		if err := value.validate(); err != nil {
@@ -3053,7 +3051,7 @@ type ScriptCreateParams struct {
 
 func (p ScriptCreateParams) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: ScriptCreateParams.Name is required")
+		return ValidationError("scriptcreateparams.name is required")
 	}
 	for _, value := range p.Parameters {
 		if err := value.validate(); err != nil {
@@ -3118,10 +3116,10 @@ type ModuleCreateParams struct {
 
 func (p ModuleCreateParams) validate() error {
 	if p.ID == "" {
-		return errors.New("zabbix: ModuleCreateParams.ID is required")
+		return ValidationError("modulecreateparams.id is required")
 	}
 	if p.RelativePath == "" {
-		return errors.New("zabbix: ModuleCreateParams.RelativePath is required")
+		return ValidationError("modulecreateparams.relativepath is required")
 	}
 	return nil
 }

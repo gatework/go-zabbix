@@ -28,7 +28,7 @@ func TestWebClient_InvalidRequestsDoNotReachServer(t *testing.T) {
 	} {
 		request := chartRequest()
 		invalid(&request)
-		if _, err := client.Chart(t.Context(), request); !errors.Is(err, zabbix.ErrWebInput) {
+		if _, err := client.Chart(t.Context(), request); !errors.Is(err, zabbix.WebErrorInvalidRequest) {
 			t.Fatalf("invalid request = %v", err)
 		}
 	}

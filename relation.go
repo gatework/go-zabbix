@@ -99,7 +99,7 @@ func (r Relation[T]) MarshalJSON() ([]byte, error) {
 func decodeCount(raw []byte) (uint64, error) {
 	raw = bytes.TrimSpace(raw)
 	if !json.Valid(raw) {
-		return 0, errors.New("invalid count JSON")
+		return 0, errors.New("invalid count json")
 	}
 	var digits string
 	if raw[0] == '"' {

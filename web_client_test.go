@@ -120,7 +120,7 @@ func TestWebClient_LoginChartLogout(t *testing.T) {
 	if err := client.Logout(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := client.Chart(t.Context(), request); !errors.Is(err, zabbix.ErrWebAuthentication) || charts.Load() != 2 {
+	if _, err := client.Chart(t.Context(), request); !errors.Is(err, zabbix.WebErrorAuthenticationRequired) || charts.Load() != 2 {
 		t.Fatalf("logged-out chart = %v; requests=%d", err, charts.Load())
 	}
 }
@@ -151,10 +151,10 @@ func TestWebClient_LoginRejectsRedirectsAndForms(t *testing.T) {
 		status         int
 		want           error
 	}{
-		{"login form", "", 200, zabbix.ErrWebAuthentication},
-		{"external redirect", "https://outside.invalid/steal", 302, zabbix.ErrWebAuthentication},
-		{"MFA", "/zabbix/index_mfa.php", 302, zabbix.ErrWebInteractiveLogin},
-		{"wrong directory", "/another/dashboard", 302, zabbix.ErrWebAuthentication},
+		{"login form", "", 200, zabbix.WebErrorAuthenticationRequired},
+		{"external redirect", "https://outside.invalid/steal", 302, zabbix.WebErrorAuthenticationRequired},
+		{"MFA", "/zabbix/index_mfa.php", 302, zabbix.WebErrorInteractiveLoginRequired},
+		{"wrong directory", "/another/dashboard", 302, zabbix.WebErrorAuthenticationRequired},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -210,7 +210,7 @@ func TestWebClient_RejectsNonCharts(t *testing.T) {
 func TestWebClient_ZeroValueAndCancellation(t *testing.T) {
 	t.Parallel()
 	var zero zabbix.WebClient
-	if _, err := zero.Chart(t.Context(), chartRequest()); !errors.Is(err, zabbix.ErrWebInput) {
+	if _, err := zero.Chart(t.Context(), chartRequest()); !errors.Is(err, zabbix.WebErrorInvalidRequest) {
 		t.Fatalf("zero frontend = %v", err)
 	}
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { t.Error("cancelled request sent") }))

@@ -41,7 +41,7 @@ func TestMutationResponseCorrespondsToRequest(t *testing.T) {
 					return
 				}
 				var requestErr *RequestError
-				if ids != nil || !errors.As(err, &requestErr) || requestErr.Kind != ErrorProtocol {
+				if ids != nil || !errors.As(err, &requestErr) || requestErr.Kind != ErrorKindProtocol {
 					t.Fatalf("mismatched response accepted: ids=%v err=%v", ids, err)
 				}
 			})
@@ -199,7 +199,7 @@ func TestSpecialMutationResponseCorrespondence(t *testing.T) {
 				return
 			}
 			var requestErr *RequestError
-			if ids != nil || !errors.As(err, &requestErr) || requestErr.Kind != ErrorProtocol {
+			if ids != nil || !errors.As(err, &requestErr) || requestErr.Kind != ErrorKindProtocol {
 				t.Fatalf("incorrect receipt accepted: ids=%v err=%v", ids, err)
 			}
 		})

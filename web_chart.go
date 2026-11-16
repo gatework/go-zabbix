@@ -40,24 +40,24 @@ func (w *WebClient) Chart(ctx context.Context, request ChartRequest) ([]byte, er
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return nil, requestError("web.chart", ErrorInvalidParams, err)
+		return nil, requestError("web.chart", ErrorKindInvalidParams, err)
 	}
 	req.Header.Set("Accept", "image/png")
 	resp, err := hc.Do(req)
 	if err != nil {
-		return nil, requestError("web.chart", ErrorTransport, err)
+		return nil, requestError("web.chart", ErrorKindTransport, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden ||
 		resp.StatusCode >= 300 && resp.StatusCode < 400 {
-		return nil, ErrWebAuthentication
+		return nil, WebErrorAuthenticationRequired
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, requestError("web.chart", ErrorHTTP, &HTTPError{StatusCode: resp.StatusCode})
+		return nil, requestError("web.chart", ErrorKindHTTP, &HTTPStatusError{StatusCode: resp.StatusCode})
 	}
 	mediaType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 	if err != nil || mediaType != "image/png" {
-		return nil, ErrWebImage
+		return nil, WebErrorInvalidChartImage
 	}
 	data, err := readResponseBody("web.chart", resp.Body, w.maxBytes)
 	if err != nil {
@@ -74,7 +74,7 @@ func (w *WebClient) chartURL(request *ChartRequest) (string, error) {
 	if (len(request.ItemIDs) == 0) == (request.GraphID == "") || len(request.ItemIDs) > 64 ||
 		!validMetricWindow(from.Unix(), till.Unix()) || till.Sub(from) < time.Minute ||
 		from.Year() < 1000 || till.Year() > 2999 {
-		return "", ErrWebInput
+		return "", WebErrorInvalidRequest
 	}
 	if request.Width == 0 {
 		request.Width = 900
@@ -83,7 +83,7 @@ func (w *WebClient) chartURL(request *ChartRequest) (string, error) {
 		request.Height = 240
 	}
 	if request.Width < 64 || request.Width > 4096 || request.Height < 64 || request.Height > 2048 {
-		return "", ErrWebInput
+		return "", WebErrorInvalidRequest
 	}
 	values := url.Values{
 		"from":  {from.Format("2006-01-02 15:04:05")},
@@ -93,16 +93,16 @@ func (w *WebClient) chartURL(request *ChartRequest) (string, error) {
 	}
 	name := "chart.php"
 	if request.GraphID != "" {
-		if !monitoringIdentifier.MatchString(request.GraphID) {
-			return "", ErrWebInput
+		if !metricIdentifier.MatchString(request.GraphID) {
+			return "", WebErrorInvalidRequest
 		}
 		name = "chart2.php"
 		values.Set("graphid", request.GraphID)
 		values.Set("profileIdx", "web.charts.filter")
 	} else {
 		for _, id := range request.ItemIDs {
-			if !monitoringIdentifier.MatchString(id) {
-				return "", ErrWebInput
+			if !metricIdentifier.MatchString(id) {
+				return "", WebErrorInvalidRequest
 			}
 			values.Add("itemids[]", id)
 		}
@@ -119,11 +119,11 @@ func validateChartImage(data []byte, width, height int) error {
 	config, err := png.DecodeConfig(bytes.NewReader(data))
 	if err != nil || config.Width < width || config.Height < height ||
 		config.Width > 8192 || config.Height > 4096 || int64(config.Width)*int64(config.Height) > 16<<20 {
-		return ErrWebImage
+		return WebErrorInvalidChartImage
 	}
 	reader := bytes.NewReader(data)
 	if _, err := png.Decode(reader); err != nil || reader.Len() != 0 {
-		return ErrWebImage
+		return WebErrorInvalidChartImage
 	}
 	return nil
 }

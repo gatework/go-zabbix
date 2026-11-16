@@ -134,7 +134,7 @@ func TestItemHTTPCreateRequiresURL(t *testing.T) {
 		HostID: "1", Name: "HTTP fixture", Key: "http.fixture", Type: 19,
 		ValueType: 4, Delay: new("1m"),
 	})
-	assertQueryError(t, err, "item.create", ErrorInvalidParams)
+	assertQueryError(t, err, "item.create", ErrorKindInvalidParams)
 }
 
 func TestItemHTTPCreateRejectsInvalidShape(t *testing.T) {
@@ -161,7 +161,7 @@ func TestItemHTTPCreateRejectsInvalidShape(t *testing.T) {
 			}
 			tc.change(&params)
 			_, err := c.Item().Create(context.Background(), params)
-			assertQueryError(t, err, "item.create", ErrorInvalidParams)
+			assertQueryError(t, err, "item.create", ErrorKindInvalidParams)
 		})
 	}
 }
@@ -180,7 +180,7 @@ func TestItemHTTPUpdateRejectsInvalidFieldNames(t *testing.T) {
 				return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":{"itemids":["42"]}}`, req.ID)
 			})
 			_, err := c.Item().Update(context.Background(), tc.params)
-			assertQueryError(t, err, "item.update", ErrorInvalidParams)
+			assertQueryError(t, err, "item.update", ErrorKindInvalidParams)
 		})
 	}
 }

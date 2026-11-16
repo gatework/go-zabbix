@@ -154,7 +154,7 @@ func (s *ScriptService) Execute(ctx context.Context, params ScriptExecuteParams)
 		return nil, err
 	}
 	if out.Response == nil || *out.Response != "success" || out.Value == nil {
-		return nil, requestError("script.execute", ErrorProtocol, errors.New("script result requires success response and string value"))
+		return nil, requestError("script.execute", ErrorKindProtocol, errors.New("script result requires success response and string value"))
 	}
 	return &ScriptExecuteResult{Response: *out.Response, Value: *out.Value, Debug: out.Debug}, nil
 }
@@ -181,7 +181,7 @@ func (s *ScriptService) GetScriptsByHosts(ctx context.Context, params []ScriptHo
 	}
 	for _, param := range params {
 		if param.HostID == "" {
-			return nil, requestError("script.getscriptsbyhosts", ErrorInvalidParams, errors.New("hostid is required"))
+			return nil, requestError("script.getscriptsbyhosts", ErrorKindInvalidParams, errors.New("hostid is required"))
 		}
 	}
 	return s.getScripts(ctx, "script.getscriptsbyhosts", params)
@@ -195,7 +195,7 @@ func (s *ScriptService) GetScriptsByEvents(ctx context.Context, params []ScriptE
 	}
 	for _, param := range params {
 		if param.EventID == "" {
-			return nil, requestError("script.getscriptsbyevents", ErrorInvalidParams, errors.New("eventid is required"))
+			return nil, requestError("script.getscriptsbyevents", ErrorKindInvalidParams, errors.New("eventid is required"))
 		}
 	}
 	return s.getScripts(ctx, "script.getscriptsbyevents", params)
@@ -208,7 +208,7 @@ func (s *ScriptService) getScripts(ctx context.Context, method string, params an
 	}
 	groups, err := decodeObjectGroups[Script](raw)
 	if err != nil {
-		return nil, requestError(method, ErrorDecode, err)
+		return nil, requestError(method, ErrorKindDecode, err)
 	}
 	return groups, nil
 }

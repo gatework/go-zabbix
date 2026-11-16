@@ -115,7 +115,7 @@ func TestCountAndMapContracts(t *testing.T) {
 			if got != nil {
 				t.Fatalf("partial result: %#v", got)
 			}
-			assertQueryError(t, err, "host.get", ErrorDecode)
+			assertQueryError(t, err, "host.get", ErrorKindDecode)
 		})
 	}
 	for _, body := range []string{`"-1"`, `-1`, `1.5`, `"1e3"`, `"18446744073709551616"`, `[]`, `{}`} {
@@ -125,7 +125,7 @@ func TestCountAndMapContracts(t *testing.T) {
 			if got != 0 {
 				t.Fatalf("partial count: %d", got)
 			}
-			assertQueryError(t, err, "host.get", ErrorDecode)
+			assertQueryError(t, err, "host.get", ErrorKindDecode)
 		})
 	}
 	t.Run("empty list", func(t *testing.T) {
@@ -142,7 +142,7 @@ func TestCountAndMapContracts(t *testing.T) {
 			if got != nil {
 				t.Fatalf("partial result: %#v", got)
 			}
-			assertQueryError(t, err, "host.get", ErrorDecode)
+			assertQueryError(t, err, "host.get", ErrorKindDecode)
 		})
 	}
 }
@@ -164,7 +164,7 @@ func TestSelectionValidationPrecedesRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c, requests := mockServer(t, func(rpcRequest) (any, *APIError) { return []Host{}, nil })
 			_, err := c.Host().Get(context.Background(), tt.params)
-			assertQueryError(t, err, "host.get", ErrorInvalidParams)
+			assertQueryError(t, err, "host.get", ErrorKindInvalidParams)
 			if len(*requests) != 0 {
 				t.Fatal("invalid selection reached the transport")
 			}
@@ -263,6 +263,6 @@ func TestScriptQueriesUseObjectArrays(t *testing.T) {
 		if got != nil {
 			t.Fatal("partial scripts returned")
 		}
-		assertQueryError(t, err, "script.getscriptsbyevents", ErrorDecode)
+		assertQueryError(t, err, "script.getscriptsbyevents", ErrorKindDecode)
 	})
 }

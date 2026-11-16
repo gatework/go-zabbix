@@ -7,18 +7,18 @@ import (
 
 // History reads up to 12001 observations, retaining the truncation probe.
 // Partial is true above 12000; callers must not present the range as complete.
-func (s *MonitoringService) History(ctx context.Context, id, valueType string, from, till int64) ([]MetricSample, bool, error) {
+func (s *MetricsService) History(ctx context.Context, id, valueType string, from, till int64) ([]MetricSample, bool, error) {
 	if !validMetricWindow(from, till) {
-		return nil, false, ErrMonitoringInput
+		return nil, false, MetricErrorInvalidQuery
 	}
-	if !monitoringIdentifier.MatchString(id) || (valueType != "0" && valueType != "3") {
-		return nil, false, ErrMonitoringBinding
+	if !metricIdentifier.MatchString(id) || (valueType != "0" && valueType != "3") {
+		return nil, false, MetricErrorUnavailable
 	}
 	history := 0
 	if valueType == "3" {
 		history = 3
 	}
-	rows, err := monitoringQuery(ctx, s, func(ctx context.Context) ([]HistoryValue, error) {
+	rows, err := queryMetrics(ctx, s, func(ctx context.Context) ([]HistoryValue, error) {
 		return s.client.History().Get(ctx, HistoryGetParams{
 			Output: []string{"clock", "value"}, ItemIDs: []string{id}, History: &history,
 			TimeFrom: &from, TimeTill: &till,
@@ -38,7 +38,7 @@ func (s *MonitoringService) History(ctx context.Context, id, valueType string, f
 	for _, r := range rows {
 		clock, err := strconv.ParseInt(r.Clock, 10, 64)
 		if err != nil || clock < 0 {
-			return nil, partial, ErrMonitoringData
+			return nil, partial, MetricErrorInvalidData
 		}
 		result = append(result, MetricSample{Clock: clock, Value: r.Value})
 	}
@@ -47,17 +47,17 @@ func (s *MonitoringService) History(ctx context.Context, id, valueType string, f
 
 // Trends reads up to 201 hourly aggregates, retaining the truncation probe.
 // Results are not ordered by Zabbix; Partial is true above 200.
-func (s *MonitoringService) Trends(ctx context.Context, id string, from, till int64) ([]MetricTrend, bool, error) {
+func (s *MetricsService) Trends(ctx context.Context, id string, from, till int64) ([]MetricTrend, bool, error) {
 	if !validMetricWindow(from, till) {
-		return nil, false, ErrMonitoringInput
+		return nil, false, MetricErrorInvalidQuery
 	}
-	if !monitoringIdentifier.MatchString(id) {
-		return nil, false, ErrMonitoringBinding
+	if !metricIdentifier.MatchString(id) {
+		return nil, false, MetricErrorUnavailable
 	}
 	// Zabbix 7.4 does not sort trend.get. The circuit view queries one item over
 	// seven days; the extra row detects an incomplete response if that bound is
 	// exceeded. The service orders the observed points before presentation.
-	rows, err := monitoringQuery(ctx, s, func(ctx context.Context) ([]Trend, error) {
+	rows, err := queryMetrics(ctx, s, func(ctx context.Context) ([]Trend, error) {
 		return s.client.Trend().Get(ctx, TrendGetParams{
 			Output: []string{"clock", "num", "value_avg", "value_max"}, ItemIDs: []string{id},
 			TimeFrom: &from, TimeTill: &till, Limit: 201,
@@ -76,7 +76,7 @@ func (s *MonitoringService) Trends(ctx context.Context, id string, from, till in
 		clock, err := strconv.ParseInt(r.Clock, 10, 64)
 		count, e := strconv.ParseInt(r.Num, 10, 64)
 		if err != nil || e != nil || clock < 0 || count < 0 {
-			return nil, partial, ErrMonitoringData
+			return nil, partial, MetricErrorInvalidData
 		}
 		result = append(result, MetricTrend{Clock: clock, Avg: r.ValueAvg, Max: r.ValueMax, Count: count})
 	}

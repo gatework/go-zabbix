@@ -106,16 +106,16 @@ func (s *APITokenService) Delete(ctx context.Context, ids ...string) ([]string, 
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/token/generate
 func (s *APITokenService) Generate(ctx context.Context, tokenIDs ...string) ([]TokenGenerated, error) {
 	if len(tokenIDs) == 0 {
-		return nil, requestError("token.generate", ErrorInvalidParams, errors.New("token IDs must not be empty"))
+		return nil, requestError("token.generate", ErrorKindInvalidParams, errors.New("token ids must not be empty"))
 	}
 	expected := make(map[string]struct{}, len(tokenIDs))
 	for _, id := range tokenIDs {
 		if err := requireWriteID(id, "tokenid"); err != nil {
-			return nil, requestError("token.generate", ErrorInvalidParams, err)
+			return nil, requestError("token.generate", ErrorKindInvalidParams, err)
 		}
 		canonical := strings.TrimLeft(id, "0")
 		if _, exists := expected[canonical]; exists {
-			return nil, requestError("token.generate", ErrorInvalidParams, errors.New("token IDs must be unique"))
+			return nil, requestError("token.generate", ErrorKindInvalidParams, errors.New("token ids must be unique"))
 		}
 		expected[canonical] = struct{}{}
 	}
@@ -125,17 +125,17 @@ func (s *APITokenService) Generate(ctx context.Context, tokenIDs ...string) ([]T
 	}
 	out, err := decodeObjectList[TokenGenerated](raw)
 	if err != nil {
-		return nil, requestError("token.generate", ErrorDecode, err)
+		return nil, requestError("token.generate", ErrorKindDecode, err)
 	}
 	// Zabbix 7.4 CToken::generate returns one ID/secret pair for each requested
 	// token. Do not report rotation success if any new secret is missing.
 	if len(out) != len(tokenIDs) {
-		return nil, requestError("token.generate", ErrorProtocol, errors.New("generated token count does not match request"))
+		return nil, requestError("token.generate", ErrorKindProtocol, errors.New("generated token count does not match request"))
 	}
 	for _, generated := range out {
 		canonical := strings.TrimLeft(generated.TokenID, "0")
 		if _, exists := expected[canonical]; !exists || strings.TrimSpace(generated.Token) == "" {
-			return nil, requestError("token.generate", ErrorProtocol, errors.New("generated tokens require requested IDs and non-empty secrets"))
+			return nil, requestError("token.generate", ErrorKindProtocol, errors.New("generated tokens require requested ids and non-empty secrets"))
 		}
 		delete(expected, canonical)
 	}

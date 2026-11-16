@@ -34,13 +34,13 @@ func mutateIDs[T writeParams](
 		return nil, err
 	}
 	if len(ids) != len(params) {
-		return nil, requestError(method, ErrorProtocol, errors.New("created id count does not match object count"))
+		return nil, requestError(method, ErrorKindProtocol, errors.New("created id count does not match object count"))
 	}
 	// Task creation may reuse pending tasks, including several entries referring
 	// to the same item or to dependent items sharing a master item.
 	if method != "task.create" {
 		if err := uniqueIDs(ids); err != nil {
-			return nil, requestError(method, ErrorProtocol, err)
+			return nil, requestError(method, ErrorKindProtocol, err)
 		}
 	}
 	return ids, nil
@@ -61,18 +61,18 @@ func updateIDs[T identifiedWriteParams](
 		return nil, err
 	}
 	if err := correspondingIDs(ids, expected); err != nil {
-		return nil, requestError(method, ErrorProtocol, err)
+		return nil, requestError(method, ErrorKindProtocol, err)
 	}
 	return ids, nil
 }
 
 func validateWriteList[T writeParams](method string, params []T) error {
 	if len(params) == 0 {
-		return requestError(method, ErrorInvalidParams, errors.New("at least one object is required"))
+		return requestError(method, ErrorKindInvalidParams, errors.New("at least one object is required"))
 	}
 	for i, param := range params {
 		if err := param.validate(); err != nil {
-			return requestError(method, ErrorInvalidParams, fmt.Errorf("object %d: %w", i, err))
+			return requestError(method, ErrorKindInvalidParams, fmt.Errorf("object %d: %w", i, err))
 		}
 	}
 	return nil
@@ -80,14 +80,14 @@ func validateWriteList[T writeParams](method string, params []T) error {
 
 func deleteIDs(ctx context.Context, client *Client, method, key string, ids []string) ([]string, error) {
 	if err := checkIDs(ids); err != nil {
-		return nil, requestError(method, ErrorInvalidParams, err)
+		return nil, requestError(method, ErrorKindInvalidParams, err)
 	}
 	result, err := mutationIDs(ctx, client, method, key, ids, false)
 	if err != nil {
 		return nil, err
 	}
 	if err := correspondingIDs(result, ids); err != nil {
-		return nil, requestError(method, ErrorProtocol, err)
+		return nil, requestError(method, ErrorKindProtocol, err)
 	}
 	return result, nil
 }
@@ -96,14 +96,14 @@ func mutateObjectIDs[T objectWriteParams](
 	ctx context.Context, client *Client, method, key string, params T, allowEmpty bool,
 ) ([]string, error) {
 	if err := params.validate(); err != nil {
-		return nil, requestError(method, ErrorInvalidParams, err)
+		return nil, requestError(method, ErrorKindInvalidParams, err)
 	}
 	ids, err := mutationIDs(ctx, client, method, key, params, allowEmpty)
 	if err != nil {
 		return nil, err
 	}
 	if err := params.validateResult(ids); err != nil {
-		return nil, requestError(method, ErrorProtocol, err)
+		return nil, requestError(method, ErrorKindProtocol, err)
 	}
 	return ids, nil
 }
@@ -165,7 +165,7 @@ func mutationIDs(
 	}
 	raw, ok := result[key]
 	if !ok || string(raw) == "null" {
-		return nil, requestError(method, ErrorProtocol, fmt.Errorf("missing %s result", key))
+		return nil, requestError(method, ErrorKindProtocol, fmt.Errorf("missing %s result", key))
 	}
 	// Zabbix 7.4 massadd wraps create's entire result in interfaceids once
 	// more. Accept that observed shape only for this method, as well as the
@@ -173,11 +173,11 @@ func mutationIDs(
 	if method == "hostinterface.massadd" && bytes.HasPrefix(bytes.TrimSpace(raw), []byte("{")) {
 		var nested map[string]json.RawMessage
 		if err := json.Unmarshal(raw, &nested); err != nil {
-			return nil, requestError(method, ErrorDecode, err)
+			return nil, requestError(method, ErrorKindDecode, err)
 		}
 		raw, ok = nested[key]
 		if !ok || string(raw) == "null" {
-			return nil, requestError(method, ErrorProtocol, fmt.Errorf("missing nested %s result", key))
+			return nil, requestError(method, ErrorKindProtocol, fmt.Errorf("missing nested %s result", key))
 		}
 	}
 	var ids []string
@@ -190,13 +190,13 @@ func mutationIDs(
 		err = json.Unmarshal(raw, &ids)
 	}
 	if err != nil {
-		return nil, requestError(method, ErrorDecode, err)
+		return nil, requestError(method, ErrorKindDecode, err)
 	}
 	if len(ids) == 0 && allowEmpty {
 		return ids, nil
 	}
 	if err := checkIDs(ids); err != nil {
-		return nil, requestError(method, ErrorProtocol, err)
+		return nil, requestError(method, ErrorKindProtocol, err)
 	}
 	return ids, nil
 }
@@ -233,7 +233,7 @@ func mutateFields[T writeParams](
 		var provider string
 		if raw, ok := expected["geomaps_tile_provider"]; ok {
 			if err := json.Unmarshal(raw, &provider); err != nil {
-				return nil, requestError(method, ErrorInvalidParams, err)
+				return nil, requestError(method, ErrorKindInvalidParams, err)
 			}
 		}
 		if provider != "" {
@@ -247,11 +247,11 @@ func mutateFields[T writeParams](
 		return nil, err
 	}
 	if len(fields) != len(expected) {
-		return nil, requestError(method, ErrorProtocol, errors.New("updated fields do not match request"))
+		return nil, requestError(method, ErrorKindProtocol, errors.New("updated fields do not match request"))
 	}
 	for _, field := range fields {
 		if _, ok := expected[field]; !ok {
-			return nil, requestError(method, ErrorProtocol, errors.New("unexpected or duplicate updated field"))
+			return nil, requestError(method, ErrorKindProtocol, errors.New("unexpected or duplicate updated field"))
 		}
 		delete(expected, field)
 	}
@@ -268,25 +268,25 @@ func mutateSetting[T writeParams](ctx context.Context, client *Client, method st
 		return err
 	}
 	if !success {
-		return requestError(method, ErrorProtocol, errors.New("update result is not true"))
+		return requestError(method, ErrorKindProtocol, errors.New("update result is not true"))
 	}
 	return nil
 }
 
 func settingArguments[T writeParams](method string, params T) (json.RawMessage, map[string]json.RawMessage, error) {
 	if err := params.validate(); err != nil {
-		return nil, nil, requestError(method, ErrorInvalidParams, err)
+		return nil, nil, requestError(method, ErrorKindInvalidParams, err)
 	}
 	body, err := json.Marshal(params)
 	if err != nil {
-		return nil, nil, requestError(method, ErrorInvalidParams, err)
+		return nil, nil, requestError(method, ErrorKindInvalidParams, err)
 	}
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(body, &fields); err != nil {
-		return nil, nil, requestError(method, ErrorInvalidParams, err)
+		return nil, nil, requestError(method, ErrorKindInvalidParams, err)
 	}
 	if len(fields) == 0 {
-		return nil, nil, requestError(method, ErrorInvalidParams, errors.New("at least one setting is required"))
+		return nil, nil, requestError(method, ErrorKindInvalidParams, errors.New("at least one setting is required"))
 	}
 	return body, fields, nil
 }

@@ -102,26 +102,26 @@ func TestReadTraffic_CurrentOwnershipAndPartial(t *testing.T) {
 		t.Fatalf("stale result = %+v, %v", got, err)
 	}
 	source.item.HostID = "2"
-	if _, err := zabbix.ReadTraffic(t.Context(), source, query); !errors.Is(err, zabbix.ErrMonitoringBinding) {
+	if _, err := zabbix.ReadTraffic(t.Context(), source, query); !errors.Is(err, zabbix.MetricErrorUnavailable) {
 		t.Fatalf("wrong host error = %v", err)
 	}
 	query.HostID = "2"
 	source.itemCalls = 0
-	if _, err := zabbix.ReadTraffic(t.Context(), source, query); !errors.Is(err, zabbix.ErrMonitoringBinding) || source.itemCalls != 0 {
+	if _, err := zabbix.ReadTraffic(t.Context(), source, query); !errors.Is(err, zabbix.MetricErrorUnavailable) || source.itemCalls != 0 {
 		t.Fatalf("wrong host lookup continued to item query: calls=%d, err=%v", source.itemCalls, err)
 	}
 }
 
-func TestMonitoring_ZeroValueAndTimeBounds(t *testing.T) {
+func TestMetrics_ZeroValueAndTimeBounds(t *testing.T) {
 	t.Parallel()
 	var client zabbix.Client
-	if _, err := client.Monitoring().Host(t.Context(), "1"); !errors.Is(err, zabbix.ErrMonitoringInput) {
+	if _, err := client.Metrics().Host(t.Context(), "1"); !errors.Is(err, zabbix.MetricErrorInvalidQuery) {
 		t.Fatalf("zero client = %v", err)
 	}
 	for _, bounds := range [][2]int64{{-1, 1}, {2, 1}, {0, 9223372036854776}} {
 		t.Run(fmt.Sprint(bounds), func(t *testing.T) {
 			t.Parallel()
-			if _, _, err := client.Monitoring().History(t.Context(), "1", "0", bounds[0], bounds[1]); !errors.Is(err, zabbix.ErrMonitoringInput) {
+			if _, _, err := client.Metrics().History(t.Context(), "1", "0", bounds[0], bounds[1]); !errors.Is(err, zabbix.MetricErrorInvalidQuery) {
 				t.Fatalf("invalid bounds = %v", err)
 			}
 		})

@@ -27,7 +27,7 @@ func TestIntegrationWebCharts(t *testing.T) {
 		GItems: []GraphItemInput{{ItemID: itemID, Color: "00AA00"}},
 	})
 	graphID := integrationID(t, graphIDs, err)
-	item, err := c.Monitoring().Item(ctx, itemID)
+	item, err := c.Metrics().Item(ctx, itemID)
 	integrationCheck(t, err)
 	if !item.IsRateFor(hostID) {
 		t.Fatal("monitoring item lost its host/rate contract")
@@ -66,7 +66,7 @@ func TestIntegrationWebCharts(t *testing.T) {
 	integrationCheck(t, webClient.Logout(ctx))
 	loggedOut = true
 	_, err = webClient.Chart(ctx, ChartRequest{ItemIDs: []string{itemID}, From: till.Add(-time.Hour), To: till})
-	if !errors.Is(err, ErrWebAuthentication) {
+	if !errors.Is(err, WebErrorAuthenticationRequired) {
 		t.Fatalf("logged-out chart = %v", err)
 	}
 }
@@ -98,7 +98,7 @@ func integrationTrafficSample(t *testing.T, client *Client, ctx context.Context,
 			pushed = response.Data[0].Error == ""
 		}
 		if pushed {
-			series, err := client.Monitoring().Traffic(poll, TrafficQuery{
+			series, err := client.Metrics().Traffic(poll, TrafficQuery{
 				HostID: hostID, ItemID: itemID, From: till.Add(-time.Hour).Unix(), Till: till.Unix(),
 			})
 			integrationCheck(t, err)

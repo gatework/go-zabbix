@@ -26,7 +26,7 @@ func TestItemPreprocessingRejectsIncompleteSteps(t *testing.T) {
 				return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":{"itemids":["42"]}}`, req.ID)
 			})
 			_, err := c.Item().Update(t.Context(), ItemUpdateParams{ItemID: "42", Preprocessing: []ItemPreprocessingInput{tc.step}})
-			assertQueryError(t, err, "item.update", ErrorInvalidParams)
+			assertQueryError(t, err, "item.update", ErrorKindInvalidParams)
 		})
 	}
 }

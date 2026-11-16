@@ -2,32 +2,22 @@ package zabbix
 
 import (
 	"context"
-	"errors"
 	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 )
 
-var (
-	// ErrMonitoringInput indicates an invalid monitoring query.
-	ErrMonitoringInput = errors.New("zabbix: invalid monitoring query")
-	// ErrMonitoringBinding indicates a missing or mismatched host/item identity.
-	ErrMonitoringBinding = errors.New("zabbix: monitoring object unavailable")
-	// ErrMonitoringData indicates malformed upstream monitoring observations.
-	ErrMonitoringData = errors.New("zabbix: invalid monitoring data")
-)
+// MetricsService provides bounded device and interface-metric queries.
+// A zero service is not usable; obtain it with Client.Metrics.
+type MetricsService struct{ client *Client }
 
-// MonitoringService provides bounded device and interface-metric queries.
-// A zero service is not usable; obtain it with Client.Monitoring.
-type MonitoringService struct{ client *Client }
+// Metrics returns reusable device and traffic monitoring operations.
+func (c *Client) Metrics() *MetricsService { return &MetricsService{client: c} }
 
-// Monitoring returns reusable device and traffic monitoring operations.
-func (c *Client) Monitoring() *MonitoringService { return &MonitoringService{client: c} }
-
-func monitoringQuery[T any](ctx context.Context, s *MonitoringService, query func(context.Context) ([]T, error)) ([]T, error) {
+func queryMetrics[T any](ctx context.Context, s *MetricsService, query func(context.Context) ([]T, error)) ([]T, error) {
 	if ctx == nil || s == nil || s.client == nil || s.client.httpClient == nil {
-		return nil, ErrMonitoringInput
+		return nil, MetricErrorInvalidQuery
 	}
 	return query(ctx)
 }
@@ -98,12 +88,12 @@ func monitoredItem(r Item) MonitoredItem {
 	}
 }
 
-var monitoringIdentifier = regexp.MustCompile(`^[1-9][0-9]{0,31}$`)
+var metricIdentifier = regexp.MustCompile(`^[1-9][0-9]{0,31}$`)
 
-func validMonitoringText(value string, maxLength int) bool {
+func validMetricText(value string, maxLength int) bool {
 	return utf8.ValidString(value) && utf8.RuneCountInString(value) <= maxLength && !strings.ContainsRune(value, 0)
 }
 
-func monitoringItemOutput() []string {
+func metricItemOutput() []string {
 	return []string{"itemid", "hostid", "name", "key_", "units", "value_type", "status", "state", "lastvalue", "lastclock"}
 }

@@ -65,7 +65,7 @@ func TestIntegrationScriptLookupContracts(t *testing.T) {
 			result, err = tc.lookup("not-an-id", nil)
 			var request *RequestError
 			var api *APIError
-			if result != nil || !errors.As(err, &request) || request.Kind != ErrorAPI || !errors.As(err, &api) {
+			if result != nil || !errors.As(err, &request) || request.Kind != ErrorKindAPI || !errors.As(err, &api) {
 				t.Fatalf("invalid lookup = %#v, %v; want nil result and API error", result, err)
 			}
 		})

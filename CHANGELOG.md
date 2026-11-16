@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.5.0 - 2026-11-16
+
+- Unify error definitions around `XxxError` types, typed authentication/metric/web constants, `ValidationError`, `HTTPStatusError` and fully prefixed `ErrorKind*` values; replace `AsAPIError` with standard-library `errors.AsType` and normalize SDK error text.
+- Rename `Client.Monitoring()` to `Client.Metrics()`, `MonitoringService` to `MetricsService`, `MonitoringLookup` to `MetricLookup`, and `ErrMonitoring*` errors to typed `MetricError*` constants; group metric queries under `metrics_*` and traffic composition under `traffic.go`, without compatibility aliases.
+
 ## v0.4.0 - 2026-11-16
 
 - Rename the web chart API to `WebClient`, `WebOptions` and `NewWebClient`, with `ErrWeb*` errors and matching source/test names. Remove the former `Frontend*` names without compatibility aliases; see MIGRATION.md.

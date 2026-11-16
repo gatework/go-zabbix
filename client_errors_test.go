@@ -37,7 +37,7 @@ func TestRequestErrorHidesTransportTextAndPreservesCauses(t *testing.T) {
 	err = c.Call(context.Background(), "host.get", map[string]string{"password": "request-password-secret"}, nil)
 	var requestErr *RequestError
 	var urlErr *url.Error
-	if !errors.As(err, &requestErr) || requestErr.Method != "host.get" || requestErr.Kind != ErrorTransport {
+	if !errors.As(err, &requestErr) || requestErr.Method != "host.get" || requestErr.Kind != ErrorKindTransport {
 		t.Fatalf("missing request context: %v", err)
 	}
 	if !errors.Is(err, sensitive) || !errors.Is(err, context.Canceled) || !errors.As(err, &urlErr) {
@@ -73,7 +73,7 @@ func TestLocalRequestErrorsDoNotSendRequests(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := c.Call(tc.ctx, "host.get", tc.params, nil)
 			var requestErr *RequestError
-			if !errors.As(err, &requestErr) || requestErr.Kind != ErrorInvalidParams || requestErr.Method != "host.get" {
+			if !errors.As(err, &requestErr) || requestErr.Kind != ErrorKindInvalidParams || requestErr.Method != "host.get" {
 				t.Fatalf("wrong local error: %v", err)
 			}
 			if tc.cause != nil && !errors.Is(err, tc.cause) {
@@ -108,21 +108,21 @@ func TestRequestErrorPreservesDecodeAndAPIDataWithoutPrintingIt(t *testing.T) {
 				t.Fatal("error printed response content")
 			}
 			if apiFailure {
-				apiErr, ok := AsAPIError(err)
-				if !ok || requestErr.Kind != ErrorAPI || apiErr.Code != -32602 || apiErr.Message != "message-secret" || apiErr.Data != "data-secret" {
+				apiErr, ok := errors.AsType[*APIError](err)
+				if !ok || requestErr.Kind != ErrorKindAPI || apiErr.Code != -32602 || apiErr.Message != "message-secret" || apiErr.Data != "data-secret" {
 					t.Fatal("structured API error was lost")
 				}
 				if strings.Contains(apiErr.Error(), "secret") {
 					t.Fatal("API error default text printed server data")
 				}
-			} else if requestErr.Kind != ErrorDecode || !errors.Is(err, errSensitiveJSON) {
+			} else if requestErr.Kind != ErrorKindDecode || !errors.Is(err, errSensitiveJSON) {
 				t.Fatal("decode cause was lost")
 			}
 		})
 	}
 }
 
-func TestHTTPErrorIsTypedAndBodyIsClosed(t *testing.T) {
+func TestHTTPStatusErrorIsTypedAndBodyIsClosed(t *testing.T) {
 	var closed bool
 	c, err := New("https://example.invalid/?key=query-secret", WithHTTPClient(&http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
 		_ = req.Body.Close()
@@ -134,9 +134,9 @@ func TestHTTPErrorIsTypedAndBodyIsClosed(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = c.Call(context.Background(), "host.get", nil, nil)
-	var httpErr *HTTPError
+	var httpErr *HTTPStatusError
 	var requestErr *RequestError
-	if !errors.As(err, &httpErr) || httpErr.StatusCode != http.StatusTooManyRequests || !errors.As(err, &requestErr) || requestErr.Kind != ErrorHTTP {
+	if !errors.As(err, &httpErr) || httpErr.StatusCode != http.StatusTooManyRequests || !errors.As(err, &requestErr) || requestErr.Kind != ErrorKindHTTP {
 		t.Fatalf("wrong HTTP error: %v", err)
 	}
 	if !closed || strings.Contains(err.Error(), "secret") {

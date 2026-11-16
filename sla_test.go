@@ -61,24 +61,24 @@ func TestSLIResultRejectsMalformedResponses(t *testing.T) {
 		body string
 		kind ErrorKind
 	}{
-		{"non-object result", `[]`, ErrorDecode},
-		{"missing fields", `{}`, ErrorProtocol},
-		{"null periods", strings.Replace(valid, `[{"period_from":0,"period_to":60}]`, `null`, 1), ErrorProtocol},
-		{"null service IDs", strings.Replace(valid, `"serviceids":[1]`, `"serviceids":null`, 1), ErrorProtocol},
-		{"null period", strings.Replace(valid, `[{"period_from":0,"period_to":60}]`, `[null]`, 1), ErrorProtocol},
-		{"missing period bound", strings.Replace(valid, `,"period_to":60`, ``, 1), ErrorProtocol},
-		{"missing uptime", strings.Replace(valid, `"uptime":0,`, ``, 1), ErrorProtocol},
-		{"null value", strings.Replace(valid, `"sli":-1`, `"sli":null`, 1), ErrorProtocol},
-		{"string duration", strings.Replace(valid, `"uptime":0`, `"uptime":"0"`, 1), ErrorDecode},
-		{"null excluded downtimes", strings.Replace(valid, `"excluded_downtimes":[]`, `"excluded_downtimes":null`, 1), ErrorProtocol},
-		{"incomplete excluded downtime", strings.Replace(valid, `"excluded_downtimes":[]`, `"excluded_downtimes":[{"name":"maintenance","period_from":0}]`, 1), ErrorProtocol},
-		{"missing SLI rows", `{"periods":[{"period_from":0,"period_to":60}],"serviceids":[1],"sli":[]}`, ErrorProtocol},
-		{"missing SLI columns", `{"periods":[{"period_from":0,"period_to":60}],"serviceids":[1],"sli":[[]]}`, ErrorProtocol},
-		{"null SLI row", `{"periods":[{"period_from":0,"period_to":60}],"serviceids":[1],"sli":[null]}`, ErrorProtocol},
-		{"null SLI value", `{"periods":[{"period_from":0,"period_to":60}],"serviceids":[1],"sli":[[null]]}`, ErrorProtocol},
-		{"rows without services", `{"periods":[{"period_from":0,"period_to":60}],"serviceids":[],"sli":[[]]}`, ErrorProtocol},
-		{"services without periods", `{"periods":[],"serviceids":[1],"sli":[]}`, ErrorProtocol},
-		{"null SLI matrix", `{"periods":[],"serviceids":[],"sli":null}`, ErrorProtocol},
+		{"non-object result", `[]`, ErrorKindDecode},
+		{"missing fields", `{}`, ErrorKindProtocol},
+		{"null periods", strings.Replace(valid, `[{"period_from":0,"period_to":60}]`, `null`, 1), ErrorKindProtocol},
+		{"null service IDs", strings.Replace(valid, `"serviceids":[1]`, `"serviceids":null`, 1), ErrorKindProtocol},
+		{"null period", strings.Replace(valid, `[{"period_from":0,"period_to":60}]`, `[null]`, 1), ErrorKindProtocol},
+		{"missing period bound", strings.Replace(valid, `,"period_to":60`, ``, 1), ErrorKindProtocol},
+		{"missing uptime", strings.Replace(valid, `"uptime":0,`, ``, 1), ErrorKindProtocol},
+		{"null value", strings.Replace(valid, `"sli":-1`, `"sli":null`, 1), ErrorKindProtocol},
+		{"string duration", strings.Replace(valid, `"uptime":0`, `"uptime":"0"`, 1), ErrorKindDecode},
+		{"null excluded downtimes", strings.Replace(valid, `"excluded_downtimes":[]`, `"excluded_downtimes":null`, 1), ErrorKindProtocol},
+		{"incomplete excluded downtime", strings.Replace(valid, `"excluded_downtimes":[]`, `"excluded_downtimes":[{"name":"maintenance","period_from":0}]`, 1), ErrorKindProtocol},
+		{"missing SLI rows", `{"periods":[{"period_from":0,"period_to":60}],"serviceids":[1],"sli":[]}`, ErrorKindProtocol},
+		{"missing SLI columns", `{"periods":[{"period_from":0,"period_to":60}],"serviceids":[1],"sli":[[]]}`, ErrorKindProtocol},
+		{"null SLI row", `{"periods":[{"period_from":0,"period_to":60}],"serviceids":[1],"sli":[null]}`, ErrorKindProtocol},
+		{"null SLI value", `{"periods":[{"period_from":0,"period_to":60}],"serviceids":[1],"sli":[[null]]}`, ErrorKindProtocol},
+		{"rows without services", `{"periods":[{"period_from":0,"period_to":60}],"serviceids":[],"sli":[[]]}`, ErrorKindProtocol},
+		{"services without periods", `{"periods":[],"serviceids":[1],"sli":[]}`, ErrorKindProtocol},
+		{"null SLI matrix", `{"periods":[],"serviceids":[],"sli":null}`, ErrorKindProtocol},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := queryFixtureClient(t, "sla.getsli", `{"slaid":"1"}`, tc.body)
@@ -97,7 +97,7 @@ func TestSLIResultRejectsMalformedResponses(t *testing.T) {
 			if got != nil {
 				t.Fatalf("partial SLI result: %#v", got)
 			}
-			assertQueryError(t, err, "sla.getsli", ErrorProtocol)
+			assertQueryError(t, err, "sla.getsli", ErrorKindProtocol)
 		})
 	}
 }

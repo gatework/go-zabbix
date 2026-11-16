@@ -1,7 +1,5 @@
 package zabbix
 
-import "errors"
-
 // ItemHTTPField is a header or query field returned for an HTTP agent item.
 // Slice order and repeated names are significant; a value may be empty.
 type ItemHTTPField struct {
@@ -18,7 +16,7 @@ type ItemHTTPFieldInput struct {
 
 func (p ItemHTTPFieldInput) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: ItemHTTPFieldInput.Name is required")
+		return ValidationError("itemhttpfieldinput.name is required")
 	}
 	return nil
 }

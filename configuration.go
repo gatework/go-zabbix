@@ -35,7 +35,7 @@ func (s *ConfigurationService) Export(ctx context.Context, params ConfigurationE
 	switch params.Format {
 	case "json", "xml", "yaml":
 	default:
-		return "", requestError("configuration.export", ErrorInvalidParams, errors.New("format must be json, xml, or yaml; use ExportRaw for raw"))
+		return "", requestError("configuration.export", ErrorKindInvalidParams, errors.New("format must be json, xml, or yaml; use exportraw for raw"))
 	}
 	var out string
 	err := s.client.Call(ctx, "configuration.export", params, &out)
@@ -53,7 +53,7 @@ func (s *ConfigurationService) ExportRaw(ctx context.Context, options any) (json
 		return nil, err
 	}
 	if result := bytes.TrimSpace(raw); len(result) == 0 || result[0] != '{' {
-		return nil, requestError("configuration.export", ErrorProtocol, errors.New("raw export result must be an object"))
+		return nil, requestError("configuration.export", ErrorKindProtocol, errors.New("raw export result must be an object"))
 	}
 	return raw, nil
 }

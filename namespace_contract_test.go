@@ -192,7 +192,7 @@ func TestEveryExposedSelectorHasAResultField(t *testing.T) {
 				}
 				assertQueryJSON(t, encoded, []byte(`{"`+tt.field+`":"0"}`))
 			} else {
-				assertQueryError(t, err, tt.method, ErrorInvalidParams)
+				assertQueryError(t, err, tt.method, ErrorKindInvalidParams)
 			}
 		})
 	}

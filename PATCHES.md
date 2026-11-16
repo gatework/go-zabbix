@@ -43,7 +43,7 @@ probe before calls.
 2. Responses must have JSON-RPC version 2.0, a matching numeric request ID, and
    exactly one result or error. Missing/null results, null or malformed errors,
    missing/mismatched IDs and invalid JSON fail explicitly. Valid upstream API
-   errors retain the `*APIError` and `AsAPIError` contract.
+   errors retain the `*APIError` contract, inspected with `errors.AsType[*APIError]`.
 3. Non-nil output values must be non-nil pointers. Typed decoding uses a fresh
    value and replaces the caller's output only after success, preventing partial
    overwrites. A nil output remains supported and still validates the envelope.

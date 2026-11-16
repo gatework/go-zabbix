@@ -1,7 +1,5 @@
 package zabbix
 
-import "errors"
-
 // HostInterfaceMatchInput identifies interfaces by their exact address and port.
 // An empty DNS or IP is meaningful and is always sent.
 // https://www.zabbix.com/documentation/7.4/en/manual/api/reference/hostinterface/massremove
@@ -13,7 +11,7 @@ type HostInterfaceMatchInput struct {
 
 func (p HostInterfaceMatchInput) validate() error {
 	if p.Port == "" {
-		return errors.New("zabbix: HostInterfaceMatchInput.Port is required")
+		return ValidationError("hostinterfacematchinput.port is required")
 	}
 	return nil
 }
@@ -32,7 +30,7 @@ func (p HostInterfaceReplaceParams) validate() error {
 		return err
 	}
 	if p.Interfaces == nil {
-		return errors.New("zabbix: HostInterfaceReplaceParams.Interfaces is required")
+		return ValidationError("hostinterfacereplaceparams.interfaces is required")
 	}
 	for _, value := range p.Interfaces {
 		if err := value.validate(); err != nil {

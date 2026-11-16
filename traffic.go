@@ -2,8 +2,8 @@ package zabbix
 
 import "context"
 
-// MonitoringLookup resolves host and item identities before reading traffic.
-type MonitoringLookup interface {
+// MetricLookup resolves host and item identities before reading traffic.
+type MetricLookup interface {
 	Host(ctx context.Context, id string) (MonitoredHost, error)
 	Item(ctx context.Context, id string) (MonitoredItem, error)
 }
@@ -16,11 +16,11 @@ type MetricReader interface {
 
 // TrafficSource supplies the read-only capabilities needed to resolve a rate series.
 type TrafficSource interface {
-	MonitoringLookup
+	MetricLookup
 	MetricReader
 }
 
-var _ TrafficSource = (*MonitoringService)(nil)
+var _ TrafficSource = (*MetricsService)(nil)
 
 // TrafficQuery selects one item's rate on a particular host over Unix seconds.
 // UseTrends requests hourly aggregates; otherwise individual history is used.
@@ -56,7 +56,7 @@ type TrafficSeries struct {
 }
 
 // Traffic revalidates item ownership and returns a bounded, normalized rate series.
-func (s *MonitoringService) Traffic(ctx context.Context, query TrafficQuery) (TrafficSeries, error) {
+func (s *MetricsService) Traffic(ctx context.Context, query TrafficQuery) (TrafficSeries, error) {
 	return ReadTraffic(ctx, s, query)
 }
 
@@ -66,8 +66,8 @@ func (s *MonitoringService) Traffic(ctx context.Context, query TrafficQuery) (Tr
 func ReadTraffic(ctx context.Context, source TrafficSource, query TrafficQuery) (TrafficSeries, error) {
 	result := TrafficSeries{Points: []TrafficPoint{}}
 	if ctx == nil || source == nil || !validMetricWindow(query.From, query.Till) ||
-		!monitoringIdentifier.MatchString(query.HostID) || !monitoringIdentifier.MatchString(query.ItemID) {
-		return result, ErrMonitoringInput
+		!metricIdentifier.MatchString(query.HostID) || !metricIdentifier.MatchString(query.ItemID) {
+		return result, MetricErrorInvalidQuery
 	}
 	if err := ctx.Err(); err != nil {
 		return result, err
@@ -77,14 +77,14 @@ func ReadTraffic(ctx context.Context, source TrafficSource, query TrafficQuery) 
 		return result, err
 	}
 	if host.ID != query.HostID {
-		return result, ErrMonitoringBinding
+		return result, MetricErrorUnavailable
 	}
 	item, err := source.Item(ctx, query.ItemID)
 	if err != nil {
 		return result, err
 	}
 	if item.ID != query.ItemID || !item.IsRateFor(query.HostID) || item.State == "1" {
-		return result, ErrMonitoringBinding
+		return result, MetricErrorUnavailable
 	}
 	result.Host, result.Item = host, item
 	result.setLatest(query.Till)

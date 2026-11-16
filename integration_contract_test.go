@@ -4,6 +4,7 @@ package zabbix
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -15,7 +16,7 @@ func integrationCheck(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
 		// This suite uses a disposable database and synthetic fixture values.
-		if apiErr, ok := AsAPIError(err); ok {
+		if apiErr, ok := errors.AsType[*APIError](err); ok {
 			t.Fatalf("%v: %s", err, apiErr.Data)
 		}
 		t.Fatal(err)

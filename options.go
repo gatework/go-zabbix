@@ -2,7 +2,6 @@ package zabbix
 
 import (
 	"crypto/tls"
-	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -86,19 +85,19 @@ func WithInsecureSkipVerify(skip bool) Option {
 func (cfg clientConfig) validate() error {
 	switch {
 	case cfg.httpSet && cfg.httpClient == nil:
-		return errors.New("zabbix: HTTP client must not be nil")
+		return ValidationError("http client must not be nil")
 	case cfg.httpClient != nil && isNilTransport(cfg.httpClient.Transport):
-		return errors.New("zabbix: HTTP transport must not contain a typed nil")
+		return ValidationError("http transport must not contain a typed nil")
 	case cfg.timeoutSet && cfg.timeout < 0:
-		return errors.New("zabbix: timeout must not be negative")
+		return ValidationError("timeout must not be negative")
 	case cfg.httpClient != nil && !cfg.timeoutSet && cfg.httpClient.Timeout < 0:
-		return errors.New("zabbix: HTTP client timeout must not be negative")
+		return ValidationError("http client timeout must not be negative")
 	case cfg.maxBytes <= 0:
-		return errors.New("zabbix: response limit must be positive")
+		return ValidationError("response limit must be positive")
 	case cfg.tlsSet && cfg.tlsConfig == nil:
-		return errors.New("zabbix: TLS configuration must not be nil")
+		return ValidationError("tls configuration must not be nil")
 	case !validHeaderValue(cfg.userAgent):
-		return errors.New("zabbix: invalid user agent")
+		return ValidationError("invalid user agent")
 	}
 	if cfg.credentials.kind != credentialNone {
 		return validateToken(cfg.credentials.token)
@@ -140,7 +139,7 @@ func (cfg clientConfig) buildHTTPClient() (*http.Client, *http.Transport, error)
 		}
 		tr, ok := transport.(*http.Transport)
 		if !ok || tr == nil {
-			return nil, nil, errors.New("zabbix: TLS options require an HTTP transport")
+			return nil, nil, ValidationError("tls options require an http transport")
 		}
 		if owned == nil {
 			owned = tr.Clone()

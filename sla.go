@@ -194,7 +194,7 @@ type sliResponse struct {
 
 func (wire sliResponse) result() (*SLIResult, error) {
 	if wire.Periods == nil || wire.ServiceIDs == nil || wire.SLI == nil {
-		return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI result requires periods, serviceids, and sli arrays"))
+		return nil, requestError("sla.getsli", ErrorKindProtocol, errors.New("sli result requires periods, serviceids, and sli arrays"))
 	}
 	rows := len(wire.Periods)
 	if len(wire.ServiceIDs) == 0 {
@@ -203,7 +203,7 @@ func (wire sliResponse) result() (*SLIResult, error) {
 		rows = 0
 	}
 	if len(wire.SLI) != rows || (len(wire.Periods) == 0 && len(wire.ServiceIDs) != 0) {
-		return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI dimensions do not match periods and services"))
+		return nil, requestError("sla.getsli", ErrorKindProtocol, errors.New("sli dimensions do not match periods and services"))
 	}
 	out := &SLIResult{
 		Periods:    make([]SLIPeriod, len(wire.Periods)),
@@ -212,7 +212,7 @@ func (wire sliResponse) result() (*SLIResult, error) {
 	}
 	for i, period := range wire.Periods {
 		if period.PeriodFrom == nil || period.PeriodTo == nil {
-			return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI periods require both bounds"))
+			return nil, requestError("sla.getsli", ErrorKindProtocol, errors.New("sli periods require both bounds"))
 		}
 		out.Periods[i] = SLIPeriod{PeriodFrom: *period.PeriodFrom, PeriodTo: *period.PeriodTo}
 	}
@@ -221,12 +221,12 @@ func (wire sliResponse) result() (*SLIResult, error) {
 	}
 	for i, row := range wire.SLI {
 		if len(row) != len(wire.ServiceIDs) {
-			return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI row does not match services"))
+			return nil, requestError("sla.getsli", ErrorKindProtocol, errors.New("sli row does not match services"))
 		}
 		out.SLI[i] = make([]SLIValue, len(row))
 		for j, cell := range row {
 			if cell.Uptime == nil || cell.Downtime == nil || cell.SLI == nil || cell.ErrorBudget == nil || cell.ExcludedDowntimes == nil {
-				return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI value is missing required fields"))
+				return nil, requestError("sla.getsli", ErrorKindProtocol, errors.New("sli value is missing required fields"))
 			}
 			value := SLIValue{
 				Uptime:            *cell.Uptime,
@@ -237,7 +237,7 @@ func (wire sliResponse) result() (*SLIResult, error) {
 			}
 			for k, downtime := range cell.ExcludedDowntimes {
 				if downtime.Name == nil || downtime.PeriodFrom == nil || downtime.PeriodTo == nil {
-					return nil, requestError("sla.getsli", ErrorProtocol, errors.New("SLI excluded downtime is missing required fields"))
+					return nil, requestError("sla.getsli", ErrorKindProtocol, errors.New("sli excluded downtime is missing required fields"))
 				}
 				value.ExcludedDowntimes[k] = SLIExcludedDowntime{
 					Name: *downtime.Name, PeriodFrom: *downtime.PeriodFrom, PeriodTo: *downtime.PeriodTo,
@@ -255,11 +255,11 @@ func decodeSLIServiceIDs(target []string, messages []json.RawMessage) error {
 		id := string(raw)
 		if len(raw) != 0 && raw[0] == '"' {
 			if err := json.Unmarshal(raw, &id); err != nil {
-				return requestError("sla.getsli", ErrorDecode, err)
+				return requestError("sla.getsli", ErrorKindDecode, err)
 			}
 		}
 		if err := requireWriteID(id, "serviceid"); err != nil {
-			return requestError("sla.getsli", ErrorProtocol, err)
+			return requestError("sla.getsli", ErrorKindProtocol, err)
 		}
 		target[i] = id
 	}

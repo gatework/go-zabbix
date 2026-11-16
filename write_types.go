@@ -1,6 +1,6 @@
 package zabbix
 
-import "errors"
+import "strings"
 
 // HostRef identifies an existing object in a write operation.
 type HostRef struct {
@@ -76,7 +76,7 @@ type TagInput struct {
 
 func (p TagInput) validate() error {
 	if p.Tag == "" {
-		return errors.New("zabbix: TagInput.Tag is required")
+		return ValidationError("taginput.tag is required")
 	}
 	return nil
 }
@@ -99,10 +99,10 @@ type SNMPInterfaceInput struct {
 
 func (p SNMPInterfaceInput) validate() error {
 	if p.Version < 1 || p.Version > 3 {
-		return errors.New("zabbix: SNMP version must be between 1 and 3")
+		return ValidationError("snmp version must be between 1 and 3")
 	}
 	if p.Version != 3 && (p.Community == nil || *p.Community == "") {
-		return errors.New("zabbix: SNMP v1/v2 require community")
+		return ValidationError("snmp v1/v2 require community")
 	}
 	return nil
 }
@@ -125,7 +125,7 @@ type SNMPInterfaceUpdateInput struct {
 
 func (p SNMPInterfaceUpdateInput) validate() error {
 	if p.Version != nil && (*p.Version < 1 || *p.Version > 3) {
-		return errors.New("zabbix: SNMP version must be between 1 and 3")
+		return ValidationError("snmp version must be between 1 and 3")
 	}
 	return nil
 }
@@ -144,7 +144,7 @@ type HostInterfaceInput struct {
 
 func (p HostInterfaceInput) validate() error {
 	if p.Port == "" {
-		return errors.New("zabbix: HostInterfaceInput.Port is required")
+		return ValidationError("hostinterfaceinput.port is required")
 	}
 	if p.Details != nil {
 		if err := p.Details.validate(); err != nil {
@@ -152,16 +152,16 @@ func (p HostInterfaceInput) validate() error {
 		}
 	}
 	if p.Type < 1 || p.Type > 4 {
-		return errors.New("zabbix: interface type must be between 1 and 4")
+		return ValidationError("interface type must be between 1 and 4")
 	}
 	if p.Type == 2 && p.Details == nil {
-		return errors.New("zabbix: SNMP interfaces require details")
+		return ValidationError("snmp interfaces require details")
 	}
 	if p.UseIP != 0 && p.UseIP != 1 {
-		return errors.New("zabbix: interface useip must be 0 or 1")
+		return ValidationError("interface useip must be 0 or 1")
 	}
 	if p.UseIP == 1 && p.IP == "" || p.UseIP == 0 && p.DNS == "" {
-		return errors.New("zabbix: the selected interface address must not be empty")
+		return ValidationError("the selected interface address must not be empty")
 	}
 	return nil
 }
@@ -191,10 +191,10 @@ func (p HostInterfaceUpdateInput) validate() error {
 		}
 	}
 	if p.Type != nil && (*p.Type < 1 || *p.Type > 4) {
-		return errors.New("zabbix: interface type must be between 1 and 4")
+		return ValidationError("interface type must be between 1 and 4")
 	}
 	if p.InterfaceID == nil && (p.Type == nil || p.Main == nil || p.UseIP == nil || p.IP == nil || p.DNS == nil || p.Port == nil || *p.Port == "") {
-		return errors.New("zabbix: new host interfaces require type, main, useip, ip, dns and port")
+		return ValidationError("new host interfaces require type, main, useip, ip, dns and port")
 	}
 	if p.InterfaceID == nil {
 		return p.validateNewInterface()
@@ -214,7 +214,7 @@ type HostMacroInput struct {
 
 func (p HostMacroInput) validate() error {
 	if p.Macro == "" {
-		return errors.New("zabbix: HostMacroInput.Macro is required")
+		return ValidationError("hostmacroinput.macro is required")
 	}
 	return nil
 }
@@ -231,7 +231,7 @@ type HostMacroUpdateInput struct {
 
 func (p HostMacroUpdateInput) validate() error {
 	if p.HostMacroID == nil && (p.Macro == nil || *p.Macro == "" || p.Value == nil) {
-		return errors.New("zabbix: new host macros require macro and value")
+		return ValidationError("new host macros require macro and value")
 	}
 	return nil
 }
@@ -253,7 +253,7 @@ func (p GraphItemInput) validate() error {
 		return err
 	}
 	if p.Color == "" {
-		return errors.New("zabbix: GraphItemInput.Color is required")
+		return ValidationError("graphiteminput.color is required")
 	}
 	return nil
 }
@@ -273,7 +273,7 @@ type GraphItemUpdateInput struct {
 
 func (p GraphItemUpdateInput) validate() error {
 	if p.GItemID == nil && (p.ItemID == nil || *p.ItemID == "" || p.Color == nil || *p.Color == "") {
-		return errors.New("zabbix: new graph items require itemid and color")
+		return ValidationError("new graph items require itemid and color")
 	}
 	return nil
 }
@@ -286,7 +286,7 @@ type HostPrototypeGroupInput struct {
 
 func (p HostPrototypeGroupInput) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: HostPrototypeGroupInput.Name is required")
+		return ValidationError("hostprototypegroupinput.name is required")
 	}
 	return nil
 }
@@ -316,7 +316,7 @@ type HostPrototypeInterfaceInput struct {
 
 func (p HostPrototypeInterfaceInput) validate() error {
 	if p.Port == "" {
-		return errors.New("zabbix: HostPrototypeInterfaceInput.Port is required")
+		return ValidationError("hostprototypeinterfaceinput.port is required")
 	}
 	if p.Details != nil {
 		if err := p.Details.validate(); err != nil {
@@ -324,10 +324,10 @@ func (p HostPrototypeInterfaceInput) validate() error {
 		}
 	}
 	if p.Type < 1 || p.Type > 4 {
-		return errors.New("zabbix: interface type must be between 1 and 4")
+		return ValidationError("interface type must be between 1 and 4")
 	}
 	if p.Type == 2 && p.Details == nil {
-		return errors.New("zabbix: SNMP interfaces require details")
+		return ValidationError("snmp interfaces require details")
 	}
 	return nil
 }
@@ -392,36 +392,36 @@ type ItemPreprocessingInput struct {
 
 func (p ItemPreprocessingInput) validate() error {
 	if p.Type < 1 || p.Type > 30 {
-		return errors.New("zabbix: ItemPreprocessingInput.Type must be a Zabbix 7.4 preprocessing type")
+		return ValidationError("itempreprocessinginput.type must be a zabbix 7.4 preprocessing type")
 	}
 	// A supplied preprocessing list replaces complete steps. These required
 	// properties therefore cannot be inherited from a previously stored step.
 	switch p.Type {
 	case 1, 2, 3, 4, 5, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 25, 26, 28, 29, 30:
 		if p.Params == nil {
-			return errors.New("zabbix: ItemPreprocessingInput.Params is required for this type")
+			return ValidationError("itempreprocessinginput.params is required for this type")
 		}
 	}
 	switch p.Type {
 	case 1, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 22, 23, 24, 26, 27, 28, 29, 30:
 		if p.ErrorHandler == nil {
-			return errors.New("zabbix: ItemPreprocessingInput.ErrorHandler is required for this type")
+			return ValidationError("itempreprocessinginput.errorhandler is required for this type")
 		}
 	}
 	if p.ErrorHandler == nil {
 		return nil
 	}
 	if *p.ErrorHandler < 0 || *p.ErrorHandler > 3 || (p.Type == 26 && *p.ErrorHandler == 0) {
-		return errors.New("zabbix: ItemPreprocessingInput.ErrorHandler is invalid for this type")
+		return ValidationError("itempreprocessinginput.errorhandler is invalid for this type")
 	}
 	switch *p.ErrorHandler {
 	case 2:
 		if p.ErrorHandlerParams == nil {
-			return errors.New("zabbix: ItemPreprocessingInput.ErrorHandlerParams is required when setting a value")
+			return ValidationError("itempreprocessinginput.errorhandlerparams is required when setting a value")
 		}
 	case 3:
 		if p.ErrorHandlerParams == nil || *p.ErrorHandlerParams == "" {
-			return errors.New("zabbix: ItemPreprocessingInput.ErrorHandlerParams must contain an error message")
+			return ValidationError("itempreprocessinginput.errorhandlerparams must contain an error message")
 		}
 	}
 	return nil
@@ -449,10 +449,10 @@ type LLDMacroPathInput struct {
 
 func (p LLDMacroPathInput) validate() error {
 	if p.LLDMacro == "" {
-		return errors.New("zabbix: LLDMacroPathInput.LLDMacro is required")
+		return ValidationError("lldmacropathinput.lldmacro is required")
 	}
 	if p.Path == "" {
-		return errors.New("zabbix: LLDMacroPathInput.Path is required")
+		return ValidationError("lldmacropathinput.path is required")
 	}
 	return nil
 }
@@ -467,7 +467,7 @@ type DiscoveryFilterInput struct {
 
 func (p DiscoveryFilterInput) validate() error {
 	if p.Conditions == nil {
-		return errors.New("zabbix: DiscoveryFilterInput.Conditions is required")
+		return ValidationError("discoveryfilterinput.conditions is required")
 	}
 	for _, value := range p.Conditions {
 		if err := value.validate(); err != nil {
@@ -488,7 +488,7 @@ type DiscoveryConditionInput struct {
 
 func (p DiscoveryConditionInput) validate() error {
 	if p.Macro == "" {
-		return errors.New("zabbix: DiscoveryConditionInput.Macro is required")
+		return ValidationError("discoveryconditioninput.macro is required")
 	}
 	return nil
 }
@@ -537,10 +537,10 @@ func (p UserMediaInput) validate() error {
 		return err
 	}
 	if p.SendTo == nil {
-		return errors.New("zabbix: UserMediaInput.SendTo is required")
+		return ValidationError("usermediainput.sendto is required")
 	}
 	if !validMediaRecipient(p.SendTo) {
-		return errors.New("zabbix: media sendto must be a string or string slice")
+		return ValidationError("media sendto must be a string or string slice")
 	}
 	return nil
 }
@@ -555,7 +555,7 @@ type ValueMappingInput struct {
 
 func (p ValueMappingInput) validate() error {
 	if p.NewValue == "" {
-		return errors.New("zabbix: ValueMappingInput.NewValue is required")
+		return ValidationError("valuemappinginput.newvalue is required")
 	}
 	return nil
 }
@@ -583,7 +583,7 @@ type ServiceProblemTagInput struct {
 
 func (p ServiceProblemTagInput) validate() error {
 	if p.Tag == "" {
-		return errors.New("zabbix: ServiceProblemTagInput.Tag is required")
+		return ValidationError("serviceproblemtaginput.tag is required")
 	}
 	return nil
 }
@@ -615,7 +615,7 @@ type MaintenanceTagInput struct {
 
 func (p MaintenanceTagInput) validate() error {
 	if p.Tag == "" {
-		return errors.New("zabbix: MaintenanceTagInput.Tag is required")
+		return ValidationError("maintenancetaginput.tag is required")
 	}
 	return nil
 }
@@ -630,7 +630,7 @@ type ConnectorTagInput struct {
 
 func (p ConnectorTagInput) validate() error {
 	if p.Tag == "" {
-		return errors.New("zabbix: ConnectorTagInput.Tag is required")
+		return ValidationError("connectortaginput.tag is required")
 	}
 	return nil
 }
@@ -645,7 +645,7 @@ type SLATagInput struct {
 
 func (p SLATagInput) validate() error {
 	if p.Tag == "" {
-		return errors.New("zabbix: SLATagInput.Tag is required")
+		return ValidationError("slataginput.tag is required")
 	}
 	return nil
 }
@@ -671,7 +671,7 @@ type SLAExcludedDowntimeInput struct {
 
 func (p SLAExcludedDowntimeInput) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: SLAExcludedDowntimeInput.Name is required")
+		return ValidationError("slaexcludeddowntimeinput.name is required")
 	}
 	return nil
 }
@@ -687,7 +687,7 @@ type RegexpExpressionInput struct {
 
 func (p RegexpExpressionInput) validate() error {
 	if p.Expression == "" {
-		return errors.New("zabbix: RegexpExpressionInput.Expression is required")
+		return ValidationError("regexpexpressioninput.expression is required")
 	}
 	return nil
 }
@@ -705,7 +705,7 @@ func (p IconMappingInput) validate() error {
 		return err
 	}
 	if p.Expression == "" {
-		return errors.New("zabbix: IconMappingInput.Expression is required")
+		return ValidationError("iconmappinginput.expression is required")
 	}
 	return nil
 }
@@ -748,7 +748,7 @@ type ScriptParameterInput struct {
 
 func (p ScriptParameterInput) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: ScriptParameterInput.Name is required")
+		return ValidationError("scriptparameterinput.name is required")
 	}
 	return nil
 }
@@ -776,7 +776,7 @@ type MediaParameterInput struct {
 
 func (p MediaParameterInput) validate() error {
 	if (p.Name == nil) == (p.SortOrder == nil) {
-		return errors.New("zabbix: media parameters require exactly one name or sortorder")
+		return ValidationError("media parameters require exactly one name or sortorder")
 	}
 	return nil
 }
@@ -831,7 +831,7 @@ type DashboardWidgetInput struct {
 
 func (p DashboardWidgetInput) validate() error {
 	if p.Type == "" {
-		return errors.New("zabbix: DashboardWidgetInput.Type is required")
+		return ValidationError("dashboardwidgetinput.type is required")
 	}
 	for _, value := range p.Fields {
 		if err := value.validate(); err != nil {
@@ -862,7 +862,7 @@ func (p DashboardWidgetUpdateInput) validate() error {
 		}
 	}
 	if p.WidgetID == nil && (p.Type == nil || *p.Type == "") {
-		return errors.New("zabbix: new widgets require type")
+		return ValidationError("new widgets require type")
 	}
 	return nil
 }
@@ -917,7 +917,7 @@ type TemplateDashboardWidgetInput struct {
 
 func (p TemplateDashboardWidgetInput) validate() error {
 	if p.Type == "" {
-		return errors.New("zabbix: TemplateDashboardWidgetInput.Type is required")
+		return ValidationError("templatedashboardwidgetinput.type is required")
 	}
 	for _, value := range p.Fields {
 		if err := value.validate(); err != nil {
@@ -948,7 +948,7 @@ func (p TemplateDashboardWidgetUpdateInput) validate() error {
 		}
 	}
 	if p.WidgetID == nil && (p.Type == nil || *p.Type == "") {
-		return errors.New("zabbix: new widgets require type")
+		return ValidationError("new widgets require type")
 	}
 	return nil
 }
@@ -963,10 +963,10 @@ type WidgetFieldInput struct {
 
 func (p WidgetFieldInput) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: WidgetFieldInput.Name is required")
+		return ValidationError("widgetfieldinput.name is required")
 	}
 	if p.Value == nil {
-		return errors.New("zabbix: WidgetFieldInput.Value is required")
+		return ValidationError("widgetfieldinput.value is required")
 	}
 	return nil
 }
@@ -1009,7 +1009,7 @@ type CorrelationFilterInput struct {
 
 func (p CorrelationFilterInput) validate() error {
 	if len(p.Conditions) == 0 {
-		return errors.New("zabbix: CorrelationFilterInput.Conditions must not be empty")
+		return ValidationError("correlationfilterinput.conditions must not be empty")
 	}
 	for _, value := range p.Conditions {
 		if err := value.validate(); err != nil {
@@ -1056,7 +1056,7 @@ type ActionFilterInput struct {
 
 func (p ActionFilterInput) validate() error {
 	if p.Conditions == nil {
-		return errors.New("zabbix: ActionFilterInput.Conditions is required")
+		return ValidationError("actionfilterinput.conditions is required")
 	}
 	for _, value := range p.Conditions {
 		if err := value.validate(); err != nil {
@@ -1232,13 +1232,13 @@ func (p ActionRecoveryOperationInput) validate() error {
 		}
 	}
 	if p.OperationType == 0 && (p.OpMessage == nil || len(p.OpMessageGrp)+len(p.OpMessageUsr) == 0) {
-		return errors.New("zabbix: message operations require message settings and recipients")
+		return ValidationError("message operations require message settings and recipients")
 	}
 	if p.OperationType == 1 && p.OpCommand == nil {
-		return errors.New("zabbix: script operations require a script")
+		return ValidationError("script operations require a script")
 	}
 	if p.OperationType != 0 && p.OperationType != 1 && p.OperationType != 11 {
-		return errors.New("zabbix: unsupported recovery operation type")
+		return ValidationError("unsupported recovery operation type")
 	}
 	return nil
 }
@@ -1287,13 +1287,13 @@ func (p ActionUpdateOperationInput) validate() error {
 		}
 	}
 	if p.OperationType == 0 && (p.OpMessage == nil || len(p.OpMessageGrp)+len(p.OpMessageUsr) == 0) {
-		return errors.New("zabbix: message operations require message settings and recipients")
+		return ValidationError("message operations require message settings and recipients")
 	}
 	if p.OperationType == 1 && p.OpCommand == nil {
-		return errors.New("zabbix: script operations require a script")
+		return ValidationError("script operations require a script")
 	}
 	if p.OperationType != 0 && p.OperationType != 1 && p.OperationType != 12 {
-		return errors.New("zabbix: unsupported update operation type")
+		return ValidationError("unsupported update operation type")
 	}
 	return nil
 }
@@ -1354,10 +1354,10 @@ type MapLinkInput struct {
 
 func (p MapLinkInput) validate() error {
 	if p.SelementID1 == "" {
-		return errors.New("zabbix: MapLinkInput.SelementID1 is required")
+		return ValidationError("maplinkinput.selementid1 is required")
 	}
 	if p.SelementID2 == "" {
-		return errors.New("zabbix: MapLinkInput.SelementID2 is required")
+		return ValidationError("maplinkinput.selementid2 is required")
 	}
 	return nil
 }
@@ -1372,10 +1372,10 @@ type MapURLInput struct {
 
 func (p MapURLInput) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: MapURLInput.Name is required")
+		return ValidationError("mapurlinput.name is required")
 	}
 	if p.URL == "" {
-		return errors.New("zabbix: MapURLInput.URL is required")
+		return ValidationError("mapurlinput.url is required")
 	}
 	return nil
 }
@@ -1517,7 +1517,7 @@ type ServiceAccessTagInput struct {
 
 func (p ServiceAccessTagInput) validate() error {
 	if p.Tag == "" && p.Value != nil && *p.Value != "" {
-		return errors.New("zabbix: ServiceAccessTagInput.Value must be empty when Tag is empty")
+		return ValidationError("serviceaccesstaginput.value must be empty when tag is empty")
 	}
 	return nil
 }
@@ -1590,7 +1590,7 @@ type RoleUIInput struct {
 
 func (p RoleUIInput) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: RoleUIInput.Name is required")
+		return ValidationError("roleuiinput.name is required")
 	}
 	return nil
 }
@@ -1618,7 +1618,7 @@ type RoleActionInput struct {
 
 func (p RoleActionInput) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: RoleActionInput.Name is required")
+		return ValidationError("roleactioninput.name is required")
 	}
 	return nil
 }
@@ -1633,13 +1633,13 @@ type ProvisioningGroupInput struct {
 
 func (p ProvisioningGroupInput) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: ProvisioningGroupInput.Name is required")
+		return ValidationError("provisioninggroupinput.name is required")
 	}
 	if err := requireWriteID(p.RoleID, "ProvisioningGroupInput.RoleID"); err != nil {
 		return err
 	}
 	if len(p.UserGroups) == 0 {
-		return errors.New("zabbix: ProvisioningGroupInput.UserGroups must not be empty")
+		return ValidationError("provisioninggroupinput.usergroups must not be empty")
 	}
 	for _, value := range p.UserGroups {
 		if err := value.validate(); err != nil {
@@ -1662,13 +1662,13 @@ type ProvisioningMediaInput struct {
 
 func (p ProvisioningMediaInput) validate() error {
 	if p.Name == "" {
-		return errors.New("zabbix: ProvisioningMediaInput.Name is required")
+		return ValidationError("provisioningmediainput.name is required")
 	}
 	if err := requireWriteID(p.MediaTypeID, "ProvisioningMediaInput.MediaTypeID"); err != nil {
 		return err
 	}
 	if p.Attribute == "" {
-		return errors.New("zabbix: ProvisioningMediaInput.Attribute is required")
+		return ValidationError("provisioningmediainput.attribute is required")
 	}
 	return nil
 }
@@ -1678,12 +1678,12 @@ func requireWriteID(id, field string) error {
 	nonzero := false
 	for _, c := range id {
 		if c < '0' || c > '9' {
-			return errors.New("zabbix: " + field + " must be a positive decimal ID")
+			return ValidationError(strings.ToLower(field) + " must be a positive decimal id")
 		}
 		nonzero = nonzero || c != '0'
 	}
 	if !nonzero {
-		return errors.New("zabbix: " + field + " must be a positive decimal ID")
+		return ValidationError(strings.ToLower(field) + " must be a positive decimal id")
 	}
 	return nil
 }
@@ -1701,17 +1701,17 @@ func validMediaRecipient(value any) bool {
 
 func (p HostInterfaceUpdateInput) validateNewInterface() error {
 	if *p.UseIP != 0 && *p.UseIP != 1 {
-		return errors.New("zabbix: interface useip must be 0 or 1")
+		return ValidationError("interface useip must be 0 or 1")
 	}
 	if *p.UseIP == 1 && *p.IP == "" || *p.UseIP == 0 && *p.DNS == "" {
-		return errors.New("zabbix: the selected interface address must not be empty")
+		return ValidationError("the selected interface address must not be empty")
 	}
 	if *p.Type == 2 {
 		if p.Details == nil || p.Details.Version == nil {
-			return errors.New("zabbix: new SNMP interfaces require details and version")
+			return ValidationError("new snmp interfaces require details and version")
 		}
 		if *p.Details.Version < 3 && (p.Details.Community == nil || *p.Details.Community == "") {
-			return errors.New("zabbix: SNMP versions 1 and 2 require community")
+			return ValidationError("snmp versions 1 and 2 require community")
 		}
 	}
 	return nil
@@ -1719,22 +1719,22 @@ func (p HostInterfaceUpdateInput) validateNewInterface() error {
 
 func (p ActionOperationInput) validateOperationType() error {
 	if p.OperationType == 0 && (p.OpMessage == nil || len(p.OpMessageGrp)+len(p.OpMessageUsr) == 0) {
-		return errors.New("zabbix: message operations require message settings and recipients")
+		return ValidationError("message operations require message settings and recipients")
 	}
 	if p.OperationType == 1 && p.OpCommand == nil {
-		return errors.New("zabbix: script operations require a script")
+		return ValidationError("script operations require a script")
 	}
 	if (p.OperationType == 4 || p.OperationType == 5) && len(p.OpGroup) == 0 {
-		return errors.New("zabbix: host group operations require groups")
+		return ValidationError("host group operations require groups")
 	}
 	if (p.OperationType == 6 || p.OperationType == 7) && len(p.OpTemplate) == 0 {
-		return errors.New("zabbix: template operations require templates")
+		return ValidationError("template operations require templates")
 	}
 	if p.OperationType == 10 && p.OpInventory == nil {
-		return errors.New("zabbix: inventory operations require inventory mode")
+		return ValidationError("inventory operations require inventory mode")
 	}
 	if p.OperationType < 0 || p.OperationType == 11 || p.OperationType == 12 || p.OperationType > 14 {
-		return errors.New("zabbix: unsupported action operation type")
+		return ValidationError("unsupported action operation type")
 	}
 	return nil
 }

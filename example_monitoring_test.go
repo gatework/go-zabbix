@@ -8,7 +8,7 @@ import (
 	"github.com/gatework/go-zabbix"
 )
 
-func ExampleMonitoringService_Traffic() {
+func ExampleMetricsService_Traffic() {
 	client, err := zabbix.New("https://monitor.example/api_jsonrpc.php", zabbix.WithAPIToken("configured-api-token"))
 	if err != nil {
 		panic(err)
@@ -17,7 +17,7 @@ func ExampleMonitoringService_Traffic() {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	till := time.Now().UTC().Truncate(time.Second)
-	series, err := client.Monitoring().Traffic(ctx, zabbix.TrafficQuery{
+	series, err := client.Metrics().Traffic(ctx, zabbix.TrafficQuery{
 		HostID: "10084", ItemID: "42001", From: till.Add(-time.Hour).Unix(), Till: till.Unix(),
 	})
 	if err != nil {

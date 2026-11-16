@@ -65,7 +65,7 @@ func TestWebClient_ClearSessionSupersedesLogin(t *testing.T) {
 	close(release)
 	select {
 	case err := <-done:
-		if !errors.Is(err, zabbix.ErrWebAuthentication) {
+		if !errors.Is(err, zabbix.WebErrorAuthenticationRequired) {
 			t.Fatalf("superseded login: %v", err)
 		}
 	case <-ctx.Done():
@@ -74,7 +74,7 @@ func TestWebClient_ClearSessionSupersedesLogin(t *testing.T) {
 	if revoked.Load() != 1 {
 		t.Fatalf("cleanup requests = %d", revoked.Load())
 	}
-	if _, err := client.Chart(ctx, chartRequest()); !errors.Is(err, zabbix.ErrWebAuthentication) {
+	if _, err := client.Chart(ctx, chartRequest()); !errors.Is(err, zabbix.WebErrorAuthenticationRequired) {
 		t.Fatalf("late login restored cleared cookies: %v", err)
 	}
 }
@@ -116,7 +116,7 @@ func TestWebClient_CookiesArePrivateAndFailedLogoutRetainsSession(t *testing.T) 
 	if err := client.ClearSession(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := client.Chart(t.Context(), chartRequest()); !errors.Is(err, zabbix.ErrWebAuthentication) {
+	if _, err := client.Chart(t.Context(), chartRequest()); !errors.Is(err, zabbix.WebErrorAuthenticationRequired) {
 		t.Fatal(err)
 	}
 }
@@ -132,7 +132,7 @@ func TestClient_ZeroValueRequestsReturnErrors(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			var requestErr *zabbix.RequestError
-			if err := invoke(); !errors.As(err, &requestErr) || requestErr.Kind != zabbix.ErrorInvalidParams {
+			if err := invoke(); !errors.As(err, &requestErr) || requestErr.Kind != zabbix.ErrorKindInvalidParams {
 				t.Fatalf("zero client = %v", err)
 			}
 		})

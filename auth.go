@@ -69,11 +69,11 @@ func (c *Client) authSnapshot() (credentials, uint64) {
 
 func validateToken(token string) error {
 	if strings.TrimSpace(token) == "" {
-		return errors.New("zabbix: credential token must not be blank")
+		return ValidationError("credential token must not be blank")
 	}
 	for i := range len(token) {
 		if token[i] <= 0x20 || token[i] == 0x7f {
-			return errors.New("zabbix: credential token contains whitespace or control characters")
+			return ValidationError("credential token contains whitespace or control characters")
 		}
 	}
 	return nil
@@ -118,7 +118,7 @@ func (c *Client) LoginWithUserData(ctx context.Context, username, password strin
 
 func (c *Client) login(ctx context.Context, username, password string, userData bool) (*Session, error) {
 	if ctx == nil {
-		return nil, requestError("user.login", ErrorInvalidParams, errors.New("context must not be nil"))
+		return nil, requestError("user.login", ErrorKindInvalidParams, errors.New("context must not be nil"))
 	}
 	c.mu.Lock()
 	c.generation++
@@ -138,20 +138,20 @@ func (c *Client) login(ctx context.Context, username, password string, userData 
 			SessionID string `json:"sessionid"`
 		}
 		if err := json.Unmarshal(raw, &result); err != nil {
-			return nil, requestError("user.login", ErrorDecode, err)
+			return nil, requestError("user.login", ErrorKindDecode, err)
 		}
 		sessionID = result.SessionID
 	} else if err := json.Unmarshal(raw, &sessionID); err != nil {
-		return nil, requestError("user.login", ErrorDecode, err)
+		return nil, requestError("user.login", ErrorKindDecode, err)
 	}
 	if err := validateToken(sessionID); err != nil {
-		return nil, requestError("user.login", ErrorProtocol, err)
+		return nil, requestError("user.login", ErrorKindProtocol, err)
 	}
 	session := &Session{SessionID: sessionID}
 	if userData {
 		if err := json.Unmarshal(raw, session); err != nil {
 			cleanupErr := c.cleanupSession(ctx, sessionID)
-			return nil, requestError("user.login", ErrorDecode, errors.Join(err, cleanupErr))
+			return nil, requestError("user.login", ErrorKindDecode, errors.Join(err, cleanupErr))
 		}
 	}
 	c.mu.Lock()
@@ -162,7 +162,7 @@ func (c *Client) login(ctx context.Context, username, password string, userData 
 	}
 	c.mu.Unlock()
 	cleanupErr := c.cleanupSession(ctx, sessionID)
-	return nil, requestError("user.login", ErrorAuth, errors.Join(ErrAuthStateChanged, cleanupErr))
+	return nil, requestError("user.login", ErrorKindAuthentication, errors.Join(AuthenticationErrorStateChanged, cleanupErr))
 }
 
 func (c *Client) cleanupSession(ctx context.Context, token string) error {
@@ -173,16 +173,16 @@ func (c *Client) cleanupSession(ctx context.Context, token string) error {
 
 // Logout invalidates the current session and clears it only if no newer
 // authentication operation or credential setter has superseded it. API tokens
-// return ErrNotSession without a request. With no credentials, Logout succeeds
+// return AuthenticationErrorSessionRequired without a request. With no credentials, Logout succeeds
 // and supersedes any pending login. A false server result leaves credentials set.
 func (c *Client) Logout(ctx context.Context) error {
 	if ctx == nil {
-		return requestError("user.logout", ErrorInvalidParams, errors.New("context must not be nil"))
+		return requestError("user.logout", ErrorKindInvalidParams, errors.New("context must not be nil"))
 	}
 	c.mu.Lock()
 	if c.credentials.kind == credentialAPI {
 		c.mu.Unlock()
-		return requestError("user.logout", ErrorAuth, ErrNotSession)
+		return requestError("user.logout", ErrorKindAuthentication, AuthenticationErrorSessionRequired)
 	}
 	c.generation++
 	generation := c.generation
@@ -197,7 +197,7 @@ func (c *Client) Logout(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.generation != generation {
-		return requestError("user.logout", ErrorAuth, ErrAuthStateChanged)
+		return requestError("user.logout", ErrorKindAuthentication, AuthenticationErrorStateChanged)
 	}
 	c.credentials = credentials{}
 	return nil
@@ -209,7 +209,7 @@ func (c *Client) logoutSession(ctx context.Context, token string) error {
 		return err
 	}
 	if !ok {
-		return requestError("user.logout", ErrorProtocol, errors.New("logout result is not true"))
+		return requestError("user.logout", ErrorKindProtocol, errors.New("logout result is not true"))
 	}
 	return nil
 }

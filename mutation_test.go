@@ -49,7 +49,7 @@ func TestMutationRejectsInvalidInputBeforeSending(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			var requestErr *RequestError
-			if err := call(); !errors.As(err, &requestErr) || requestErr.Kind != ErrorInvalidParams {
+			if err := call(); !errors.As(err, &requestErr) || requestErr.Kind != ErrorKindInvalidParams {
 				t.Fatalf("want invalid input error, got %v", err)
 			}
 		})
@@ -98,7 +98,7 @@ func TestSingletonUpdateRequiresFieldsAndPreservesExplicitZero(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			var requestErr *RequestError
-			if err := update(); !errors.As(err, &requestErr) || requestErr.Kind != ErrorInvalidParams {
+			if err := update(); !errors.As(err, &requestErr) || requestErr.Kind != ErrorKindInvalidParams {
 				t.Fatalf("empty singleton update = %v", err)
 			}
 		})
@@ -186,7 +186,7 @@ func TestNumericMutationIDsRemainInvalidOutsideKnownMethods(t *testing.T) {
 	})
 	ids, err := c.HostGroup().Delete(context.Background(), "9007199254740993")
 	var requestErr *RequestError
-	if err == nil || ids != nil || !errors.As(err, &requestErr) || requestErr.Kind != ErrorDecode {
+	if err == nil || ids != nil || !errors.As(err, &requestErr) || requestErr.Kind != ErrorKindDecode {
 		t.Fatalf("numeric IDs accepted outside known methods: %v, error = %v", ids, err)
 	}
 }
@@ -215,7 +215,7 @@ func TestEventAcknowledgeRejectsIncompleteOrConflictingActions(t *testing.T) {
 			params.EventIDs = []string{"42"}
 			_, err := c.Event().Acknowledge(context.Background(), params)
 			var requestErr *RequestError
-			if !errors.As(err, &requestErr) || requestErr.Kind != ErrorInvalidParams || requestErr.Method != "event.acknowledge" {
+			if !errors.As(err, &requestErr) || requestErr.Kind != ErrorKindInvalidParams || requestErr.Method != "event.acknowledge" {
 				t.Fatalf("invalid event update = %v", err)
 			}
 		})

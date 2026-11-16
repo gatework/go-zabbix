@@ -95,7 +95,7 @@ func TestResponseEnvelopeValidation(t *testing.T) {
 			if err == nil {
 				t.Fatal("invalid response envelope was accepted")
 			}
-			if _, ok := AsAPIError(err); ok {
+			if _, ok := errors.AsType[*APIError](err); ok {
 				t.Fatal("malformed envelope was accepted as a valid API error")
 			}
 			if !reflect.DeepEqual(out, []string{"unchanged"}) {
@@ -182,7 +182,7 @@ func TestRedirectsAreRefusedWithoutMutatingInjectedClient(t *testing.T) {
 	}
 }
 
-func TestHTTPErrorBodyIsNotExposed(t *testing.T) {
+func TestHTTPStatusErrorBodyIsNotExposed(t *testing.T) {
 	for _, status := range []int{401, 403, 429, 500} {
 		t.Run(strconv.Itoa(status), func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

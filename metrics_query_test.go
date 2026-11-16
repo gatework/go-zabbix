@@ -15,23 +15,23 @@ import (
 	"github.com/gatework/go-zabbix"
 )
 
-type monitoringRPCRequest struct {
+type metricsRPCRequest struct {
 	JSONRPC string         `json:"jsonrpc"`
 	ID      int64          `json:"id"`
 	Method  string         `json:"method"`
 	Params  map[string]any `json:"params"`
 }
 
-func monitoringFixture(t *testing.T, response map[string]any) (*zabbix.MonitoringService, <-chan monitoringRPCRequest) {
+func metricsFixture(t *testing.T, response map[string]any) (*zabbix.MetricsService, <-chan metricsRPCRequest) {
 	t.Helper()
-	requests := make(chan monitoringRPCRequest, 1)
+	requests := make(chan metricsRPCRequest, 1)
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.Header.Get("Authorization") != "Bearer fixture-secret" {
 			t.Error("SDK request did not preserve POST/token authentication")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		var request monitoringRPCRequest
+		var request metricsRPCRequest
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Errorf("decode request: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
@@ -63,11 +63,11 @@ func monitoringFixture(t *testing.T, response map[string]any) (*zabbix.Monitorin
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := client.Monitoring()
+	p := client.Metrics()
 	return p, requests
 }
 
-func assertMonitoringRequest(t *testing.T, requests <-chan monitoringRPCRequest, method, params string) {
+func assertMetricsRequest(t *testing.T, requests <-chan metricsRPCRequest, method, params string) {
 	t.Helper()
 	var want map[string]any
 	if err := json.Unmarshal([]byte(params), &want); err != nil {
@@ -83,21 +83,21 @@ func assertMonitoringRequest(t *testing.T, requests <-chan monitoringRPCRequest,
 	}
 }
 
-func TestMonitoringHostAndItemLookupsAreBoundedAndRejectWrongOwnership(t *testing.T) {
+func TestMetricsHostAndItemLookupsAreBoundedAndRejectWrongOwnership(t *testing.T) {
 	hostRows := make([]map[string]string, 51)
 	for i := range hostRows {
 		hostRows[i] = map[string]string{"hostid": fmt.Sprint(i + 1), "name": "Router", "host": "router"}
 	}
-	p, requests := monitoringFixture(t, map[string]any{"result": hostRows})
+	p, requests := metricsFixture(t, map[string]any{"result": hostRows})
 	hosts, err := p.Hosts(t.Context(), " router ")
 	if err != nil || len(hosts.Items) != 50 || !hosts.HasMore || hosts.Items[49].ID != "50" {
 		t.Fatalf("host bound: %+v %v", hosts, err)
 	}
-	assertMonitoringRequest(t, requests, "host.get", `{
+	assertMetricsRequest(t, requests, "host.get", `{
 		"output":["hostid","name","host"],"search":{"name":"router","host":"router"},
 		"searchByAny":true,"sortfield":["name"],"limit":51
 	}`)
-	p, requests = monitoringFixture(t, map[string]any{"result": []map[string]string{
+	p, requests = metricsFixture(t, map[string]any{"result": []map[string]string{
 		{"itemid": "1", "hostid": "1", "name": "Receive", "key_": "net.if.in", "units": "bps", "value_type": "3", "status": "0"},
 		{"itemid": "2", "hostid": "2", "name": "Other host", "units": "bps", "value_type": "3", "status": "0"},
 		{"itemid": "3", "hostid": "1", "units": "B", "value_type": "3", "status": "0"},
@@ -108,19 +108,19 @@ func TestMonitoringHostAndItemLookupsAreBoundedAndRejectWrongOwnership(t *testin
 	if err != nil || len(items.Items) != 1 || items.Items[0].ID != "1" || items.HasMore {
 		t.Fatalf("unsafe items: %+v %v", items, err)
 	}
-	assertMonitoringRequest(t, requests, "item.get", `{
+	assertMetricsRequest(t, requests, "item.get", `{
 		"output":["itemid","hostid","name","key_","units","value_type","status","state","lastvalue","lastclock"],
 		"hostids":["1"],"filter":{"value_type":["0","3"],"status":"0","units":["bps","Bps"]},
 		"sortfield":["name"],"limit":201
 	}`)
 	for _, keyword := range []string{"", strings.Repeat("a", 129), "a\x00b"} {
-		if _, err = p.Hosts(t.Context(), keyword); !errors.Is(err, zabbix.ErrMonitoringInput) {
+		if _, err = p.Hosts(t.Context(), keyword); !errors.Is(err, zabbix.MetricErrorInvalidQuery) {
 			t.Fatalf("bad host search: %v", err)
 		}
 	}
 }
 
-func TestMonitoringItemSearchLimitPrecedesBusinessFiltering(t *testing.T) {
+func TestMetricsItemSearchLimitPrecedesBusinessFiltering(t *testing.T) {
 	rows := make([]map[string]string, 201)
 	for i := range rows {
 		rows[i] = map[string]string{
@@ -129,30 +129,30 @@ func TestMonitoringItemSearchLimitPrecedesBusinessFiltering(t *testing.T) {
 		}
 	}
 	rows[200]["hostid"] = "1"
-	p, requests := monitoringFixture(t, map[string]any{"result": rows})
+	p, requests := metricsFixture(t, map[string]any{"result": rows})
 	items, err := p.Items(t.Context(), "1", " Receive ")
 	if err != nil || len(items.Items) != 0 || !items.HasMore {
 		t.Fatalf("item bound must precede filtering: %+v %v", items, err)
 	}
-	assertMonitoringRequest(t, requests, "item.get", `{
+	assertMetricsRequest(t, requests, "item.get", `{
 		"output":["itemid","hostid","name","key_","units","value_type","status","state","lastvalue","lastclock"],
 		"hostids":["1"],"filter":{"value_type":["0","3"],"status":"0","units":["bps","Bps"]},
 		"search":{"name":"Receive","key_":"Receive"},"searchByAny":true,"sortfield":["name"],"limit":201
 	}`)
 }
 
-func TestMonitoringHostAndItemBindings(t *testing.T) {
-	p, requests := monitoringFixture(t, map[string]any{"result": []map[string]string{
+func TestMetricsHostAndItemBindings(t *testing.T) {
+	p, requests := metricsFixture(t, map[string]any{"result": []map[string]string{
 		{"hostid": "1", "name": "Router", "host": "router"},
 	}})
 	host, err := p.Host(t.Context(), "1")
 	if err != nil || host != (zabbix.MonitoredHost{ID: "1", Name: "Router", Host: "router"}) {
 		t.Fatalf("host = %+v, %v", host, err)
 	}
-	assertMonitoringRequest(t, requests, "host.get", `{
+	assertMetricsRequest(t, requests, "host.get", `{
 		"output":["hostid","name","host"],"hostids":["1"],"limit":2
 	}`)
-	p, requests = monitoringFixture(t, map[string]any{"result": []map[string]string{
+	p, requests = metricsFixture(t, map[string]any{"result": []map[string]string{
 		{
 			"itemid": "10", "hostid": "1", "name": "Receive", "key_": "net.if.in", "units": "Bps",
 			"value_type": "0", "status": "0", "state": "1", "lastvalue": "12.5", "lastclock": "1234",
@@ -166,7 +166,7 @@ func TestMonitoringHostAndItemBindings(t *testing.T) {
 	if err != nil || item != want || !item.IsRateFor("1") {
 		t.Fatalf("item = %+v, %v; want %+v", item, err, want)
 	}
-	assertMonitoringRequest(t, requests, "item.get", `{
+	assertMetricsRequest(t, requests, "item.get", `{
 		"output":["itemid","hostid","name","key_","units","value_type","status","state","lastvalue","lastclock"],
 		"itemids":["10"],"limit":2
 	}`)
@@ -180,27 +180,27 @@ func TestMonitoringHostAndItemBindings(t *testing.T) {
 		{name: "invalid text", result: `[{"hostid":"1","itemid":"1","name":"bad\u0000name"}]`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			p, requests := monitoringFixture(t, map[string]any{"result": json.RawMessage(tc.result)})
-			if _, err := p.Host(t.Context(), "1"); !errors.Is(err, zabbix.ErrMonitoringBinding) {
+			p, requests := metricsFixture(t, map[string]any{"result": json.RawMessage(tc.result)})
+			if _, err := p.Host(t.Context(), "1"); !errors.Is(err, zabbix.MetricErrorUnavailable) {
 				t.Fatalf("host binding error = %v", err)
 			}
 			<-requests
-			if _, err := p.Item(t.Context(), "1"); !errors.Is(err, zabbix.ErrMonitoringBinding) {
+			if _, err := p.Item(t.Context(), "1"); !errors.Is(err, zabbix.MetricErrorUnavailable) {
 				t.Fatalf("item binding error = %v", err)
 			}
 		})
 	}
 }
 
-func TestMonitoringItemsMalformedList(t *testing.T) {
-	p, _ := monitoringFixture(t, map[string]any{"result": json.RawMessage(`[null]`)})
+func TestMetricsItemsMalformedList(t *testing.T) {
+	p, _ := metricsFixture(t, map[string]any{"result": json.RawMessage(`[null]`)})
 	items, err := p.Items(t.Context(), "1", "")
 	if err == nil || len(items.Items) != 0 || items.HasMore {
 		t.Fatalf("malformed list = %+v, %v; want upstream error", items, err)
 	}
 }
 
-func TestMonitoringHistoryCapValueTypesAndTrendQuery(t *testing.T) {
+func TestMetricsHistoryCapValueTypesAndTrendQuery(t *testing.T) {
 	for _, valueType := range []string{"0", "3"} {
 		t.Run(valueType, func(t *testing.T) {
 			result := make([]map[string]string, 12002)
@@ -208,18 +208,18 @@ func TestMonitoringHistoryCapValueTypesAndTrendQuery(t *testing.T) {
 				result[i] = map[string]string{"clock": fmt.Sprint(20000 - i), "value": "1.25"}
 			}
 			result[12000]["value"] = "900"
-			p, requests := monitoringFixture(t, map[string]any{"result": result})
+			p, requests := metricsFixture(t, map[string]any{"result": result})
 			rows, partial, err := p.History(t.Context(), "10", valueType, 0, 20000)
 			if err != nil || len(rows) != 12001 || !partial || rows[12000].Value != "900" {
 				t.Fatalf("history cap: %d %v %v", len(rows), partial, err)
 			}
-			assertMonitoringRequest(t, requests, "history.get", fmt.Sprintf(`{
+			assertMetricsRequest(t, requests, "history.get", fmt.Sprintf(`{
 				"output":["clock","value"],"itemids":["10"],"history":%s,"time_from":0,"time_till":20000,
 				"sortfield":["clock"],"sortorder":["DESC"],"limit":12001
 			}`, valueType))
 		})
 	}
-	p, requests := monitoringFixture(t, map[string]any{"result": []map[string]string{
+	p, requests := metricsFixture(t, map[string]any{"result": []map[string]string{
 		{"clock": "1000", "num": "3", "value_avg": "12.5", "value_max": "900"},
 		{"clock": "0", "num": "1", "value_avg": "2", "value_max": "3"},
 	}})
@@ -227,31 +227,31 @@ func TestMonitoringHistoryCapValueTypesAndTrendQuery(t *testing.T) {
 	if err != nil || partial || len(rows) != 2 || rows[0] != (zabbix.MetricTrend{Clock: 1000, Count: 3, Avg: "12.5", Max: "900"}) || rows[1].Clock != 0 {
 		t.Fatalf("trend observations changed: %+v %v %v", rows, partial, err)
 	}
-	assertMonitoringRequest(t, requests, "trend.get", `{
+	assertMetricsRequest(t, requests, "trend.get", `{
 		"output":["clock","num","value_avg","value_max"],"itemids":["10"],"time_from":0,"time_till":2000,"limit":201
 	}`)
 }
 
-func TestMonitoringTrendProbeRemainsAvailableForPeak(t *testing.T) {
+func TestMetricsTrendProbeRemainsAvailableForPeak(t *testing.T) {
 	result := make([]map[string]string, 202)
 	for i := range result {
 		result[i] = map[string]string{"clock": fmt.Sprint(i * 3600), "num": "1", "value_avg": "1", "value_max": "1"}
 	}
 	result[200]["value_max"] = "900"
-	p, _ := monitoringFixture(t, map[string]any{"result": result})
+	p, _ := metricsFixture(t, map[string]any{"result": result})
 	rows, partial, err := p.Trends(t.Context(), "10", 0, 200*3600)
 	if err != nil || !partial || len(rows) != 201 || rows[200].Max != "900" {
 		t.Fatalf("trend probe lost: length=%d partial=%v error=%v", len(rows), partial, err)
 	}
 }
 
-func TestMonitoringEmptySeriesPreserveZeroTimeBounds(t *testing.T) {
-	p, requests := monitoringFixture(t, map[string]any{"result": json.RawMessage(`[]`)})
+func TestMetricsEmptySeriesPreserveZeroTimeBounds(t *testing.T) {
+	p, requests := metricsFixture(t, map[string]any{"result": json.RawMessage(`[]`)})
 	samples, partial, err := p.History(t.Context(), "10", "0", 0, 0)
 	if err != nil || partial || samples == nil || len(samples) != 0 {
 		t.Fatalf("empty history = %+v, %v, %v", samples, partial, err)
 	}
-	assertMonitoringRequest(t, requests, "history.get", `{
+	assertMetricsRequest(t, requests, "history.get", `{
 		"output":["clock","value"],"itemids":["10"],"history":0,"time_from":0,"time_till":0,
 		"sortfield":["clock"],"sortorder":["DESC"],"limit":12001
 	}`)
@@ -259,12 +259,12 @@ func TestMonitoringEmptySeriesPreserveZeroTimeBounds(t *testing.T) {
 	if err != nil || partial || trends == nil || len(trends) != 0 {
 		t.Fatalf("empty trends = %+v, %v, %v", trends, partial, err)
 	}
-	assertMonitoringRequest(t, requests, "trend.get", `{
+	assertMetricsRequest(t, requests, "trend.get", `{
 		"output":["clock","num","value_avg","value_max"],"itemids":["10"],"time_from":0,"time_till":0,"limit":201
 	}`)
 }
 
-func TestMonitoringSampleTimesAndCountsRejectMalformedValues(t *testing.T) {
+func TestMetricsSampleTimesAndCountsRejectMalformedValues(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		result string
@@ -277,14 +277,14 @@ func TestMonitoringSampleTimesAndCountsRejectMalformedValues(t *testing.T) {
 		{name: "trend negative count", result: `[{"clock":"0","num":"-1"}]`, trend: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			p, _ := monitoringFixture(t, map[string]any{"result": json.RawMessage(tc.result)})
+			p, _ := metricsFixture(t, map[string]any{"result": json.RawMessage(tc.result)})
 			var err error
 			if tc.trend {
 				_, _, err = p.Trends(t.Context(), "10", 0, 1000)
 			} else {
 				_, _, err = p.History(t.Context(), "10", "0", 0, 1000)
 			}
-			if !errors.Is(err, zabbix.ErrMonitoringData) {
+			if !errors.Is(err, zabbix.MetricErrorInvalidData) {
 				t.Fatalf("malformed observation error = %v", err)
 			}
 		})

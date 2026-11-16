@@ -2,24 +2,12 @@ package zabbix
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
-)
-
-var (
-	// ErrWebInput indicates an invalid frontend endpoint, session or chart request.
-	ErrWebInput = errors.New("zabbix: invalid web request")
-	// ErrWebAuthentication indicates that a frontend login or session was rejected.
-	ErrWebAuthentication = errors.New("zabbix: web authentication required")
-	// ErrWebInteractiveLogin indicates that SSO or MFA needs an external login flow.
-	ErrWebInteractiveLogin = errors.New("zabbix: interactive web login required")
-	// ErrWebImage indicates that the response is not a usable chart PNG.
-	ErrWebImage = errors.New("zabbix: invalid web chart image")
 )
 
 // WebOptions configures web access independently from API bearer credentials.
@@ -55,10 +43,10 @@ func NewWebClient(baseURL string, options WebOptions) (*WebClient, error) {
 	base, err := url.Parse(baseURL)
 	if err != nil || base.Hostname() == "" || base.User != nil || base.RawQuery != "" || base.ForceQuery ||
 		strings.Contains(baseURL, "#") || (base.Scheme != "https" && base.Scheme != "http") {
-		return nil, ErrWebInput
+		return nil, WebErrorInvalidRequest
 	}
 	if strings.HasSuffix(base.Path, ".php") || strings.Contains(base.Path, "\\") {
-		return nil, ErrWebInput
+		return nil, WebErrorInvalidRequest
 	}
 	base.Path = strings.TrimRight(base.Path, "/") + "/"
 	base.RawPath = ""
@@ -66,19 +54,19 @@ func NewWebClient(baseURL string, options WebOptions) (*WebClient, error) {
 		options.MaxImageBytes = 8 << 20
 	}
 	if options.MaxImageBytes < 1 || options.MaxImageBytes > 64<<20 {
-		return nil, ErrWebInput
+		return nil, WebErrorInvalidRequest
 	}
 	cfg := clientConfig{httpClient: options.HTTPClient, maxBytes: options.MaxImageBytes}
 	if err := cfg.validate(); err != nil {
-		return nil, ErrWebInput
+		return nil, WebErrorInvalidRequest
 	}
 	hc, owned, err := cfg.buildHTTPClient()
 	if err != nil {
-		return nil, ErrWebInput
+		return nil, WebErrorInvalidRequest
 	}
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		return nil, ErrWebInput
+		return nil, WebErrorInvalidRequest
 	}
 	if hc.Jar != nil {
 		jar.SetCookies(base, hc.Jar.Cookies(base))
@@ -108,7 +96,7 @@ func (w *WebClient) CloseIdleConnections() {
 // use Logout when revocation is required. An in-flight login cannot restore it.
 func (w *WebClient) ClearSession() error {
 	if w == nil || w.base == nil {
-		return ErrWebInput
+		return WebErrorInvalidRequest
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -123,7 +111,7 @@ func (w *WebClient) ClearSession() error {
 
 func (w *WebClient) snapshot(ctx context.Context) (*http.Client, uint64, error) {
 	if ctx == nil || w == nil || w.base == nil {
-		return nil, 0, ErrWebInput
+		return nil, 0, WebErrorInvalidRequest
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, 0, err
@@ -140,7 +128,7 @@ func (w *WebClient) endpoint(name string) *url.URL {
 func freshWebClient(previous *http.Client) (*http.Client, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		return nil, ErrWebInput
+		return nil, WebErrorInvalidRequest
 	}
 	next := *previous
 	next.Jar = jar

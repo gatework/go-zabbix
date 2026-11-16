@@ -14,23 +14,23 @@ import (
 func queryArguments(method string, params any) (map[string]json.RawMessage, error) {
 	encoded, err := json.Marshal(params)
 	if err != nil {
-		return nil, requestError(method, ErrorInvalidParams, err)
+		return nil, requestError(method, ErrorKindInvalidParams, err)
 	}
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(encoded, &fields); err != nil || fields == nil {
-		return nil, requestError(method, ErrorInvalidParams, errors.New("query parameters must be an object"))
+		return nil, requestError(method, ErrorKindInvalidParams, errors.New("query parameters must be an object"))
 	}
 	for field, raw := range fields {
 		allowCount, selector := querySelectors[method][field]
 		if field == "output" || selector {
 			if err := validateSelection(raw, allowCount); err != nil {
-				return nil, requestError(method, ErrorInvalidParams, fmt.Errorf("%s: %w", field, err))
+				return nil, requestError(method, ErrorKindInvalidParams, fmt.Errorf("%s: %w", field, err))
 			}
 		}
 		if field == "limit" {
 			var limit int64
 			if err := json.Unmarshal(raw, &limit); err != nil || limit <= 0 || limit > 2147483647 {
-				return nil, requestError(method, ErrorInvalidParams, errors.New("limit must be between 1 and 2147483647"))
+				return nil, requestError(method, ErrorKindInvalidParams, errors.New("limit must be between 1 and 2147483647"))
 			}
 		}
 	}
@@ -76,7 +76,7 @@ func getList[T any](ctx context.Context, client *Client, method string, params a
 	}
 	items, err := decodeObjectList[T](raw)
 	if err != nil {
-		return nil, requestError(method, ErrorDecode, err)
+		return nil, requestError(method, ErrorKindDecode, err)
 	}
 	return items, nil
 }
@@ -93,7 +93,7 @@ func getMap[T any](ctx context.Context, client *Client, method string, params an
 	}
 	items, err := decodeObjectMap[T](raw)
 	if err != nil {
-		return nil, requestError(method, ErrorDecode, err)
+		return nil, requestError(method, ErrorKindDecode, err)
 	}
 	return items, nil
 }
@@ -110,7 +110,7 @@ func getCount(ctx context.Context, client *Client, method string, params any) (u
 	}
 	count, err := decodeCount(raw)
 	if err != nil {
-		return 0, requestError(method, ErrorDecode, err)
+		return 0, requestError(method, ErrorKindDecode, err)
 	}
 	return count, nil
 }
@@ -122,11 +122,11 @@ func getSingleton[T any](ctx context.Context, client *Client, method string) (*T
 	}
 	raw = bytes.TrimSpace(raw)
 	if len(raw) == 0 || raw[0] != '{' {
-		return nil, requestError(method, ErrorDecode, errors.New("expected an object"))
+		return nil, requestError(method, ErrorKindDecode, errors.New("expected an object"))
 	}
 	var result T
 	if err := json.Unmarshal(raw, &result); err != nil {
-		return nil, requestError(method, ErrorDecode, err)
+		return nil, requestError(method, ErrorKindDecode, err)
 	}
 	return &result, nil
 }

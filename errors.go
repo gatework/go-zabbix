@@ -1,6 +1,7 @@
 package zabbix
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 )
@@ -10,22 +11,75 @@ type ErrorKind string
 
 // Request failure categories.
 const (
-	ErrorInvalidParams ErrorKind = "invalid parameters"
-	ErrorTransport     ErrorKind = "transport error"
-	ErrorHTTP          ErrorKind = "HTTP error"
-	ErrorAPI           ErrorKind = "API error"
-	ErrorProtocol      ErrorKind = "protocol error"
-	ErrorDecode        ErrorKind = "decode error"
-	ErrorResponseLimit ErrorKind = "response limit exceeded"
-	ErrorAuth          ErrorKind = "authentication error"
+	ErrorKindUnknown        ErrorKind = ""
+	ErrorKindInvalidParams  ErrorKind = "invalid parameters"
+	ErrorKindTransport      ErrorKind = "transport error"
+	ErrorKindHTTP           ErrorKind = "http error"
+	ErrorKindAPI            ErrorKind = "api error"
+	ErrorKindProtocol       ErrorKind = "protocol error"
+	ErrorKindDecode         ErrorKind = "decode error"
+	ErrorKindResponseLimit  ErrorKind = "response limit exceeded"
+	ErrorKindAuthentication ErrorKind = "authentication error"
 )
 
-// ErrAuthStateChanged means a newer authentication operation or credential
-// setter superseded an in-flight operation. Its result was not installed.
-var ErrAuthStateChanged = errors.New("zabbix: authentication state changed")
+// AuthenticationError identifies a local credential lifecycle failure.
+// Its comparable values support errors.Is; errors.AsType extracts the category.
+type AuthenticationError string
 
-// ErrNotSession means Logout was called with API-token credentials.
-var ErrNotSession = errors.New("zabbix: API token credentials cannot be logged out")
+// Credential lifecycle failures.
+//
+//nolint:errname // Typed error constants follow their XxxError type prefix.
+const (
+	// AuthenticationErrorUnknown is the unclassified zero value.
+	AuthenticationErrorUnknown AuthenticationError = ""
+	// AuthenticationErrorStateChanged means a newer operation superseded the result.
+	AuthenticationErrorStateChanged AuthenticationError = "authentication state changed"
+	// AuthenticationErrorSessionRequired means logout requires session credentials.
+	AuthenticationErrorSessionRequired AuthenticationError = "session credentials required for logout"
+)
+
+func (e AuthenticationError) Error() string {
+	return "zabbix: " + cmp.Or(string(e), "authentication error")
+}
+
+// MetricError identifies an invalid query, unavailable binding or malformed observation.
+// It does not retain upstream payloads or application data.
+type MetricError string
+
+// Bounded metric-query failures.
+//
+//nolint:errname // Typed error constants follow their XxxError type prefix.
+const (
+	MetricErrorUnknown      MetricError = ""
+	MetricErrorInvalidQuery MetricError = "invalid metric query"
+	MetricErrorUnavailable  MetricError = "metric object unavailable"
+	MetricErrorInvalidData  MetricError = "invalid metric data"
+)
+
+func (e MetricError) Error() string { return "zabbix: " + cmp.Or(string(e), "metric error") }
+
+// WebError identifies a web request, session or chart-image failure.
+// It does not retain credentials, cookies or response bodies.
+type WebError string
+
+// Web-session and chart failures.
+//
+//nolint:errname // Typed error constants follow their XxxError type prefix.
+const (
+	WebErrorUnknown                  WebError = ""
+	WebErrorInvalidRequest           WebError = "invalid web request"
+	WebErrorAuthenticationRequired   WebError = "web authentication required"
+	WebErrorInteractiveLoginRequired WebError = "interactive web login required"
+	WebErrorInvalidChartImage        WebError = "invalid web chart image"
+)
+
+func (e WebError) Error() string { return "zabbix: " + cmp.Or(string(e), "web error") }
+
+// ValidationError describes an invalid local configuration or input field.
+// SDK-created values contain field names and constraints, never input values.
+type ValidationError string
+
+func (e ValidationError) Error() string { return "zabbix: " + cmp.Or(string(e), "invalid parameters") }
 
 // RequestError attaches the RPC method and failure category while retaining the
 // cause for errors.Is/errors.As. Error deliberately omits the cause's text: it
@@ -40,16 +94,18 @@ type RequestError struct {
 func (e *RequestError) Error() string {
 	detail := string(e.Kind)
 	switch e.Kind {
-	case ErrorHTTP:
-		if httpErr, ok := errors.AsType[*HTTPError](e.Err); ok {
-			detail = fmt.Sprintf("unexpected HTTP status %d", httpErr.StatusCode)
+	case ErrorKindUnknown:
+		detail = "unknown request error"
+	case ErrorKindHTTP:
+		if httpErr, ok := errors.AsType[*HTTPStatusError](e.Err); ok {
+			detail = fmt.Sprintf("unexpected http status %d", httpErr.StatusCode)
 		}
-	case ErrorAPI:
-		if apiErr, ok := AsAPIError(e.Err); ok {
-			detail = fmt.Sprintf("API error %d", apiErr.Code)
+	case ErrorKindAPI:
+		if apiErr, ok := errors.AsType[*APIError](e.Err); ok {
+			detail = fmt.Sprintf("api error %d", apiErr.Code)
 		}
-	case ErrorAuth:
-		if errors.Is(e.Err, ErrAuthStateChanged) {
+	case ErrorKindAuthentication:
+		if errors.Is(e.Err, AuthenticationErrorStateChanged) {
 			detail = "authentication state changed"
 		}
 	default:
@@ -67,13 +123,13 @@ func requestError(method string, kind ErrorKind, err error) error {
 	return &RequestError{Method: method, Kind: kind, Err: err}
 }
 
-// HTTPError reports a non-200 HTTP status without retaining a response body.
-type HTTPError struct {
+// HTTPStatusError reports a non-200 HTTP status without retaining a response body.
+type HTTPStatusError struct {
 	StatusCode int
 }
 
-func (e *HTTPError) Error() string {
-	return fmt.Sprintf("zabbix: unexpected HTTP status %d", e.StatusCode)
+func (e *HTTPStatusError) Error() string {
+	return fmt.Sprintf("zabbix: unexpected http status %d", e.StatusCode)
 }
 
 // APIError retains the structured Zabbix rejection. Message and Data are
@@ -84,12 +140,4 @@ type APIError struct {
 	Data    string `json:"data"`
 }
 
-func (e *APIError) Error() string { return fmt.Sprintf("zabbix API error %d", e.Code) }
-
-// AsAPIError extracts a Zabbix rejection through any wrapping error.
-func AsAPIError(err error) (*APIError, bool) {
-	if apiErr, ok := errors.AsType[*APIError](err); ok {
-		return apiErr, true
-	}
-	return nil, false
-}
+func (e *APIError) Error() string { return fmt.Sprintf("zabbix: api error %d", e.Code) }

@@ -1,3 +1,55 @@
+# v0.5.0
+
+Install with `go get github.com/gatework/go-zabbix@v0.5.0`. Go 1.26 or later
+is required.
+
+## Typed errors
+
+Error types use the `XxxError` form. Concrete authentication, metric and web
+reasons are typed constants instead of mutable `ErrXxx` variables. Use
+`errors.Is(err, MetricErrorUnavailable)` for one reason and
+`errors.AsType[MetricError](err)` for the category. These are values, not pointers.
+Local construction and field validation failures expose `ValidationError`.
+
+| Previous name | Replacement |
+| --- | --- |
+| `HTTPError` | `HTTPStatusError` |
+| `ErrAuthStateChanged` | `AuthenticationErrorStateChanged` |
+| `ErrNotSession` | `AuthenticationErrorSessionRequired` |
+| `ErrWebInput` | `WebErrorInvalidRequest` |
+| `ErrWebAuthentication` | `WebErrorAuthenticationRequired` |
+| `ErrWebInteractiveLogin` | `WebErrorInteractiveLoginRequired` |
+| `ErrWebImage` | `WebErrorInvalidChartImage` |
+| `AsAPIError(err)` | `errors.AsType[*APIError](err)` |
+
+`ErrorKind` constants now carry their full type prefix: for example,
+`ErrorInvalidParams` becomes `ErrorKindInvalidParams` and `ErrorAuth` becomes
+`ErrorKindAuthentication`. The explicit zero value is `ErrorKindUnknown`.
+`HTTPStatusError`, `APIError` and `RequestError` are still inspected as pointers.
+No compatibility aliases are retained. SDK error text is lowercase; code should
+match types or constants rather than messages. Response limits, request metadata,
+error chains and redaction behavior are preserved.
+
+## Metric query naming
+
+The bounded metric query service now uses `Metrics` names. Update callers and
+error checks together; no compatibility aliases are retained.
+
+| Previous name | Replacement |
+| --- | --- |
+| `Client.Monitoring()` | `Client.Metrics()` |
+| `MonitoringService` | `MetricsService` |
+| `MonitoringLookup` | `MetricLookup` |
+| `ErrMonitoringInput` | `MetricErrorInvalidQuery` |
+| `ErrMonitoringBinding` | `MetricErrorUnavailable` |
+| `ErrMonitoringData` | `MetricErrorInvalidData` |
+
+Metric lookup and history sources use `metrics_` names. Traffic composition
+lives in `traffic.go` beside `traffic_samples.go`. Query limits, validation,
+sample handling and wire formats retain their behavior. `ReadTraffic`,
+`TrafficSource` and the existing host, item, sample and series models retain
+their names.
+
 # v0.4.0 web client naming
 
 The web chart client now uses explicit web-client names. No compatibility
@@ -226,7 +278,7 @@ error message cannot. This shared validation also applies to item prototypes.
 
 ## Errors and raw calls
 
-Use `errors.As` to inspect `*RequestError`, `*HTTPError` or `*APIError`, and
+Use `errors.AsType` to inspect `*RequestError`, `*HTTPStatusError` or `*APIError`, and
 `errors.Is` for cancellation and timeout causes. Default error text contains
 request metadata; upstream API details remain available through `APIError`
 for deliberate inspection. Application-facing errors still require appropriate

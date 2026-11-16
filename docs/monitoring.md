@@ -1,14 +1,14 @@
 # Device, circuit and alert monitoring
 
-`Client.Monitoring()` owns device/item lookup, bounded history and trends, and
+`Client.Metrics()` owns device/item lookup, bounded history and trends, and
 traffic normalization. `WebClient` owns signed web sessions and PNG retrieval.
 Both live in go-zabbix and depend only on the standard library. Applications own
 their database records, permissions, circuit endpoints and notification delivery.
 
 ## Bind the physical interface
 
-Search `Monitoring().Hosts(ctx, keyword)`, then
-`Monitoring().Items(ctx, hostID, interfaceKeyword)`. Persist the selected host ID
+Search `Metrics().Hosts(ctx, keyword)`, then
+`Metrics().Items(ctx, hostID, interfaceKeyword)`. Persist the selected host ID
 and inbound/outbound item IDs along with the application's interface label.
 `HostInterface` is an SNMP/agent access endpoint, not an Ethernet port. Item names
 and SNMP ifIndex alone are not stable identities; revalidate ownership after
@@ -16,7 +16,7 @@ discovery or configuration changes. `Traffic` revalidates host and item identity
 on each read, including enabled status, numeric type, units and unsupported state.
 
 CPU, memory, availability and interface status use the existing typed `Host`,
-`Item`, `History`, `Problem` and `Trigger` APIs. The higher-level `Monitoring`
+`Item`, `History`, `Problem` and `Trigger` APIs. The higher-level `MetricsService`
 rate helpers deliberately accept only numeric `bps` and `Bps` items. Counters
 must already be preprocessed by Zabbix into rates; the SDK does not derive a
 rate from an unlabelled cumulative counter.
@@ -24,7 +24,7 @@ rate from an unlabelled cumulative counter.
 ## Fetch a period
 
 ```go
-series, err := client.Monitoring().Traffic(ctx, zabbix.TrafficQuery{
+series, err := client.Metrics().Traffic(ctx, zabbix.TrafficQuery{
     HostID: "10084", ItemID: "42001",
     From: from.Unix(), Till: till.Unix(), UseTrends: false,
 })

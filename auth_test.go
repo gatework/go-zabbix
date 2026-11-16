@@ -114,15 +114,15 @@ func TestInvalidAuthenticationResultsPreserveCredentials(t *testing.T) {
 		userData     bool
 		kind         ErrorKind
 	}{
-		{"empty token", `""`, false, ErrorProtocol},
-		{"blank token", `"  "`, false, ErrorProtocol},
-		{"wrong token type", `{}`, false, ErrorDecode},
-		{"missing session", `{}`, true, ErrorProtocol},
-		{"blank session", `{"sessionid":" "}`, true, ErrorProtocol},
-		{"null session", `{"sessionid":null}`, true, ErrorProtocol},
-		{"control in session", `{"sessionid":"session\nsecret"}`, true, ErrorProtocol},
-		{"numeric session", `{"sessionid":42}`, true, ErrorDecode},
-		{"wrong session type", `"session-secret"`, true, ErrorDecode},
+		{"empty token", `""`, false, ErrorKindProtocol},
+		{"blank token", `"  "`, false, ErrorKindProtocol},
+		{"wrong token type", `{}`, false, ErrorKindDecode},
+		{"missing session", `{}`, true, ErrorKindProtocol},
+		{"blank session", `{"sessionid":" "}`, true, ErrorKindProtocol},
+		{"null session", `{"sessionid":null}`, true, ErrorKindProtocol},
+		{"control in session", `{"sessionid":"session\nsecret"}`, true, ErrorKindProtocol},
+		{"numeric session", `{"sessionid":42}`, true, ErrorKindDecode},
+		{"wrong session type", `"session-secret"`, true, ErrorKindDecode},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -167,7 +167,7 @@ func TestInvalidLoginEnvelopeDoesNotAuthorizeCleanup(t *testing.T) {
 			}, WithAPIToken("original-token"))
 			session, err := c.LoginWithUserData(context.Background(), "Admin", "password")
 			var requestErr *RequestError
-			if session != nil || !errors.As(err, &requestErr) || requestErr.Kind != ErrorProtocol {
+			if session != nil || !errors.As(err, &requestErr) || requestErr.Kind != ErrorKindProtocol {
 				t.Fatalf("invalid login envelope: %v", err)
 			}
 			state, _ := c.authSnapshot()
@@ -221,7 +221,7 @@ func TestLogoutRequiresSessionAndSuccessfulResult(t *testing.T) {
 			if (err != nil) != tc.wantError || int(calls.Load()) != tc.wantCalls {
 				t.Fatalf("logout: error=%v calls=%d", err, calls.Load())
 			}
-			if tc.kind == credentialAPI && !errors.Is(err, ErrNotSession) {
+			if tc.kind == credentialAPI && !errors.Is(err, AuthenticationErrorSessionRequired) {
 				t.Fatalf("missing API-token error: %v", err)
 			}
 			wantCredentials := tc.wantError && tc.kind != credentialNone
@@ -275,7 +275,7 @@ func TestLogoutCannotClearNewerCredentials(t *testing.T) {
 				t.Fatal("pending logout blocked normal requests:", err)
 			}
 			unblock()
-			if err := awaitAuthResult(t, done); !errors.Is(err, ErrAuthStateChanged) {
+			if err := awaitAuthResult(t, done); !errors.Is(err, AuthenticationErrorStateChanged) {
 				t.Fatalf("stale logout: %v", err)
 			}
 			state, _ := c.authSnapshot()
@@ -345,7 +345,7 @@ func TestLaterLoginReservationSupersedesEarlierLogin(t *testing.T) {
 	go func() { second <- c.Login(context.Background(), "second", "password") }()
 	awaitRequestStart(t, secondStarted, second)
 	releaseFirst()
-	if err := awaitAuthResult(t, first); !errors.Is(err, ErrAuthStateChanged) {
+	if err := awaitAuthResult(t, first); !errors.Is(err, AuthenticationErrorStateChanged) {
 		t.Fatalf("older login committed while newer login pending: %v", err)
 	}
 	select {
@@ -459,19 +459,19 @@ func TestLoginCleanupIsBoundedAndPreservesErrors(t *testing.T) {
 			} else {
 				err = c.Login(ctx, "Admin", "password-secret")
 			}
-			wantKind := ErrorAuth
+			wantKind := ErrorKindAuthentication
 			if tc.malformed {
-				wantKind = ErrorDecode
+				wantKind = ErrorKindDecode
 			}
 			var requestErr *RequestError
 			if !errors.As(err, &requestErr) || requestErr.Method != "user.login" || requestErr.Kind != wantKind {
 				t.Fatalf("login failure kind: %v", err)
 			}
 			var decodeErr *json.UnmarshalTypeError
-			if errors.As(err, &decodeErr) != tc.malformed || errors.Is(err, ErrAuthStateChanged) == tc.malformed {
+			if errors.As(err, &decodeErr) != tc.malformed || errors.Is(err, AuthenticationErrorStateChanged) == tc.malformed {
 				t.Fatalf("login failure cause was lost: %v", err)
 			}
-			var httpErr *HTTPError
+			var httpErr *HTTPStatusError
 			if errors.As(err, &httpErr) != tc.cleanupFails || tc.cleanupFails && httpErr.StatusCode != http.StatusBadGateway {
 				t.Fatalf("cleanup cause was lost: %v", err)
 			}
@@ -522,7 +522,7 @@ func TestEmptyLogoutSupersedesPendingLogin(t *testing.T) {
 		t.Fatal(err)
 	}
 	unblock()
-	if err := awaitAuthResult(t, done); !errors.Is(err, ErrAuthStateChanged) {
+	if err := awaitAuthResult(t, done); !errors.Is(err, AuthenticationErrorStateChanged) {
 		t.Fatalf("pending login survived logout: %v", err)
 	}
 	if c.HasCredentials() || cleanup.Load() != 1 {

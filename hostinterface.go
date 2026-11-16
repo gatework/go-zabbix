@@ -2,7 +2,6 @@ package zabbix
 
 import (
 	"context"
-	"errors"
 )
 
 // HostInterfaceService wraps the "hostinterface" API namespace.
@@ -91,7 +90,7 @@ type HostInterfaceMassAddParams struct {
 
 func (p HostInterfaceMassAddParams) validate() error {
 	if len(p.Hosts) == 0 || len(p.Interfaces) == 0 {
-		return errors.New("zabbix: hostinterface.massadd requires hosts and interfaces")
+		return ValidationError("hostinterface.massadd requires hosts and interfaces")
 	}
 	for _, host := range p.Hosts {
 		if err := host.validate(); err != nil {
@@ -120,7 +119,7 @@ type HostInterfaceMassRemoveParams struct {
 
 func (p HostInterfaceMassRemoveParams) validate() error {
 	if len(p.HostIDs) == 0 || len(p.Interfaces) == 0 {
-		return errors.New("zabbix: hostinterface.massremove requires host IDs and interfaces")
+		return ValidationError("hostinterface.massremove requires host ids and interfaces")
 	}
 	for _, id := range p.HostIDs {
 		if err := requireWriteID(id, "HostInterfaceMassRemoveParams.HostIDs"); err != nil {

@@ -156,12 +156,12 @@ func TestRoleServiceAccessTagValidation(t *testing.T) {
 				return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":{"roleids":["42"]}}`, req.ID)
 			})
 			ids, err := c.Role().Create(context.Background(), RoleCreateParams{Name: "operators", Type: 1, Rules: &tc.rules})
-			assertQueryError(t, err, "role.create", ErrorInvalidParams)
+			assertQueryError(t, err, "role.create", ErrorKindInvalidParams)
 			if ids != nil {
 				t.Fatalf("invalid create returned IDs: %v", ids)
 			}
 			ids, err = c.Role().Update(context.Background(), RoleUpdateParams{RoleID: "42", Rules: &tc.rules})
-			assertQueryError(t, err, "role.update", ErrorInvalidParams)
+			assertQueryError(t, err, "role.update", ErrorKindInvalidParams)
 			if ids != nil {
 				t.Fatalf("invalid update returned IDs: %v", ids)
 			}
@@ -174,7 +174,7 @@ func TestRoleServiceAccessTagValidation(t *testing.T) {
 			return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":{"hostids":["42"]}}`, req.ID)
 		})
 		ids, err := c.Host().Update(context.Background(), HostUpdateParams{HostID: "42", Tags: []TagInput{{Tag: ""}}})
-		assertQueryError(t, err, "host.update", ErrorInvalidParams)
+		assertQueryError(t, err, "host.update", ErrorKindInvalidParams)
 		if ids != nil {
 			t.Fatalf("invalid host update returned IDs: %v", ids)
 		}

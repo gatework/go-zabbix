@@ -48,16 +48,16 @@ type Client struct {
 func New(apiURL string, opts ...Option) (*Client, error) {
 	endpoint, err := url.Parse(apiURL)
 	if err != nil || endpoint.Hostname() == "" || endpoint.User != nil || strings.Contains(apiURL, "#") {
-		return nil, errors.New("zabbix: invalid API endpoint")
+		return nil, ValidationError("invalid api endpoint")
 	}
 	endpoint.Scheme = strings.ToLower(endpoint.Scheme)
 	if endpoint.Scheme != "http" && endpoint.Scheme != "https" {
-		return nil, errors.New("zabbix: API endpoint must use HTTP or HTTPS")
+		return nil, ValidationError("api endpoint must use http or https")
 	}
 	cfg := clientConfig{userAgent: defaultUserAgent, maxBytes: defaultMaxResponseBytes}
 	for _, opt := range opts {
 		if opt == nil {
-			return nil, errors.New("zabbix: option must not be nil")
+			return nil, ValidationError("option must not be nil")
 		}
 		opt(&cfg)
 	}
@@ -124,14 +124,14 @@ func (c *Client) do(ctx context.Context, method string, params, out any, authent
 // empty token; Logout and compensating cleanup use the exact session they own.
 func (c *Client) doWithToken(ctx context.Context, method string, params, out any, token string) error {
 	if c == nil || c.httpClient == nil {
-		return requestError(method, ErrorInvalidParams, errors.New("client must be constructed with New"))
+		return requestError(method, ErrorKindInvalidParams, errors.New("client must be constructed with new"))
 	}
 	if ctx == nil {
-		return requestError(method, ErrorInvalidParams, errors.New("context must not be nil"))
+		return requestError(method, ErrorKindInvalidParams, errors.New("context must not be nil"))
 	}
 	destination := reflect.ValueOf(out)
 	if out != nil && (destination.Kind() != reflect.Pointer || destination.IsNil()) {
-		return requestError(method, ErrorInvalidParams, errors.New("output must be nil or a non-nil pointer"))
+		return requestError(method, ErrorKindInvalidParams, errors.New("output must be nil or a non-nil pointer"))
 	}
 	if params == nil {
 		params = []any{}
@@ -139,11 +139,11 @@ func (c *Client) doWithToken(ctx context.Context, method string, params, out any
 	reqBody := rpcRequest{JSONRPC: jsonrpcVersion, Method: method, Params: params, ID: c.id.Add(1)}
 	body, err := json.Marshal(reqBody)
 	if err != nil {
-		return requestError(method, ErrorInvalidParams, err)
+		return requestError(method, ErrorKindInvalidParams, err)
 	}
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, bytes.NewReader(body))
 	if err != nil {
-		return requestError(method, ErrorInvalidParams, err)
+		return requestError(method, ErrorKindInvalidParams, err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json-rpc")
 	httpReq.Header.Set("Accept", "application/json")
@@ -154,11 +154,11 @@ func (c *Client) doWithToken(ctx context.Context, method string, params, out any
 	c.logger.DebugContext(ctx, "zabbix request", "method", method, "id", reqBody.ID)
 	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {
-		return requestError(method, ErrorTransport, err)
+		return requestError(method, ErrorKindTransport, err)
 	}
 	defer httpResp.Body.Close()
 	if httpResp.StatusCode != http.StatusOK {
-		return requestError(method, ErrorHTTP, &HTTPError{StatusCode: httpResp.StatusCode})
+		return requestError(method, ErrorKindHTTP, &HTTPStatusError{StatusCode: httpResp.StatusCode})
 	}
 	raw, err := readResponseBody(method, httpResp.Body, c.maxBytes)
 	if err != nil {
@@ -166,19 +166,19 @@ func (c *Client) doWithToken(ctx context.Context, method string, params, out any
 	}
 	var resp rpcResponse
 	if err := json.Unmarshal(raw, &resp); err != nil {
-		return requestError(method, ErrorProtocol, err)
+		return requestError(method, ErrorKindProtocol, err)
 	}
 	if err := resp.validate(reqBody.ID); err != nil {
-		kind := ErrorProtocol
-		if _, ok := AsAPIError(err); ok {
-			kind = ErrorAPI
+		kind := ErrorKindProtocol
+		if _, ok := errors.AsType[*APIError](err); ok {
+			kind = ErrorKindAPI
 		}
 		return requestError(method, kind, err)
 	}
 	if out != nil {
 		decoded := reflect.New(destination.Type().Elem())
 		if err := json.Unmarshal(resp.Result, decoded.Interface()); err != nil {
-			return requestError(method, ErrorDecode, err)
+			return requestError(method, ErrorKindDecode, err)
 		}
 		destination.Elem().Set(decoded.Elem())
 	}
@@ -187,10 +187,10 @@ func (c *Client) doWithToken(ctx context.Context, method string, params, out any
 
 func (resp rpcResponse) validate(requestID int64) error {
 	if resp.JSONRPC != jsonrpcVersion {
-		return errors.New("zabbix: invalid JSON-RPC version")
+		return errors.New("zabbix: invalid json-rpc version")
 	}
 	if resp.ID == nil || *resp.ID != requestID {
-		return errors.New("zabbix: invalid JSON-RPC response id")
+		return errors.New("zabbix: invalid json-rpc response id")
 	}
 	if (len(resp.Result) == 0) == (len(resp.Error) == 0) {
 		return errors.New("zabbix: response must contain exactly one result or error")
@@ -202,12 +202,12 @@ func (resp rpcResponse) validate(requestID int64) error {
 			Data    string  `json:"data"`
 		}
 		if err := json.Unmarshal(resp.Error, &apiError); err != nil || apiError.Code == nil || apiError.Message == nil {
-			return errors.New("zabbix: invalid JSON-RPC error")
+			return errors.New("zabbix: invalid json-rpc error")
 		}
 		return &APIError{Code: *apiError.Code, Message: *apiError.Message, Data: apiError.Data}
 	}
 	if bytes.Equal(bytes.TrimSpace(resp.Result), []byte("null")) {
-		return errors.New("zabbix: null JSON-RPC result")
+		return errors.New("zabbix: null json-rpc result")
 	}
 	return nil
 }
@@ -216,7 +216,7 @@ func readResponseBody(method string, body io.Reader, limit int64) ([]byte, error
 	limited := &io.LimitedReader{R: body, N: limit}
 	raw, err := io.ReadAll(limited)
 	if err != nil {
-		return nil, requestError(method, ErrorTransport, err)
+		return nil, requestError(method, ErrorKindTransport, err)
 	}
 	if limited.N == 0 {
 		// Probe separately so a valid truncated prefix is rejected without overflowing
@@ -224,10 +224,10 @@ func readResponseBody(method string, body io.Reader, limit int64) ([]byte, error
 		var extra [1]byte
 		n, err := io.ReadFull(body, extra[:])
 		if n != 0 {
-			return nil, requestError(method, ErrorResponseLimit, fmt.Errorf("response exceeds %d byte limit", limit))
+			return nil, requestError(method, ErrorKindResponseLimit, fmt.Errorf("response exceeds %d byte limit", limit))
 		}
 		if err != nil && !errors.Is(err, io.EOF) {
-			return nil, requestError(method, ErrorTransport, err)
+			return nil, requestError(method, ErrorKindTransport, err)
 		}
 	}
 	return raw, nil

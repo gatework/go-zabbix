@@ -15,7 +15,7 @@ or field is wrapped. `Client.Call` handles additional protocol operations.
 ## Install
 
 ```sh
-go get github.com/gatework/go-zabbix@v0.4.0
+go get github.com/gatework/go-zabbix@v0.5.0
 ```
 
 Keep the tagged version pinned in application `go.mod` files. Read
@@ -72,7 +72,7 @@ a slice. A count-capable association such as `Interfaces` uses `Relation[T]`:
 Device/item selection and rate processing are reusable SDK capabilities:
 
 ```go
-series, err := client.Monitoring().Traffic(ctx, zabbix.TrafficQuery{
+series, err := client.Metrics().Traffic(ctx, zabbix.TrafficQuery{
     HostID: "10084", ItemID: "42001",
     From: from.Unix(), Till: till.Unix(), UseTrends: false,
 })
@@ -173,16 +173,26 @@ a read-back when the application needs to verify persisted state.
 
 ## Errors and raw calls
 
-`RequestError` records the method and failure category while preserving its cause
-for `errors.Is` and `errors.As`. `HTTPError` carries the status; `APIError` carries
-the Zabbix code, message and data. Default error strings omit response bodies,
+`RequestError` records the method and an `ErrorKind*` category while preserving
+its cause. `HTTPStatusError` carries the HTTP status; `APIError` carries the
+Zabbix code, message and data. Default request errors omit response bodies,
 endpoint URLs and upstream error details. Inspect `APIError.Message` and `Data`
 only where exposing upstream details is appropriate.
 
+`AuthenticationError`, `MetricError` and `WebError` are comparable error values:
+use `errors.Is` for a specific reason or `errors.AsType` for the category.
+`ValidationError` describes local configuration and field constraints.
+
 ```go
-var apiErr *zabbix.APIError
-if errors.As(err, &apiErr) {
+if apiErr, ok := errors.AsType[*zabbix.APIError](err); ok {
     // Handle apiErr.Code according to the operation.
+}
+if errors.Is(err, zabbix.MetricErrorUnavailable) {
+    // The selected host or item is missing or no longer matches its binding.
+}
+if metricErr, ok := errors.AsType[zabbix.MetricError](err); ok {
+    // Handle the metric category without parsing its message.
+    _ = metricErr
 }
 
 var result []map[string]any

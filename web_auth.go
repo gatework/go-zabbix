@@ -22,7 +22,7 @@ func (w *WebClient) Login(ctx context.Context, username, password string) error 
 		if err != nil {
 			return err
 		}
-		return ErrWebInput
+		return WebErrorInvalidRequest
 	}
 	select {
 	case w.loginGate <- struct{}{}:
@@ -35,7 +35,7 @@ func (w *WebClient) Login(ctx context.Context, username, password string) error 
 		return err
 	}
 	if generation != initialGeneration {
-		return ErrWebAuthentication
+		return WebErrorAuthenticationRequired
 	}
 	candidate, err := freshWebClient(hc)
 	if err != nil {
@@ -49,7 +49,7 @@ func (w *WebClient) Login(ctx context.Context, username, password string) error 
 		w.mu.Unlock()
 		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), authCleanupTimeout)
 		defer cancel()
-		return errors.Join(ErrWebAuthentication, w.logoutSession(cleanup, candidate))
+		return errors.Join(WebErrorAuthenticationRequired, w.logoutSession(cleanup, candidate))
 	}
 	w.client = candidate
 	w.generation++
@@ -61,26 +61,26 @@ func (w *WebClient) submitLogin(ctx context.Context, hc *http.Client, username, 
 	values := url.Values{"name": {username}, "password": {password}, "enter": {"Sign in"}, "form": {"1"}, "autologin": {"0"}}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, w.endpoint("index.php").String(), strings.NewReader(values.Encode()))
 	if err != nil {
-		return requestError("web.login", ErrorInvalidParams, err)
+		return requestError("web.login", ErrorKindInvalidParams, err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := hc.Do(req)
 	if err != nil {
-		return requestError("web.login", ErrorTransport, err)
+		return requestError("web.login", ErrorKindTransport, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusFound && resp.StatusCode != http.StatusSeeOther {
-		return ErrWebAuthentication
+		return WebErrorAuthenticationRequired
 	}
 	location, err := resp.Location()
 	if err != nil || !w.sameOrigin(location) {
-		return ErrWebAuthentication
+		return WebErrorAuthenticationRequired
 	}
 	switch path.Base(location.Path) {
 	case "index_mfa.php", "index_sso.php", "index_http.php":
-		return ErrWebInteractiveLogin
+		return WebErrorInteractiveLoginRequired
 	case "index.php", "setup.php":
-		return ErrWebAuthentication
+		return WebErrorAuthenticationRequired
 	}
 	if _, err := w.sessionID(hc); err != nil {
 		return err
@@ -118,7 +118,7 @@ func (w *WebClient) logoutSession(ctx context.Context, hc *http.Client) error {
 	}
 	client, err := New(w.endpoint("api_jsonrpc.php").String(), WithHTTPClient(hc), WithSessionToken(sessionID))
 	if err != nil {
-		return ErrWebInput
+		return WebErrorInvalidRequest
 	}
 	return client.Logout(ctx)
 }
@@ -132,29 +132,29 @@ func (w *WebClient) sessionID(hc *http.Client) (string, error) {
 		}
 		value := cookie.Value
 		if len(value) > 16<<10 {
-			return "", ErrWebAuthentication
+			return "", WebErrorAuthenticationRequired
 		}
 		if strings.Contains(value, "%") {
 			decoded, err := url.PathUnescape(value)
 			if err != nil {
-				return "", ErrWebAuthentication
+				return "", WebErrorAuthenticationRequired
 			}
 			value = decoded
 		}
 		data, err := base64.StdEncoding.DecodeString(value)
 		if err != nil {
-			return "", ErrWebAuthentication
+			return "", WebErrorAuthenticationRequired
 		}
 		var session struct {
 			ID   string `json:"sessionid"`
 			Sign string `json:"sign"`
 		}
 		if json.Unmarshal(data, &session) != nil || session.Sign == "" || validateToken(session.ID) != nil {
-			return "", ErrWebAuthentication
+			return "", WebErrorAuthenticationRequired
 		}
 		return session.ID, nil
 	}
-	return "", ErrWebAuthentication
+	return "", WebErrorAuthenticationRequired
 }
 
 func (w *WebClient) sameOrigin(target *url.URL) bool {

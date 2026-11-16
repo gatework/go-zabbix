@@ -118,9 +118,9 @@ func TestAPIErrorReturned(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	apiErr, ok := AsAPIError(err)
+	apiErr, ok := errors.AsType[*APIError](err)
 	if !ok {
-		t.Fatalf("AsAPIError = false, err = %v", err)
+		t.Fatalf("errors.AsType[*APIError] = false, err = %v", err)
 	}
 	if apiErr.Code != -32602 {
 		t.Fatalf("code = %d, want -32602", apiErr.Code)

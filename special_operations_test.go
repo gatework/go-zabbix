@@ -42,7 +42,7 @@ func TestScriptExecuteRejectsIncompleteResults(t *testing.T) {
 			if got != nil {
 				t.Fatalf("partial script result: %#v", got)
 			}
-			assertQueryError(t, err, "script.execute", ErrorProtocol)
+			assertQueryError(t, err, "script.execute", ErrorKindProtocol)
 		})
 	}
 }
@@ -68,7 +68,7 @@ func TestTokenGenerateRequiresCompleteRotationResult(t *testing.T) {
 			if got != nil {
 				t.Fatalf("partial generated tokens: %#v", got)
 			}
-			assertQueryError(t, err, "token.generate", ErrorProtocol)
+			assertQueryError(t, err, "token.generate", ErrorKindProtocol)
 			if strings.Contains(err.Error(), "secret-do-not-log") {
 				t.Fatal("error includes generated token")
 			}
@@ -80,7 +80,7 @@ func TestTokenGenerateRequiresCompleteRotationResult(t *testing.T) {
 		if got != nil {
 			t.Fatalf("partial generated tokens: %#v", got)
 		}
-		assertQueryError(t, err, "token.generate", ErrorProtocol)
+		assertQueryError(t, err, "token.generate", ErrorKindProtocol)
 	})
 	t.Run("null token entry", func(t *testing.T) {
 		c := queryFixtureClient(t, "token.generate", `["1"]`, `[null]`)
@@ -88,7 +88,7 @@ func TestTokenGenerateRequiresCompleteRotationResult(t *testing.T) {
 		if got != nil {
 			t.Fatalf("partial generated tokens: %#v", got)
 		}
-		assertQueryError(t, err, "token.generate", ErrorDecode)
+		assertQueryError(t, err, "token.generate", ErrorKindDecode)
 	})
 }
 
@@ -96,7 +96,7 @@ func TestTokenGenerateRejectsInvalidIDsBeforeRequest(t *testing.T) {
 	for _, ids := range [][]string{nil, {""}, {"1", "01"}} {
 		c, requests := mockServer(t, func(rpcRequest) (any, *APIError) { return []TokenGenerated{}, nil })
 		_, err := c.APIToken().Generate(context.Background(), ids...)
-		assertQueryError(t, err, "token.generate", ErrorInvalidParams)
+		assertQueryError(t, err, "token.generate", ErrorKindInvalidParams)
 		if len(*requests) != 0 {
 			t.Fatal("invalid token IDs reached the transport")
 		}
@@ -123,7 +123,7 @@ func TestConfigurationExportSeparatesSerializedAndRawResults(t *testing.T) {
 	t.Run("raw format requires raw method", func(t *testing.T) {
 		c, requests := mockServer(t, func(rpcRequest) (any, *APIError) { return map[string]any{}, nil })
 		_, err := c.Configuration().Export(context.Background(), ConfigurationExportParams{Format: "raw", Options: options})
-		assertQueryError(t, err, "configuration.export", ErrorInvalidParams)
+		assertQueryError(t, err, "configuration.export", ErrorKindInvalidParams)
 		if len(*requests) != 0 {
 			t.Fatal("raw export reached serialized transport")
 		}
@@ -135,7 +135,7 @@ func TestConfigurationExportSeparatesSerializedAndRawResults(t *testing.T) {
 			if got != nil {
 				t.Fatalf("invalid raw export: %s", got)
 			}
-			assertQueryError(t, err, "configuration.export", ErrorProtocol)
+			assertQueryError(t, err, "configuration.export", ErrorKindProtocol)
 		})
 	}
 }
